@@ -244,6 +244,12 @@ public final class SessionManager {
 
 		  options.setTableFormatConfig(table_options);
 		  assert (options.tableFactoryName().equals("BlockBasedTable"));
+		  try {	  
+			  db = RocksDB.open(options, db_path);
+		  } catch (final RocksDBException e) {
+			    System.out.format("[ERROR] caught the unexpected exception -- %s\n", e);
+			    assert (false);
+		  }
 		  return db;
 	}
 	/**

@@ -439,6 +439,7 @@ final class RockSackSession implements TransactionInterface {
 		Iterator it = new KeySetIterator(kvStore);
 		long cnt = 0;
 		while(it.hasNext()) {
+			it.next();
 			++cnt;
 		}
 		return cnt;
