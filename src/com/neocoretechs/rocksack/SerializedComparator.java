@@ -15,7 +15,7 @@ import org.rocksdb.ComparatorOptions;
 
 public class SerializedComparator extends AbstractComparator {
 
-	SerializedComparator() {
+	public SerializedComparator() {
 		super(new ComparatorOptions());
 	}
 

@@ -24,4 +24,5 @@ public abstract class AbstractIterator implements Iterator<Object> {
 	}
 	public abstract boolean hasNext();
 	public abstract Object next();
+	public RocksIterator getIterator() { return kvMain; }
 }
