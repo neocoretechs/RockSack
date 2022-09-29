@@ -42,7 +42,7 @@ public class TransactionalTreeSet implements TransactionInterface, OrderedKVSetI
 	}
 
 	/**
-	* Get instance of BigSack session.
+	* Get instance of RockSack session.
 	* Each new instance of this will connect to a backing store
 	* to provide an in-mem cache. 
 	* @param tdbname The database name

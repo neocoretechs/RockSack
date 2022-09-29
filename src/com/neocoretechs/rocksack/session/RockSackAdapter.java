@@ -8,7 +8,7 @@ import com.neocoretechs.rocksack.DBPhysicalConstants;
 
 
 /**
- * This factory class enforces a strong typing for the BigSack using the database naming convention linked to the
+ * This factory class enforces a strong typing for the RockSack using the database naming convention linked to the
  * class name of the class stored there.
  * 
  * The main function of this adapter is to ensure that the appropriate map or set is instantiated.
@@ -57,8 +57,8 @@ public class RockSackAdapter {
 	 * @throws IllegalAccessException
 	 * @throws IOException
 	 */
-	public static BufferedTreeSet getBigSackTreeSet(Comparable clazz) throws IllegalAccessException, IOException {
-		return getBigSackTreeSet(clazz.getClass());
+	public static BufferedTreeSet getRockSackTreeSet(Comparable clazz) throws IllegalAccessException, IOException {
+		return getRockSackTreeSet(clazz.getClass());
 	}
 	/**
 	 * Get a TreeSet via Java Class type.
@@ -67,11 +67,11 @@ public class RockSackAdapter {
 	 * @throws IllegalAccessException
 	 * @throws IOException
 	 */
-	public static BufferedTreeSet getBigSackTreeSet(Class clazz) throws IllegalAccessException, IOException {
+	public static BufferedTreeSet getRockSackTreeSet(Class clazz) throws IllegalAccessException, IOException {
 		String xClass = translateClass(clazz.getName());
 		BufferedTreeSet ret = (BufferedTreeSet) classToIso.get(xClass);
 		if(DEBUG)
-			System.out.println("BigSackAdapter.getBigSackTreeSet About to return designator: "+tableSpaceDir+xClass+" formed from "+clazz.getClass().getName());
+			System.out.println("RockSackAdapter.getRockSackTreeSet About to return designator: "+tableSpaceDir+xClass+" formed from "+clazz.getClass().getName());
 		if( ret == null ) {
 			ret =  new BufferedTreeSet(tableSpaceDir+xClass, DBPhysicalConstants.BACKINGSTORE, DBPhysicalConstants.DBUCKETS);
 			classToIso.put(xClass, ret);
@@ -85,8 +85,8 @@ public class RockSackAdapter {
 	 * @throws IllegalAccessException
 	 * @throws IOException
 	 */
-	public static BufferedTreeMap getBigSackTreeMap(Comparable clazz) throws IllegalAccessException, IOException {
-		return getBigSackTreeMap(clazz.getClass());
+	public static BufferedTreeMap getRockSackTreeMap(Comparable clazz) throws IllegalAccessException, IOException {
+		return getRockSackTreeMap(clazz.getClass());
 	}
 	/**
 	 * Get a TreeMap via Java Class type.
@@ -95,11 +95,11 @@ public class RockSackAdapter {
 	 * @throws IllegalAccessException
 	 * @throws IOException
 	 */
-	public static BufferedTreeMap getBigSackTreeMap(Class clazz) throws IllegalAccessException, IOException {
+	public static BufferedTreeMap getRockSackTreeMap(Class clazz) throws IllegalAccessException, IOException {
 		String xClass = translateClass(clazz.getName());
 		BufferedTreeMap ret = (BufferedTreeMap) classToIso.get(xClass);
 		if(DEBUG)
-			System.out.println("BigSackAdapter.getBigSackTreeMap About to return designator: "+tableSpaceDir+xClass+" formed from "+clazz.getClass().getName());
+			System.out.println("RockSackAdapter.getRockSackTreeMap About to return designator: "+tableSpaceDir+xClass+" formed from "+clazz.getClass().getName());
 		if( ret == null ) {
 			ret =  new BufferedTreeMap(tableSpaceDir+xClass, DBPhysicalConstants.BACKINGSTORE, DBPhysicalConstants.DBUCKETS);
 			classToIso.put(xClass, ret);
@@ -113,8 +113,8 @@ public class RockSackAdapter {
 	 * @throws IllegalAccessException
 	 * @throws IOException
 	 */
-	public static TransactionalTreeSet getBigSackTransactionalTreeSet(Comparable clazz) throws IllegalAccessException, IOException {
-		return getBigSackTransactionalTreeSet(clazz.getClass());
+	public static TransactionalTreeSet getRockSackTransactionalTreeSet(Comparable clazz) throws IllegalAccessException, IOException {
+		return getRockSackTransactionalTreeSet(clazz.getClass());
 	}
 	/**
 	 * Get a TransactionalTreeSet via Java Class type.
@@ -123,11 +123,11 @@ public class RockSackAdapter {
 	 * @throws IllegalAccessException
 	 * @throws IOException
 	 */
-	public static TransactionalTreeSet getBigSackTransactionalTreeSet(Class clazz) throws IllegalAccessException, IOException {
+	public static TransactionalTreeSet getRockSackTransactionalTreeSet(Class clazz) throws IllegalAccessException, IOException {
 		String xClass = translateClass(clazz.getName());
 		TransactionalTreeSet ret = (TransactionalTreeSet) classToIso.get(xClass);
 		if(DEBUG)
-			System.out.println("BigSackAdapter.getBigSackTransactionalTreeSet About to return designator: "+tableSpaceDir+xClass+" formed from "+clazz.getClass().getName());
+			System.out.println("RockSackAdapter.getRockSackTransactionalTreeSet About to return designator: "+tableSpaceDir+xClass+" formed from "+clazz.getClass().getName());
 		if( ret == null ) {
 			ret =  new TransactionalTreeSet(tableSpaceDir+xClass, DBPhysicalConstants.BACKINGSTORE, DBPhysicalConstants.DBUCKETS);
 			classToIso.put(xClass, ret);
@@ -141,8 +141,8 @@ public class RockSackAdapter {
 	 * @throws IllegalAccessException
 	 * @throws IOException
 	 */
-	public static TransactionalTreeMap getBigSackTransactionalTreeMap(Comparable clazz) throws IllegalAccessException, IOException {
-		return getBigSackTransactionalTreeMap(clazz.getClass());
+	public static TransactionalTreeMap getRockSackTransactionalTreeMap(Comparable clazz) throws IllegalAccessException, IOException {
+		return getRockSackTransactionalTreeMap(clazz.getClass());
 	}
 	/**
 	 * Get a TransactionalTreeMap via Java Class type.
@@ -151,11 +151,11 @@ public class RockSackAdapter {
 	 * @throws IllegalAccessException
 	 * @throws IOException
 	 */
-	public static TransactionalTreeMap getBigSackTransactionalTreeMap(Class clazz) throws IllegalAccessException, IOException {
+	public static TransactionalTreeMap getRockSackTransactionalTreeMap(Class clazz) throws IllegalAccessException, IOException {
 		String xClass = translateClass(clazz.getName());
 		TransactionalTreeMap ret = (TransactionalTreeMap) classToIso.get(xClass);
 		if(DEBUG)
-			System.out.println("BigSackAdapter.getBigSackMapTransaction About to return designator: "+tableSpaceDir+xClass+" formed from "+clazz.getClass().getName());
+			System.out.println("RockSackAdapter.getRockSackMapTransaction About to return designator: "+tableSpaceDir+xClass+" formed from "+clazz.getClass().getName());
 		if( ret == null ) {
 			ret =  new TransactionalTreeMap(tableSpaceDir+xClass, DBPhysicalConstants.BACKINGSTORE, DBPhysicalConstants.DBUCKETS);
 			classToIso.put(xClass, ret);

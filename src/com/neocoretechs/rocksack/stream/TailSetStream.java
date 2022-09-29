@@ -7,7 +7,7 @@ import org.rocksdb.RocksDB;
 import com.neocoretechs.rocksack.iterator.TailSetIterator;
 
 /**
- * Java 8 stream extensions for BigSack delivery of ordered persistent datasets.
+ * Java 8 stream extensions for RockSack delivery of ordered persistent datasets.
  * @author Jonathan Groff Copyright (C) NeoCoreTechs 2021
  *
  */

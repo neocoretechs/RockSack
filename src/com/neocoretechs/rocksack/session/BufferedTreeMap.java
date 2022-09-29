@@ -28,7 +28,7 @@ import java.util.stream.Stream;
 *
 */
 /**
-* BufferedTreeMap.We use the BigSackSession object. BTree implements map.
+* BufferedTreeMap.We use the RockSackSession object. BTree implements map.
 * Transactions are transparent, recovery is supported without user specifying transaction semantics.
 * The user is not concerned with semantics of recovery when using this construct. The commit
 * operations are performed after each insert and recovery takes place if a failure occurs during

@@ -32,7 +32,7 @@ import org.rocksdb.RocksDB;
 *
 */
 /**
-* BufferedSet. We use the BigSackSession object here.
+* BufferedSet. We use the RockSackSession object here.
 * Although transactions are not explicitly controlled they take place atomically so that
 * recovery can occur in the event of failure. The user is not concerned with semantics of recovery
 * when using this construct. The commit
@@ -46,7 +46,7 @@ public abstract class BufferedSet implements SetInterface {
 	protected RockSackSession session;
 
 	/**
-	* Get instance of BigSack session.
+	* Get instance of RockSack session.
 	* Each new instance of this will connect to the same backing store
 	* with a different in-mem cache.
 	* @param tdbname The database name
@@ -86,7 +86,7 @@ public abstract class BufferedSet implements SetInterface {
 	* Get a value from backing store if not in cache.
 	* We may toss out one to make room if size surpasses objectCacheSize
 	* @param tkey The key for the value
-	* @return The {@link Entry} from BigSack iterator Entry derived from Map.Entry for the key
+	* @return The {@link Entry} from RockSack iterator Entry derived from Map.Entry for the key
 	* @exception IOException if get from backing store fails
 	*/
 	public Object getValue(Object tkey) throws IOException {

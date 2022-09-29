@@ -92,26 +92,7 @@ public final class SessionManager {
 	// Global transaction timestamps
 	private static long lastStartTime = 0L;
 	private static long lastCommitTime = 0L;
-	/*
-	public static String getDbPath(String dbName) {
-		 BigSackSession dbs = SessionTable.get(dbName);
-		 if( dbs != null )
-			 return dbs.getDBPath();
-		 return null;
-	}
-	
-	public static String getRemoteDBName(String dbName) {
-		 BigSackSession dbs = SessionTable.get(dbName);
-		 if( dbs != null ) {
-			 if( DEBUG )
-				 System.out.println("SessionManager.getRemoteDBName "+dbs.getRemoteDBName()+" from "+dbName);
-			 return dbs.getRemoteDBName();
-		 } else
-			 if( DEBUG )
-				 System.out.println("SessionManager.getRemoteDBName remote name is NULL from"+dbName);
-		 return null;
-	}
-	*/
+
 	/**
 	 * Increment the base global trans id and return, one for each session
 	 * @return
@@ -150,7 +131,7 @@ public final class SessionManager {
 	* @param keystoreType "HMap", "BTree" etc.
 	* @param backingstoreType The type of filesystem of memory map "File" "MMap" etc.
 	* @param poolBlocks The number of blocks in the buffer pool
-	* @return BigSackSession The session we use to control access
+	* @return RockSackSession The session we use to control access
 	* @exception IOException If low level IO problem
 	* @exception IllegalAccessException If access to database is denied
 	*/

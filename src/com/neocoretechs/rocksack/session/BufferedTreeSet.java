@@ -28,7 +28,7 @@ import java.util.stream.Stream;
 *
 */
 /**
-* BufferedTreeSet. We use the BigSackSession object here. Recovery is supported transparently
+* BufferedTreeSet. We use the RockSackSession object here. Recovery is supported transparently
 * and transactions are transparent to the user.
 * The user is not concerned with semantics of recovery when using this construct. The commit
 * operations are performed after each insert and recovery takes place if a failure occurs during

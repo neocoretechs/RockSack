@@ -25,7 +25,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 /**
- * Lynchpin superclass of all BigSack streams that wraps the Iterator with Spliterator using:
+ * Lynchpin superclass of all RockSack streams that wraps the Iterator with Spliterator using:
  * (Spliterator<T>) Spliterators.spliteratorUnknownSize(esi, characteristics) <p/>
  * Once wrapped, the system supplied StreamSupport class provides the actual stream using:
  * (Stream<T>) StreamSupport.stream(spliterator, parallel) <p/>

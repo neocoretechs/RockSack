@@ -31,7 +31,7 @@ import org.rocksdb.RocksDB;
 *
 */
 /**
-* BufferedMap.We use the BigSackSession object here.
+* BufferedMap.We use the RockSackSession object here.
 * Although transactions are not explicitly controlled they take place atomically so that
 * recovery can occur in the event of failure. The user is not concerned with semantics of recovery
 * when using this construct. The commit
@@ -45,7 +45,7 @@ public abstract class BufferedMap implements OrderedKVMapInterface {
 	protected RockSackSession session;
 
 	/**
-	* Get instance of BigSack session.
+	* Get instance of RockSack session.
 	* Each new instance of this will connect to the same backing store
 	* with a different in-mem cache.
 	* @param tdbname The database name
