@@ -57,23 +57,15 @@ public class SubSetKVIterator extends SubSetIterator {
 			if(kvMain.isValid()) {
 				nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
 				nextElem = SerializedComparator.deserializeObject(kvMain.value());
+				/*
+				if (nextKey.compareTo(toKey) >= 0 || nextKey.compareTo(fromKey) < 0) {
+					System.out.println("WARNING: NON exclusive subset iterator");
+				}
+				*/
 			} else {
 				nextKey = null;
 			}
-			// move nextelem to retelem, search nextelem, get nextelem
-			synchronized (kvMain) {
-				if (nextKey == null || nextKey.compareTo(toKey) >= 0 || nextKey.compareTo(fromKey) < 0) {
-						if( DEBUG  ) {
-							if( nextKey != null)
-								System.out.println("SubSetIterator init nextKey non-null toKey:"+nextKey.compareTo(toKey)+" fromKey:"+nextKey.compareTo(fromKey));
-							else
-								System.out.println("SubSetIterator init nextKey null toKey:"+toKey+" fromKey:"+fromKey);
-						}
-						nextKey = null; //exclusive
-						System.out.println("WARNING: NON exclusive subset iterator");
-				}
-				return new KeyValuePair(retKey, retElem);
-			}
+			return new KeyValuePair(retKey, retElem);
 		} catch (IOException ioe) {
 			throw new RuntimeException(ioe.toString());
 		}

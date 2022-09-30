@@ -60,10 +60,12 @@ public class HeadSetIterator extends AbstractIterator {
 				if(kvMain.isValid()) {
 					nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
 					// verify until confirm order exclusive
+					/*
 					if (nextKey.compareTo(toKey) >= 0) {
 						nextKey = null;
 						System.out.println("VERIFY: order NOT exclusive");
 					}
+					*/
 				} else {
 					nextKey = null;
 				}

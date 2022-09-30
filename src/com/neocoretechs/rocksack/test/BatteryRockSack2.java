@@ -6,7 +6,7 @@ import java.util.Stack;
 
 import com.neocoretechs.rocksack.iterator.KeyValuePair;
 import com.neocoretechs.rocksack.session.RockSackAdapter;
-import com.neocoretechs.rocksack.session.BufferedTreeMap;
+import com.neocoretechs.rocksack.session.BufferedMap;
 import com.neocoretechs.rocksack.KeyValue;
 
 /**
@@ -44,7 +44,7 @@ public class BatteryRockSack2 {
 			System.exit(1);
 		}
 		RockSackAdapter.setTableSpaceDir(argv[0]);
-		BufferedTreeMap session = RockSackAdapter.getRockSackTreeMap(key.getClass());
+		BufferedMap session = RockSackAdapter.getRockSackMap(key.getClass());
 		 System.out.println("Begin Battery Fire!");
 		 // add min to max
 		battery1(session, argv);
@@ -83,7 +83,7 @@ public class BatteryRockSack2 {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1(BufferedTreeMap session, String[] argv) throws Exception {
+	public static void battery1(BufferedMap session, String[] argv) throws Exception {
 		long tims = System.currentTimeMillis();
 		for(int i = min; i <= max; i++) {
 			session.put(key + String.format(uniqKeyFmt, i), val+String.format(uniqKeyFmt, i));
@@ -100,7 +100,7 @@ public class BatteryRockSack2 {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1A(BufferedTreeMap session, String[] argv) throws Exception {
+	public static void battery1A(BufferedMap session, String[] argv) throws Exception {
 		long tims = System.currentTimeMillis();
 		for(int i = min; i < max; i++) {
 			Object oo = session.get(key + String.format(uniqKeyFmt, i));
@@ -120,7 +120,7 @@ public class BatteryRockSack2 {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1A0(BufferedTreeMap session, String[] argv) throws Exception {
+	public static void battery1A0(BufferedMap session, String[] argv) throws Exception {
 		long tims = System.currentTimeMillis();
 		for(int i = min; i < max; i++) {
 			Entry kv = (Entry) session.getValue(val + String.format(uniqKeyFmt, i));
@@ -138,7 +138,7 @@ public class BatteryRockSack2 {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1A1(BufferedTreeMap session, String[] argv) throws Exception {
+	public static void battery1A1(BufferedMap session, String[] argv) throws Exception {
 		long tims = System.currentTimeMillis();	
 		int o = (int) session.size();
 		System.out.println("Total number of elements = "+o);
@@ -155,7 +155,7 @@ public class BatteryRockSack2 {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1B(BufferedTreeMap session, String[] argv) throws Exception {
+	public static void battery1B(BufferedMap session, String[] argv) throws Exception {
 		long tims = System.currentTimeMillis();
 		String f = (String) session.first();
 		String l = (String) session.last();
@@ -186,7 +186,7 @@ public class BatteryRockSack2 {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1C(BufferedTreeMap session, String[] argv) throws Exception {
+	public static void battery1C(BufferedMap session, String[] argv) throws Exception {
 		long tims = System.currentTimeMillis();
 		Iterator<?> itk = session.keySet();
 		Iterator<?> ite = session.entrySet();
@@ -217,7 +217,7 @@ public class BatteryRockSack2 {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1D(BufferedTreeMap session, String[] argv) throws Exception {
+	public static void battery1D(BufferedMap session, String[] argv) throws Exception {
 		long tims = System.currentTimeMillis();
 		// headset strictly less than 'to' element
 		Iterator<?> itk = session.headMap(key+(max)); // set is strictly less than 'to' element so we use max val
@@ -241,7 +241,7 @@ public class BatteryRockSack2 {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1E(BufferedTreeMap session, String[] argv) throws Exception {
+	public static void battery1E(BufferedMap session, String[] argv) throws Exception {
 		long tims = System.currentTimeMillis();
 		// from element inclusive to element exclusive
 		// notice how we use base key to set lower bound as the partial unformed key is least possible value
@@ -273,7 +273,7 @@ public class BatteryRockSack2 {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1F(BufferedTreeMap session, String[] argv) throws Exception {
+	public static void battery1F(BufferedMap session, String[] argv) throws Exception {
 		long tims = System.currentTimeMillis();
 		// subset strictly less than 'to' element
 		Iterator<?> itk = session.tailMap(key); // >= from, so try partial bare key here
@@ -298,7 +298,7 @@ public class BatteryRockSack2 {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1D1(BufferedTreeMap session, String[] argv) throws Exception {
+	public static void battery1D1(BufferedMap session, String[] argv) throws Exception {
 		long tims = System.currentTimeMillis();
 		// headset strictly less than 'to' element
 		Iterator<?> itk = session.headMapKV(key+String.format(uniqKeyFmt, max)); // set is strictly less than 'to' element so we use max val
@@ -332,7 +332,7 @@ public class BatteryRockSack2 {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1E1(BufferedTreeMap session, String[] argv) throws Exception {
+	public static void battery1E1(BufferedMap session, String[] argv) throws Exception {
 		long tims = System.currentTimeMillis();
 		// from element inclusive to element exclusive
 		// notice how we use base key to set lower bound as the partial unformed key is least possible value
@@ -367,7 +367,7 @@ public class BatteryRockSack2 {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1F1(BufferedTreeMap session, String[] argv) throws Exception {
+	public static void battery1F1(BufferedMap session, String[] argv) throws Exception {
 		long tims = System.currentTimeMillis();
 		// subset strictly less than 'to' element
 		Iterator<?> itk = session.tailMapKV(key); // >= from, so try partial bare key here
@@ -394,7 +394,7 @@ public class BatteryRockSack2 {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1G(BufferedTreeMap session, String[] argv) throws Exception {
+	public static void battery1G(BufferedMap session, String[] argv) throws Exception {
 		long tims = System.currentTimeMillis();
 		for(int i = min; i < max; i++) {
 			String nkey = key + String.format(uniqKeyFmt, i);
@@ -413,7 +413,7 @@ public class BatteryRockSack2 {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery2(BufferedTreeMap session, String[] argv) throws Exception {
+	public static void battery2(BufferedMap session, String[] argv) throws Exception {
 		long tims = System.currentTimeMillis();
 		for(int item = 0; item < numDelete; item++) {
 			String nkey = key + String.format(uniqKeyFmt, item);
@@ -433,7 +433,7 @@ public class BatteryRockSack2 {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery2A(BufferedTreeMap session, String[] argv) throws Exception {
+	public static void battery2A(BufferedMap session, String[] argv) throws Exception {
 		long tims = System.currentTimeMillis();
 		for(int i = 0; i < numDelete; i++) {
 			int item = min + (int)(Math.random() * ((max - min) + 1));

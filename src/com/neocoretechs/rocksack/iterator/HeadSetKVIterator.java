@@ -64,10 +64,12 @@ public class HeadSetKVIterator extends AbstractIterator {
 					nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
 					nextElem = SerializedComparator.deserializeObject(kvMain.value());
 					// verify until confirm order exclusive
+					/*
 					if (nextKey.compareTo(toKey) >= 0) {
 						nextKey = null;
 						System.out.println("VERIFY: order NOT exclusive");
 					}
+					*/
 				} else {
 					nextKey = null;
 				}

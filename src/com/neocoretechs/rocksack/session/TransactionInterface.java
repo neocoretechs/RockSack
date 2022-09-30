@@ -1,9 +1,6 @@
 package com.neocoretechs.rocksack.session;
 
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.stream.Stream;
-
 
 interface TransactionInterface {
 
@@ -12,6 +9,7 @@ interface TransactionInterface {
 	
 	long getTransactionId();
 
+	void BeginTransaction();
 	/**
 	* Close this session.
 	* @param rollback true to roll back, false to commit

@@ -31,17 +31,20 @@ import org.rocksdb.RocksDB;
 *
 */
 /**
-* BufferedMap.We use the RockSackSession object here.
+* BufferedMap. We use the RockSackSession object here.
 * Although transactions are not explicitly controlled they take place atomically so that
 * recovery can occur in the event of failure. The user is not concerned with semantics of recovery
 * when using this construct. The commit
-* operations are performed after each insert and recovery takes place if a failure occurs during
-* runtime writes. If transparency with existing code is paramount this class is a good choice.
+* operations are performed after each insert/delete and recovery takes place if a failure occurs during
+* runtime writes. Commit after every operation is present for those databases that use transactions by default.
+* In the case of say, RocksDB, the method does nothing. Unintuitively, these operation are absent in the transaction
+* oriented class, as they occur after all operations are executed, not after each operation.<p/>
+* If transparency with existing code is paramount this class is a good choice.
 * Thread safety is with the session object using session.getMutexObject().
 * Java Map backed by pooled serialized objects.
 * @author Jonathan Groff (C) NeoCoreTechs 2003, 2017, 2021
 */
-public abstract class BufferedMap implements OrderedKVMapInterface {
+public class BufferedMap implements OrderedKVMapInterface {
 	protected RockSackSession session;
 
 	/**
@@ -50,12 +53,11 @@ public abstract class BufferedMap implements OrderedKVMapInterface {
 	* with a different in-mem cache.
 	* @param tdbname The database name
 	* @param keyValueStore Type of Key/Value store BTree, HMap, etc. 
-	* @param poolBlocks
 	* @exception IOException if global IO problem
 	* @exception IllegalAccessException if the database has been put offline
 	*/
-	public BufferedMap(String tdbname, String keyValueStore, String backingStore, int poolBlocks) throws IOException, IllegalAccessException {
-		session = SessionManager.Connect(tdbname, keyValueStore, backingStore, poolBlocks);
+	public BufferedMap(String tdbname, String keyValueStore, String backingStore ) throws IOException, IllegalAccessException {
+		session = SessionManager.Connect(tdbname, keyValueStore, backingStore);
 	}
 		
 	public RockSackSession getSession() {

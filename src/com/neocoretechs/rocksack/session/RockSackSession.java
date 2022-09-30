@@ -8,9 +8,11 @@ import java.util.Stack;
 import java.util.stream.Stream;
 
 import org.rocksdb.Options;
+import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
+import org.rocksdb.Transaction;
 
 import com.neocoretechs.rocksack.KeyValue;
 import com.neocoretechs.rocksack.SerializedComparator;
@@ -61,11 +63,11 @@ import com.neocoretechs.rocksack.stream.TailSetStream;
 * and handling commit and rollback.
 * @author Jonathan Groff (C) NeoCoreTechs 2003, 2017, 2021
 */
-final class RockSackSession implements TransactionInterface {
+public class RockSackSession {
 	private boolean DEBUG = false;
 	private int uid;
 	private int gid;
-	private RocksDB kvStore;
+	protected RocksDB kvStore;
 	private Options options;
 
 	/**
@@ -137,6 +139,15 @@ final class RockSackSession implements TransactionInterface {
 		}
 		return true;
 	}
+	
+	protected boolean put(Transaction txn, Comparable key, Object o) throws IOException {
+		try {
+			txn.put(SerializedComparator.serializeObject(key),SerializedComparator.serializeObject(o));
+		} catch (RocksDBException | IOException e) {
+			throw new IOException(e);
+		}
+		return true;
+	}
 	/**
 	 * Cause the KvStore to seekKey for the Comparable type.
 	 * @param o the Comparable object to seek.
@@ -147,6 +158,20 @@ final class RockSackSession implements TransactionInterface {
 	protected Object get(Comparable o) throws IOException {
 		   try {
 			   return new KeyValue(o,SerializedComparator.deserializeObject(kvStore.get(SerializedComparator.serializeObject(o))));
+		} catch (RocksDBException | IOException e) {
+			throw new IOException(e);
+		}
+	}
+	/**
+	 * Cause the KvStore to seekKey for the Comparable type.
+	 * @param o the Comparable object to seek.
+	 * @return the Key/Value object from the retrieved node
+	 * @throws IOException
+	 */
+	@SuppressWarnings("rawtypes")
+	protected Object get(Transaction txn, ReadOptions ro, Comparable o) throws IOException {
+		   try {
+			   return new KeyValue(o,SerializedComparator.deserializeObject(txn.get(ro,SerializedComparator.serializeObject(o))));
 		} catch (RocksDBException | IOException e) {
 			throw new IOException(e);
 		}
@@ -475,10 +500,28 @@ final class RockSackSession implements TransactionInterface {
 	}
 	
 	/**
+	* @exception IOException for low level failure
+	*/
+	public void Rollback(Transaction txn) throws IOException {
+		try {
+			txn.rollback();
+		} catch (RocksDBException e) {
+			throw new IOException(e);
+		}
+	}
+	/**
 	* Commit the blocks.
 	* @exception IOException For low level failure
 	*/
 	public void Commit() throws IOException {
+	}
+	
+	public void Commit(Transaction txn) throws IOException {
+		try {
+			txn.commit();
+		} catch (RocksDBException e) {
+			throw new IOException(e);
+		}
 	}
 	/**
 	 * Checkpoint the current transaction

@@ -24,8 +24,14 @@ import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.SkipListMemTableConfig;
+import org.rocksdb.Snapshot;
 import org.rocksdb.Statistics;
+import org.rocksdb.Transaction;
+import org.rocksdb.TransactionDB;
+import org.rocksdb.TransactionDBOptions;
+import org.rocksdb.TransactionOptions;
 import org.rocksdb.VectorMemTableConfig;
+import org.rocksdb.WriteOptions;
 import org.rocksdb.util.SizeUnit;
 
 import com.neocoretechs.rocksack.SerializedComparator;
@@ -130,14 +136,13 @@ public final class SessionManager {
 	* @param dbname The database name as full path
 	* @param keystoreType "HMap", "BTree" etc.
 	* @param backingstoreType The type of filesystem of memory map "File" "MMap" etc.
-	* @param poolBlocks The number of blocks in the buffer pool
 	* @return RockSackSession The session we use to control access
 	* @exception IOException If low level IO problem
 	* @exception IllegalAccessException If access to database is denied
 	*/
-	public static synchronized RockSackSession Connect(String dbname, String keystoreType, String backingstoreType, int poolBlocks) throws IOException, IllegalAccessException {
+	public static synchronized RockSackSession Connect(String dbname, String keystoreType, String backingstoreType) throws IOException, IllegalAccessException {
 		if( DEBUG ) {
-			System.out.printf("Connecting to database:%s with key store:%s and backing store:%s with pool blocks:%d%n", dbname, keystoreType, backingstoreType, poolBlocks);
+			System.out.printf("Connecting to database:%s with key store:%s and backing store:%s%n", dbname, keystoreType, backingstoreType);
 		}
 		backingStoreType = backingstoreType;
 		// translate user name to uid and group
@@ -152,7 +157,8 @@ public final class SessionManager {
 			// did'nt find it, create anew, throws IllegalAccessException if no go.
 			// Global IO and main Key/Value index
 			Options o = new Options();
-			RocksDB db = setOptions(dbname, o);
+			setOptions(o);
+			RocksDB db = OpenDB(dbname, o);
 			hps = new RockSackSession(db, o, uid, gid);
 			SessionTable.put(dbname, hps);
 			if( DEBUG )
@@ -166,24 +172,57 @@ public final class SessionManager {
 		return hps;
 	}
 	
-	private static RocksDB setOptions(String dbpath, Options options) {
-		RocksDB db = null;
-		final String db_path = dbpath;
-		final String db_path_not_found = db_path + "_not_found";
+	/**
+	* Connect and return Session instance that is the transaction session.
+	* @param dbname The database name as full path
+	* @param keystoreType "RocksDB", "BTree" etc.
+	* @param backingstoreType The type of filesystem of memory map "File" "MMap" etc.
+	* @return RockSackSession The session we use to control access
+	* @exception IOException If low level IO problem
+	* @exception IllegalAccessException If access to database is denied
+	*/
+	public static synchronized RockSackTransactionSession ConnectTransaction(String dbname, String keystoreType, String backingstoreType) throws IOException, IllegalAccessException {
+		if( DEBUG ) {
+			System.out.printf("Connecting to transaction database:%s with key store:%s and backing store:%s%n", dbname, keystoreType, backingstoreType);
+		}
+		backingStoreType = backingstoreType;
+		// translate user name to uid and group
+		// we can restrict access at database level here possibly
+		int uid = 0;
+		int gid = 1;
+		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
+		if (OfflineDBs.contains(dbname))
+			throw new IllegalAccessException("Database is offline, try later");
+		RockSackTransactionSession hps = (RockSackTransactionSession) (SessionTable.get(dbname));
+		if (hps == null) {
+			// did'nt find it, create anew, throws IllegalAccessException if no go.
+			// Global IO and main Key/Value index
+			Options o = new Options();
+			setOptions(o);
+			TransactionDB db = OpenTransactionDB(dbname,o);
+			hps = new RockSackTransactionSession(db, o, uid, gid);
+			SessionTable.put(dbname, hps);
+			if( DEBUG )
+				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,db);
+		} else {
+			// if closed, then open, else if open this does nothing
+			hps.Open();
+			if( DEBUG )
+				System.out.printf("Re-opening existing session for db:%s session:%s%n",dbname,hps);
+		}
+		return hps;
+	}
+	private static void setOptions(Options options) {
+		//RocksDB db = null;
+		//final String db_path = dbpath;
+		//final String db_path_not_found = db_path + "_not_found";
 
 		final Filter bloomFilter = new BloomFilter(10);
-		final ReadOptions readOptions = new ReadOptions().setFillCache(false);
+		//final ReadOptions readOptions = new ReadOptions().setFillCache(false);
 		final Statistics stats = new Statistics();
 		final RateLimiter rateLimiter = new RateLimiter(10000000,10000, 10);
 		options.setComparator(new SerializedComparator());
-		 try {
-		 	db = RocksDB.open(options, db_path_not_found);
-		    assert (false);
-		 } catch (final RocksDBException e) {
-		    System.out.format("Caught the expected exception -- %s\n", e);
-		 }
-
-		  try {
+		try {
 		    options.setCreateIfMissing(true)
 		        .setStatistics(stats)
 		        .setWriteBufferSize(8 * SizeUnit.KB)
@@ -191,10 +230,9 @@ public final class SessionManager {
 		        .setMaxBackgroundJobs(10)
 		        .setCompressionType(CompressionType.ZLIB_COMPRESSION)
 		        .setCompactionStyle(CompactionStyle.UNIVERSAL);
-		  } catch (final IllegalArgumentException e) {
+		 } catch (final IllegalArgumentException e) {
 		    assert (false);
-		  }
-
+		 }
 		  assert (options.createIfMissing() == true);
 		  assert (options.writeBufferSize() == 8 * SizeUnit.KB);
 		  assert (options.maxWriteBufferNumber() == 3);
@@ -244,8 +282,12 @@ public final class SessionManager {
 
 		  options.setTableFormatConfig(table_options);
 		  assert (options.tableFactoryName().equals("BlockBasedTable"));
+	}
+	
+	private static RocksDB OpenDB(String dbPath, Options options) {
+		RocksDB db = null;
 		  try {	  
-			  db = RocksDB.open(options, db_path);
+			  db = RocksDB.open(options, dbPath);
 		  } catch (final RocksDBException e) {
 			    System.out.format("[ERROR] caught the unexpected exception -- %s\n", e);
 			    assert (false);
@@ -279,7 +321,8 @@ public final class SessionManager {
 			if( DEBUG )
 				System.out.println("SessionManager.ConectNoRecovery bringing up IO");
 			Options o = new Options();
-			RocksDB db = setOptions(dbname, o);
+			setOptions(o);
+			RocksDB db = OpenDB(dbname, o);
 			hps = new RockSackSession(db, o, uid, gid);
 			if( DEBUG )
 				System.out.println("SessionManager.ConectNoRecovery bringing up session");
@@ -338,6 +381,171 @@ public final class SessionManager {
 		return AdminSessionTable;
 	}
 
+	private static TransactionDB OpenTransactionDB(String dbPath, Options options) {
+	    final TransactionDBOptions txnDbOptions = new TransactionDBOptions();
+	    TransactionDB txnDb = null;
+		try {
+			txnDb = TransactionDB.open(options, txnDbOptions, dbPath);
+		} catch (RocksDBException e) {
+		    System.out.format("[ERROR] caught the unexpected exception -- %s\n", e);
+		}
+	    return txnDb;
+	    	/*
+	          try (final WriteOptions writeOptions = new WriteOptions();
+	               final ReadOptions readOptions = new ReadOptions()) {
 
+	            ////////////////////////////////////////////////////////
+	            //
+	            // Simple Transaction Example ("Read Committed")
+	            //
+	            ////////////////////////////////////////////////////////
+	            readCommitted(txnDb, writeOptions, readOptions);
+
+
+	            ////////////////////////////////////////////////////////
+	            //
+	            // "Repeatable Read" (Snapshot Isolation) Example
+	            //   -- Using a single Snapshot
+	            //
+	            ////////////////////////////////////////////////////////
+	            repeatableRead(txnDb, writeOptions, readOptions);
+
+
+	            ////////////////////////////////////////////////////////
+	            //
+	            // "Read Committed" (Monotonic Atomic Views) Example
+	            //   --Using multiple Snapshots
+	            //
+	            ////////////////////////////////////////////////////////
+	            readCommitted_monotonicAtomicViews(txnDb, writeOptions, readOptions);
+	          }
+	          */
+	}
+/**
+ * Demonstrates "Read Committed" isolation
+ */
+private static void readCommitted(final TransactionDB txnDb,
+    final WriteOptions writeOptions, final ReadOptions readOptions)
+    throws RocksDBException {
+  final byte key1[] = "abc".getBytes();
+  final byte value1[] = "def".getBytes();
+
+  final byte key2[] = "xyz".getBytes();
+  final byte value2[] = "zzz".getBytes();
+
+  // Start a transaction
+  try(final Transaction txn = txnDb.beginTransaction(writeOptions)) {
+    // Read a key in this transaction
+    byte[] value = txn.get(readOptions, key1);
+    assert(value == null);
+
+    // Write a key in this transaction
+    txn.put(key1, value1);
+
+    // Read a key OUTSIDE this transaction. Does not affect txn.
+    value = txnDb.get(readOptions, key1);
+    assert(value == null);
+
+    // Write a key OUTSIDE of this transaction.
+    // Does not affect txn since this is an unrelated key.
+    // If we wrote key 'abc' here, the transaction would fail to commit.
+    txnDb.put(writeOptions, key2, value2);
+
+    // Commit transaction
+    txn.commit();
+  }
+}
+/**
+ * Demonstrates "Repeatable Read" (Snapshot Isolation) isolation
+ */
+private static void repeatableRead(final TransactionDB txnDb,
+    final WriteOptions writeOptions, final ReadOptions readOptions)
+    throws RocksDBException {
+
+  final byte key1[] = "ghi".getBytes();
+  final byte value1[] = "jkl".getBytes();
+
+  // Set a snapshot at start of transaction by setting setSnapshot(true)
+  try(final TransactionOptions txnOptions = new TransactionOptions()
+        .setSetSnapshot(true);
+      final Transaction txn =
+          txnDb.beginTransaction(writeOptions, txnOptions)) {
+
+    final Snapshot snapshot = txn.getSnapshot();
+
+    // Write a key OUTSIDE of transaction
+    txnDb.put(writeOptions, key1, value1);
+
+    // Attempt to read a key using the snapshot.  This will fail since
+    // the previous write outside this txn conflicts with this read.
+    readOptions.setSnapshot(snapshot);
+
+    try {
+      final byte[] value = txn.getForUpdate(readOptions, key1, true);
+      throw new IllegalStateException();
+    } catch(final RocksDBException e) {
+      //assert(e.getStatus().getCode() == Status.Code.Busy);
+    }
+
+    txn.rollback();
+  } finally {
+    // Clear snapshot from read options since it is no longer valid
+    readOptions.setSnapshot(null);
+  }
+}
+
+/**
+ * Demonstrates "Read Committed" (Monotonic Atomic Views) isolation
+ *
+ * In this example, we set the snapshot multiple times.  This is probably
+ * only necessary if you have very strict isolation requirements to
+ * implement.
+ */
+private static void readCommitted_monotonicAtomicViews(
+    final TransactionDB txnDb, final WriteOptions writeOptions,
+    final ReadOptions readOptions) throws RocksDBException {
+
+  final byte keyX[] = "x".getBytes();
+  final byte valueX[] = "x".getBytes();
+
+  final byte keyY[] = "y".getBytes();
+  final byte valueY[] = "y".getBytes();
+
+  try (final TransactionOptions txnOptions = new TransactionOptions()
+      .setSetSnapshot(true);
+       final Transaction txn =
+           txnDb.beginTransaction(writeOptions, txnOptions)) {
+
+    // Do some reads and writes to key "x"
+    Snapshot snapshot = txnDb.getSnapshot();
+    readOptions.setSnapshot(snapshot);
+    byte[] value = txn.get(readOptions, keyX);
+    txn.put(valueX, valueX);
+
+    // Do a write outside of the transaction to key "y"
+    txnDb.put(writeOptions, keyY, valueY);
+
+    // Set a new snapshot in the transaction
+    txn.setSnapshot();
+    txn.setSavePoint();
+    snapshot = txnDb.getSnapshot();
+    readOptions.setSnapshot(snapshot);
+
+    // Do some reads and writes to key "y"
+    // Since the snapshot was advanced, the write done outside of the
+    // transaction does not conflict.
+    value = txn.getForUpdate(readOptions, keyY, true);
+    txn.put(keyY, valueY);
+
+    // Decide we want to revert the last write from this transaction.
+    txn.rollbackToSavePoint();
+
+    // Commit.
+    txn.commit();
+  } finally {
+    // Clear snapshot from read options since it is no longer valid
+    readOptions.setSnapshot(null);
+  }
+}
 
 }

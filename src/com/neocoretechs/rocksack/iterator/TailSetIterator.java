@@ -59,10 +59,12 @@ public class TailSetIterator extends AbstractIterator {
 				if(kvMain.isValid()) {
 					nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
 					// verify until confirm order exclusive
+					/*
 					if (nextKey.compareTo(fromKey) < 0) {
 						nextKey = null;
 						System.out.println("VERIFY: order NOT exclusive TailSetIterator");
 					}
+					*/
 				} else {
 					nextKey = null;
 				}

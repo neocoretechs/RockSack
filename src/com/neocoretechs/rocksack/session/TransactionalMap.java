@@ -5,7 +5,10 @@ import java.util.Stack;
 import java.util.TreeMap;
 import java.util.stream.Stream;
 
+import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
+import org.rocksdb.Transaction;
+import org.rocksdb.WriteOptions;
 
 /*
 * Copyright (c) 2003, NeoCoreTechs
@@ -31,24 +34,25 @@ import org.rocksdb.RocksDB;
 *
 */
 /**
-* TransactionalTreeMap. The same underlying session objects are used here but the user has access to the transactional
-* Semantics underlying the ARIES recovery protocol. Thread safety is enforced on the session at this level.
-* Java TreeMap backed by pooled serialized objects. It is the users responsibility to commit/rollback/checkpoint.
+* TransactionalMap. The same underlying session objects are used here but the user has access to the transactional
+* Semantics underlying the recovery protocol. Thread safety is enforced on the session at this level.
+* Java Map backed by pooled serialized objects. It is the users responsibility to commit/rollback/checkpoint.
 * @author Jonathan Groff (C) NeoCoreTechs 2003,2014,2017,2021
 */
-public class TransactionalTreeMap implements TransactionInterface, OrderedKVMapInterface {
-	protected RockSackSession session;
+public class TransactionalMap implements TransactionInterface, OrderedKVMapInterface {
+	protected RockSackTransactionSession session;
+	Transaction txn;
+	ReadOptions ro = new ReadOptions();
+	WriteOptions wo = new WriteOptions();
 	/**
-	 * 
 	 * @param dbname
+	 * @param database Database type i.e. RocksDB
 	 * @param backingStore "MMap or "File" etc.
-	 * @param poolBlocks Number of blocks in buffer pool
 	 * @throws IOException
 	 * @throws IllegalAccessException
 	 */
-	public TransactionalTreeMap(String dbname, String backingStore, int poolBlocks)
-		throws IOException, IllegalAccessException {
-		session = SessionManager.Connect(dbname, "BTree", backingStore, poolBlocks);
+	public TransactionalMap(String dbname, String database, String backingStore) throws IOException, IllegalAccessException {
+		session = SessionManager.ConnectTransaction(dbname, database, backingStore);
 	}
 	
 	/**
@@ -63,7 +67,7 @@ public class TransactionalTreeMap implements TransactionInterface, OrderedKVMapI
 	public boolean put(Comparable tkey, Object tvalue) throws IOException {
 		synchronized (session.getMutexObject()) {
 				// now put new
-				return session.put(tkey, tvalue);
+				return session.put(txn, tkey, tvalue);
 		}
 	}
 	
@@ -77,7 +81,7 @@ public class TransactionalTreeMap implements TransactionInterface, OrderedKVMapI
 	@SuppressWarnings("rawtypes")
 	public Object get(Comparable tkey) throws IOException {
 		synchronized (session.getMutexObject()) {
-			return session.get(tkey);
+			return session.get(txn, ro, tkey);
 		}
 	}
 	
@@ -385,7 +389,10 @@ public class TransactionalTreeMap implements TransactionInterface, OrderedKVMapI
 	@Override
 	public void rollupSession(boolean rollback) throws IOException {
 		synchronized (session.getMutexObject()) {
-			session.rollupSession(rollback);
+			if(rollback)
+				session.Rollback(txn);
+			else
+				session.Commit(txn);
 		}
 	}
 
@@ -533,6 +540,11 @@ public class TransactionalTreeMap implements TransactionInterface, OrderedKVMapI
 		synchronized (session.getMutexObject()) {
 			return session.tailSetKVStream(fkey);
 		}
+	}
+
+	@Override
+	public void BeginTransaction() {
+		txn = session.getKVStore().beginTransaction(wo);	
 	}
 
 }

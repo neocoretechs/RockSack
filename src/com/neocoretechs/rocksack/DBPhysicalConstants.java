@@ -26,32 +26,12 @@ package com.neocoretechs.rocksack;
 */
 /**
 * Defines physical constants for tablespaces, buckets, etc
-* block header size is diff of DBLOCKSIZ - DATASIZE
 * @author Jonathan Groff Copyright (C) NeoCoreTechs 1997,2003,2021
 */
 public interface DBPhysicalConstants {
-	/**
-	 * Number of tablespaces per DB.  Cannot be altered.
-	 */
-	public static final int DTABLESPACES = 8; //Can't really mess with this
+
+	public static final String DATABASE = "RocksDB";
 	
-	/**
-	 * The total block (page) size.
-	 */
-	public static final short DBLOCKSIZ = (short)8192;
-	
-	/**
-	 * The size of payload data in a block (page). 
-	 * - the size of the header portion
-	 */
-	public static final short DATASIZE = (short) (DBLOCKSIZ);
-	
-	/**
-	 * We can change the following constants dynamically, after DB creation, if necessary.
-	 * 
-	 * The number of blocks (pages) per tablespace. 
-	 */
-	public static int DBUCKETS = 1024;
 	/**
 	 * The backing store type "File", "MMap" etc, as supported in GlobalDBIO
 	 */
