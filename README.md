@@ -16,6 +16,9 @@ RockSack is a Java persistence mechanism that provides key/value store functiona
 with a small footprint and native object storage capability. Just about any Java object, meaning Serializable objects implementing the 
 java.lang.Comparable interface, can be stored. The Comparable interface 
 is part of the standard Java Collections Framework and is implemented in the majority of built-in Java classes such as String.<p/>
+Whats the advantage? Whereas an agnostic K/V store only allows you to index the raw byte values of the key, a 'functional' index
+gives you the ability to index the data based on an arbitrarily complex arrangement of any of the fields in the class, or even through
+a strictly computational process since we are using the result of a method call to control the order in which the data are stored.
 
 There are methods in the class com.neocoretechs.bigsack.BigSackAdapter to organize the maps and sets on the basis of type. In this way a rudimentary schema can be maintained. A non-transactional BufferedMap can be obtained by the following methods:
 
