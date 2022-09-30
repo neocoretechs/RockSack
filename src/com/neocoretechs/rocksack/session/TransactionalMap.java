@@ -55,6 +55,9 @@ public class TransactionalMap implements TransactionInterface, OrderedKVMapInter
 		session = SessionManager.ConnectTransaction(dbname, database, backingStore);
 	}
 	
+	public Transaction getTransaction() {
+		return txn;
+	}
 	/**
 	* Put a  key/value pair to main cache and pool.  We may
 	* toss out an old one when cache size surpasses objectCacheSize
@@ -347,7 +350,7 @@ public class TransactionalMap implements TransactionInterface, OrderedKVMapInter
 	 */
 	public void Commit() throws IOException {
 		synchronized (session.getMutexObject()) {
-			session.Commit();
+			session.Commit(txn);
 		}
 	}
 	
@@ -370,7 +373,7 @@ public class TransactionalMap implements TransactionInterface, OrderedKVMapInter
 	 */
 	public void Rollback() throws IOException {
 		synchronized (session.getMutexObject()) {
-			session.Rollback();
+			session.Rollback(txn);
 		}
 	}
 
