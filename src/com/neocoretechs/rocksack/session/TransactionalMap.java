@@ -37,9 +37,12 @@ import org.rocksdb.WriteOptions;
 * TransactionalMap. The same underlying session objects are used here but the user has access to the transactional
 * Semantics underlying the recovery protocol. Thread safety is enforced on the session at this level.
 * Java Map backed by pooled serialized objects. It is the users responsibility to commit/rollback/checkpoint.
-* @author Jonathan Groff (C) NeoCoreTechs 2003,2014,2017,2021
+* We add an additional constructor to use a previously created session and instantiate an new Transaction instance.
+* In the adapter, we retrieve an existing map, extract the session, and instantiate a new TransactionalMap.
+* The assumption is that the new TransactionalMap is stored in an additional session container outside of the adapter.
+* @author Jonathan Groff (C) NeoCoreTechs 2003,2014,2017,2021,2022
 */
-public class TransactionalMap implements TransactionInterface, OrderedKVMapInterface {
+public class TransactionalMap implements OrderedKVMapInterface {
 	protected RockSackTransactionSession session;
 	Transaction txn;
 	ReadOptions ro = new ReadOptions();
@@ -53,6 +56,15 @@ public class TransactionalMap implements TransactionInterface, OrderedKVMapInter
 	 */
 	public TransactionalMap(String dbname, String database, String backingStore) throws IOException, IllegalAccessException {
 		session = SessionManager.ConnectTransaction(dbname, database, backingStore);
+	}
+	
+	/**
+	 * @param session Existing transactional database previously opened and ready for new transaction context
+	 * @throws IOException
+	 * @throws IllegalAccessException
+	 */
+	public TransactionalMap(RockSackTransactionSession session) throws IOException, IllegalAccessException {
+		this.session = session;
 	}
 	
 	public Transaction getTransaction() {
@@ -98,7 +110,7 @@ public class TransactionalMap implements TransactionInterface, OrderedKVMapInter
 	@SuppressWarnings("rawtypes")
 	public Object getValue(Object tkey) throws IOException {
 		synchronized (session.getMutexObject()) {
-				return session.getValue(tkey);
+				return session.getValue(txn, ro, tkey);
 		}
 	}	
 
@@ -343,7 +355,6 @@ public class TransactionalMap implements TransactionInterface, OrderedKVMapInter
 		}
 	}
 	
-	@Override
 	/**
 	 * Commit the outstanding transaction
 	 * @throws IOException
@@ -354,7 +365,6 @@ public class TransactionalMap implements TransactionInterface, OrderedKVMapInter
 		}
 	}
 	
-	@Override
 	/**
 	 * Checkpoint the current database transaction state for roll forward recovery in event of crash
 	 * @throws IllegalAccessException
@@ -362,11 +372,10 @@ public class TransactionalMap implements TransactionInterface, OrderedKVMapInter
 	 */
 	public void Checkpoint() throws IllegalAccessException, IOException {
 		synchronized (session.getMutexObject()) {
-			session.Checkpoint();
+			session.Checkpoint(txn);
 		}
 	}
 	
-	@Override
 	/**
 	 * Roll back the outstanding transactions
 	 * @throws IOException
@@ -377,19 +386,16 @@ public class TransactionalMap implements TransactionInterface, OrderedKVMapInter
 		}
 	}
 
-	@Override
 	public long getTransactionId() {
 		synchronized (session.getMutexObject()) {
 			return session.getTransactionId();
 		}
 	}
 
-	@Override
 	public void Close(boolean rollback) throws IOException {
 		rollupSession(rollback);
 	}
 
-	@Override
 	public void rollupSession(boolean rollback) throws IOException {
 		synchronized (session.getMutexObject()) {
 			if(rollback)
@@ -442,14 +448,14 @@ public class TransactionalMap implements TransactionInterface, OrderedKVMapInter
 	@Override
 	public void Open() throws IOException {
 		synchronized (session.getMutexObject()) {
-			session.Open();
+			
 		}
 	}
 
 	@Override
 	public void forceClose() throws IOException {
 		synchronized (session.getMutexObject()) {
-			session.forceClose();
+			session.Close();
 		}
 		
 	}
@@ -545,7 +551,6 @@ public class TransactionalMap implements TransactionInterface, OrderedKVMapInter
 		}
 	}
 
-	@Override
 	public void BeginTransaction() {
 		txn = session.getKVStore().beginTransaction(wo);	
 	}

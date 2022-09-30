@@ -9,23 +9,22 @@ import com.neocoretechs.rocksack.DBPhysicalConstants;
 
 /**
  * This factory class enforces a strong typing for the RockSack using the database naming convention linked to the
- * class name of the class stored there.
+ * class name of the class stored there.<p/>
+ * In almost all cases, this is the main entry point to obtain a BufferedMap or a TransactionalMap.<p/>
  * 
- * The main function of this adapter is to ensure that the appropriate map or set is instantiated.
- * A map or set can be obtained by instance of Comparable to impart ordering.
- * A Buffered map or set has atomic transactions bounded automatically with each insert/delete
- * A transactional map or set requires commit/rollback and can be checkpointed.
+ * The main function of this adapter is to ensure that the appropriate map is instantiated.<br/>
+ * A map can be obtained by instance of Comparable to impart ordering.<br/>
+ * A Buffered map has atomic transactions bounded automatically with each insert/delete.<br/>
+ * A transactional map requires commit/rollback and can be checkpointed.
  * In either case recovery is in effect to preserve integrity.
  * The database name is the full path of the top level tablespace and log directory, i.e.
  * /home/db/test would create a 'test' database in the /home/db directory. If we are using this strong
  * typing adapter, and were to store a String, the database name would translate to: /home/db/testjava.lang.String.
- * If the config is cluster,
- * the log of master node and tablespace directories on the remote machines. OR if cluster mode, a remote
- * directory can be specified and the local master log first, then remote worker node tablespace directories.
- * This can affect different OS configs for cluster testing and heterogeneous clusters.
  * The class name is translated into the appropriate file name via a simple translation table to give us a
  * database/class/tablespace identifier for each file used.
- * @author Jonathan Groff Copyright (C) NeoCoreTechs 2014,2015,2021
+ * BufferedMap returns one instance of the class for each call to get the map. Transactional maps create a new instance with a new
+ * transaction context using the originally opened database, and so must be maintained in another context for each transaction.
+ * @author Jonathan Groff Copyright (C) NeoCoreTechs 2014,2015,2021,2022
  *
  */
 public class RockSackAdapter {
@@ -106,29 +105,9 @@ public class RockSackAdapter {
 		if( ret == null ) {
 			ret =  new TransactionalMap(tableSpaceDir+xClass, DBPhysicalConstants.DATABASE, DBPhysicalConstants.BACKINGSTORE);
 			classToIso.put(xClass, ret);
+			return ret;
 		}
-		return ret;
-	}
-	
-	
-	public static void checkpointTransaction(Class clazz) throws IllegalAccessException, IOException {
-		String xClass = translateClass(clazz.getName());
-		TransactionInterface ret = (TransactionInterface) classToIso.get(xClass);
-		ret.Checkpoint();
-	}
-	
-	public static void commitTransaction(Class clazz) throws IOException {
-		String xClass = translateClass(clazz.getName());
-		TransactionInterface ret = (TransactionInterface) classToIso.get(xClass);
-		ret.Commit();
-		classToIso.remove(xClass);
-	}
-	
-	public static void rollbackTransaction(Class clazz) throws IOException {
-		String xClass = translateClass(clazz.getName());
-		TransactionInterface ret = (TransactionInterface) classToIso.get(xClass);
-		ret.Rollback();
-		classToIso.remove(xClass);
+		return new TransactionalMap(ret.session);
 	}
 	
 	

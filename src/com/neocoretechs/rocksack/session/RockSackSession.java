@@ -1,10 +1,8 @@
 package com.neocoretechs.rocksack.session;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Stack;
 import java.util.stream.Stream;
 
 import org.rocksdb.Options;
@@ -124,10 +122,10 @@ public class RockSackSession {
 
 
 	/**
-	 * Call the add method of KeyValueMainInterface.
+	 * Call the put method of KeyValueMain.
 	 * @param key The key value to attempt add
 	 * @param o The value for the key to add
-	 * @return true if the key existed and was not added
+	 * @return true
 	 * @throws IOException
 	 */
 	@SuppressWarnings("rawtypes")
@@ -139,7 +137,14 @@ public class RockSackSession {
 		}
 		return true;
 	}
-	
+	/**
+	 * Call the put method of KeyValueMain.
+	 * @param txn The transaction context
+	 * @param key The key value to attempt add
+	 * @param o The value for the key to add
+	 * @return true
+	 * @throws IOException
+	 */
 	protected boolean put(Transaction txn, Comparable key, Object o) throws IOException {
 		try {
 			txn.put(SerializedComparator.serializeObject(key),SerializedComparator.serializeObject(o));
@@ -164,6 +169,8 @@ public class RockSackSession {
 	}
 	/**
 	 * Cause the KvStore to seekKey for the Comparable type.
+	 * @param txn Transaction context
+	 * @param ro The ReadOptions
 	 * @param o the Comparable object to seek.
 	 * @return the Key/Value object from the retrieved node
 	 * @throws IOException
@@ -192,7 +199,23 @@ public class RockSackSession {
 	}
 	
 	/**
-	* Not a real subset, returns iterator vs set.
+	 * Retrieve an object with this value for first key found to have it.
+	 * @param txn Transaction context
+	 * @param ro The ReadOptions
+	 * @param o the object value to seek
+	 * @return element for the key, null if not found
+	 * @throws IOException
+	 */
+	@SuppressWarnings("rawtypes")
+	protected Object getValue(Transaction txn, ReadOptions ro, Object o) throws IOException {
+		   try {
+			return SerializedComparator.deserializeObject(txn.get(ro, SerializedComparator.serializeObject(o)));
+		} catch (RocksDBException | IOException e) {
+			throw new IOException(e);
+		}
+	}
+	/**
+	* Returns iterator vs actual subset.
 	* 'from' element inclusive, 'to' element exclusive
 	* @param fkey Return from fkey
 	* @param tkey Return from fkey to strictly less than tkey
@@ -204,6 +227,19 @@ public class RockSackSession {
 		return new SubSetIterator(fkey, tkey, kvStore);
 	}
 	/**
+	* Returns iterator vs actual subset.
+	* 'from' element inclusive, 'to' element exclusive
+	* @param txn Transaction
+	* @param fkey Return from fkey
+	* @param tkey Return from fkey to strictly less than tkey
+	* @return The Iterator over the subSet
+	* @exception IOException If we cannot obtain the iterator
+	*/
+	@SuppressWarnings("rawtypes")
+	protected Iterator<?> subSet(Transaction txn, Comparable fkey, Comparable tkey) throws IOException {
+		return new SubSetIterator(fkey, tkey, txn);
+	}
+	/**
 	 * Return a Stream that delivers the subset of fkey to tkey
 	 * @param fkey the from key
 	 * @param tkey the to key
@@ -213,7 +249,17 @@ public class RockSackSession {
 	protected Stream<?> subSetStream(Comparable fkey, Comparable tkey) throws IOException {
 		return new SubSetStream(new SubSetIterator(fkey, tkey, kvStore));
 	}
-	
+	/**
+	 * Return a Stream that delivers the subset of fkey to tkey
+	 * @param txn Transaction
+	 * @param fkey the from key
+	 * @param tkey the to key
+	 * @return the stream from which the lambda expression can be utilized
+	 * @throws IOException
+	 */
+	protected Stream<?> subSetStream(Transaction txn, Comparable fkey, Comparable tkey) throws IOException {
+		return new SubSetStream(new SubSetIterator(fkey, tkey, txn));
+	}
 	/**
 	* Not a real subset, returns iterator vs set.
 	* 'from' element inclusive, 'to' element exclusive
@@ -227,6 +273,19 @@ public class RockSackSession {
 		return new SubSetKVIterator(fkey, tkey, kvStore);
 	}
 	/**
+	* Not a real subset, returns iterator vs set.
+	* 'from' element inclusive, 'to' element exclusive
+	* @param txn Transaction
+	* @param fkey Return from fkey
+	* @param tkey Return from fkey to strictly less than tkey
+	* @return The KeyValuePair Iterator over the subSet
+	* @exception IOException If we cannot obtain the iterator
+	*/
+	@SuppressWarnings("rawtypes")
+	protected Iterator<?> subSetKV(Transaction txn, Comparable fkey, Comparable tkey) throws IOException {
+		return new SubSetKVIterator(fkey, tkey, txn);
+	}
+	/**
 	 * Return a Streamof key/value pairs that delivers the subset of fkey to tkey
 	 * @param fkey the from key
 	 * @param tkey the to key
@@ -236,7 +295,17 @@ public class RockSackSession {
 	protected Stream<?> subSetKVStream(Comparable fkey, Comparable tkey) throws IOException {
 			return new SubSetKVStream(fkey, tkey, kvStore);
 	}
-	
+	/**
+	 * Return a Streamof key/value pairs that delivers the subset of fkey to tkey
+	 * @param txn Transaction
+	 * @param fkey the from key
+	 * @param tkey the to key
+	 * @return the stream from which the lambda expression can be utilized
+	 * @throws IOException
+	 */
+	protected Stream<?> subSetKVStream(Transaction txn, Comparable fkey, Comparable tkey) throws IOException {
+			return new SubSetKVStream(fkey, tkey, txn);
+	}
 	/**
 	* Not a real subset, returns iterator
 	* @return The Iterator over the entrySet
@@ -246,12 +315,30 @@ public class RockSackSession {
 		return new EntrySetIterator(kvStore);
 	}
 	/**
+	* Not a real subset, returns iterator
+	* @param txn Transaction
+	* @return The Iterator over the entrySet
+	* @exception IOException If we cannot obtain the iterator
+	*/
+	protected Iterator<?> entrySet(Transaction txn) throws IOException {
+		return new EntrySetIterator(txn);
+	}
+	/**
 	 * Get a stream of entry set
 	 * @return
 	 * @throws IOException
 	 */
 	protected Stream<?> entrySetStream() throws IOException {
 		return new EntrySetStream(kvStore);
+	}
+	/**
+	 * Get a stream of entry set
+	 * @param txn Transaction
+	 * @return
+	 * @throws IOException
+	 */
+	protected Stream<?> entrySetStream(Transaction txn) throws IOException {
+		return new EntrySetStream(txn);
 	}
 	/**
 	* Not a real subset, returns Iterator
@@ -264,6 +351,17 @@ public class RockSackSession {
 		return new HeadSetIterator(tkey, kvStore);
 	}
 	/**
+	* Not a real subset, returns Iterator
+	* @param Transaction txn
+	* @param tkey return from head to strictly less than tkey
+	* @return The Iterator over the headSet
+	* @exception IOException If we cannot obtain the iterator
+	*/
+	@SuppressWarnings("rawtypes")
+	protected Iterator<?> headSet(Transaction txn, Comparable tkey) throws IOException {
+		return new HeadSetIterator(tkey, txn);
+	}
+	/**
 	 * Get a stream of headset
 	 * @param tkey
 	 * @return
@@ -271,6 +369,16 @@ public class RockSackSession {
 	 */
 	protected Stream<?> headSetStream(Comparable tkey) throws IOException {
 		return new HeadSetStream(tkey, kvStore);
+	}
+	/**
+	 * Get a stream of headset
+	 * @param txn Transaction
+	 * @param tkey
+	 * @return
+	 * @throws IOException
+	 */
+	protected Stream<?> headSetStream(Transaction txn, Comparable tkey) throws IOException {
+		return new HeadSetStream(tkey, txn);
 	}
 	/**
 	* Not a real subset, returns Iterator
@@ -283,6 +391,17 @@ public class RockSackSession {
 		return new HeadSetKVIterator(tkey, kvStore);
 	}
 	/**
+	* Not a real subset, returns Iterator
+	* @param txn Transaction
+	* @param tkey return from head to strictly less than tkey
+	* @return The KeyValuePair Iterator over the headSet
+	* @exception IOException If we cannot obtain the iterator
+	*/
+	@SuppressWarnings("rawtypes")
+	protected Iterator<?> headSetKV(Transaction txn, Comparable tkey) throws IOException {
+		return new HeadSetKVIterator(tkey, txn);
+	}
+	/**
 	 * Get a stream of head set
 	 * @param tkey
 	 * @return
@@ -290,6 +409,16 @@ public class RockSackSession {
 	 */
 	protected Stream<?> headSetKVStream(Comparable tkey) throws IOException {
 		return new HeadSetKVStream(tkey, kvStore);
+	}
+	/**
+	 * Get a stream of head set
+	 * @param txn Transaction
+	 * @param tkey
+	 * @return
+	 * @throws IOException
+	 */
+	protected Stream<?> headSetKVStream(Transaction txn, Comparable tkey) throws IOException {
+		return new HeadSetKVStream(tkey, txn);
 	}
 	/**
 	* Return the keyset Iterator over all elements
@@ -300,12 +429,30 @@ public class RockSackSession {
 		return new KeySetIterator(kvStore);
 	}
 	/**
+	* Return the keyset Iterator over all elements
+	* @param txn Transaction
+	* @return The Iterator over the keySet
+	* @exception IOException If we cannot obtain the iterator
+	*/
+	protected Iterator<?> keySet(Transaction txn) throws IOException {
+		return new KeySetIterator(txn);
+	}
+	/**
 	 * Get a keyset stream
 	 * @return
 	 * @throws IOException
 	 */
 	protected Stream<?> keySetStream() throws IOException {
 		return new KeySetStream(kvStore);
+	}
+	/**
+	 * Get a keyset stream
+	 * @param txn Transaction
+	 * @return
+	 * @throws IOException
+	 */
+	protected Stream<?> keySetStream(Transaction txn) throws IOException {
+		return new KeySetStream(txn);
 	}
 	/**
 	* Not a real subset, returns Iterator
@@ -318,6 +465,17 @@ public class RockSackSession {
 		return new TailSetIterator(fkey, kvStore);
 	}
 	/**
+	* Not a real subset, returns Iterator
+	* @param txn Transaction
+	* @param fkey return from value to end
+	* @return The Iterator over the tailSet
+	* @exception IOException If we cannot obtain the iterator
+	*/
+	@SuppressWarnings("rawtypes")
+	protected Iterator<?> tailSet(Transaction txn, Comparable fkey) throws IOException {
+		return new TailSetIterator(fkey, txn);
+	}
+	/**
 	 * Return a tail set stream
 	 * @param fkey
 	 * @return
@@ -325,6 +483,16 @@ public class RockSackSession {
 	 */
 	protected Stream<?> tailSetStream(Comparable fkey) throws IOException {
 		return new TailSetStream(fkey, kvStore);
+	}
+	/**
+	 * Return a tail set stream
+	 * @param txn Transaction
+	 * @param fkey
+	 * @return
+	 * @throws IOException
+	 */
+	protected Stream<?> tailSetStream(Transaction txn, Comparable fkey) throws IOException {
+		return new TailSetStream(fkey, txn);
 	}
 	/**
 	* Not a real subset, returns Iterator
@@ -337,6 +505,17 @@ public class RockSackSession {
 		return new TailSetKVIterator(fkey, kvStore);
 	}
 	/**
+	* Not a real subset, returns Iterator
+	* @param txn Transaction
+	* @param fkey return from value to end
+	* @return The KeyValuePair Iterator over the tailSet
+	* @exception IOException If we cannot obtain the iterator
+	*/
+	@SuppressWarnings("rawtypes")
+	protected Iterator<?> tailSetKV(Transaction txn, Comparable fkey) throws IOException {
+		return new TailSetKVIterator(fkey, txn);
+	}
+	/**
 	 * Return a tail set key/value stream
 	 * @param fkey from key of tailset
 	 * @return the stream from which the lambda can be utilized
@@ -344,6 +523,16 @@ public class RockSackSession {
 	 */
 	protected Stream<?> tailSetKVStream(Comparable fkey) throws IOException {
 		return new TailSetKVStream(fkey, kvStore);
+	}
+	/**
+	 * Return a tail set key/value stream
+	 * @param txn Transaction
+	 * @param fkey from key of tailset
+	 * @return the stream from which the lambda can be utilized
+	 * @throws IOException
+	 */
+	protected Stream<?> tailSetKVStream(Transaction txn, Comparable fkey) throws IOException {
+		return new TailSetKVStream(fkey, txn);
 	}
 	/**
 	 * Contains a value object
@@ -365,7 +554,28 @@ public class RockSackSession {
 		}
 		return false;
 	}
-	
+	/**
+	 * Contains a value object
+	 * @param txn Transaction
+	 * @param ro ReadOptions
+	 * @param o
+	 * @return boolean if the value object is found
+	 * @throws IOException
+	 */
+	@SuppressWarnings("rawtypes")
+	protected boolean containsValue(Transaction txn, ReadOptions ro, Object o) throws IOException {
+		Iterator it = new KeySetIterator(txn);
+		while(it.hasNext()) {
+			try {
+				Object o2 = SerializedComparator.deserializeObject(txn.get(ro, SerializedComparator.serializeObject(it.next())));
+				if(o.equals(o2))
+					return true;
+			} catch (RocksDBException | IOException e) {
+				throw new IOException(e);
+			}
+		}
+		return false;
+	}
 	/**
 	 * Contains a value object
 	 * @param o
@@ -376,7 +586,19 @@ public class RockSackSession {
 	protected boolean contains(Comparable o) throws IOException {
 		return kvStore.keyMayExist(ByteBuffer.wrap(SerializedComparator.serializeObject(o)));
 	}
-	
+	/**
+	 * Contains a value object. Does a get since RocksDB doesnt seem to have keymayexist in trans context
+	 * @param txn Transaction
+	 * @param ro readOptions
+	 * @param o
+	 * @return boolean if the value object is found
+	 * @throws IOException
+	 */
+	@SuppressWarnings("rawtypes")
+	protected boolean contains(Transaction txn, ReadOptions ro, Comparable o) throws IOException {
+		Object o2 = get(txn,ro,o);
+		return o2 != null;
+	}
 	/**
 	* Remove the key and value of the parameter.
 	* @return null or previous object
@@ -396,12 +618,43 @@ public class RockSackSession {
 		return null; // no previous key
 	}
 	/**
+	* Remove the key and value of the parameter.
+	* @return null or previous object
+	*/
+	@SuppressWarnings("rawtypes")
+	protected Object remove(Transaction txn, ReadOptions ro, Comparable o) throws IOException {
+		try {
+			byte[] b2 = SerializedComparator.serializeObject(o); // key
+			byte[] b = txn.get(ro, b2); // b = value
+			if(b != null) {
+				txn.delete(SerializedComparator.serializeObject(b2)); // serial bytes of key, call to delete
+				return SerializedComparator.serializeObject(b); // serialize previous value from retrieved bytes
+			}
+		} catch (RocksDBException | IOException e) {
+			return new IOException(e);
+		}
+		return null; // no previous key
+	}
+	/**
 	 * Get the value of the object associated with first key
 	 * @return Object from first key
 	 * @throws IOException
 	 */
 	protected Object first() throws IOException {
 		Iterator it = new EntrySetIterator(kvStore);
+		if(it.hasNext()) {
+			return ((Map.Entry)it.next()).getValue();
+		}
+		return null;
+	}
+	/**
+	 * Get the value of the object associated with first key
+	 * @param txn Transaction
+	 * @return Object from first key
+	 * @throws IOException
+	 */
+	protected Object first(Transaction txn) throws IOException {
+		Iterator it = new EntrySetIterator(txn);
 		if(it.hasNext()) {
 			return ((Map.Entry)it.next()).getValue();
 		}
@@ -423,6 +676,22 @@ public class RockSackSession {
 		return null;
 	}
 	/**
+	 * Get the first key
+	 * @param txn Transaction
+	 * @return The Comparable first key in the KVStore
+	 * @throws IOException
+	 */
+	@SuppressWarnings("rawtypes")
+	protected Comparable firstKey(Transaction txn) throws IOException {
+		if(DEBUG)
+			System.out.printf("%s.firstKey for kvStore %s%n", this.getClass().getName(),txn);
+		Iterator it = new EntrySetIterator(txn);
+		if(it.hasNext()) {
+			return (Comparable) ((Map.Entry)it.next()).getKey();
+		}
+		return null;
+	}
+	/**
 	 * Get the last object associated with greatest valued key in the KVStore
 	 * @return The value of the Object of the greatest key
 	 * @throws IOException
@@ -431,6 +700,23 @@ public class RockSackSession {
 		if(DEBUG)
 			System.out.printf("%s.last for kvStore %s%n", this.getClass().getName(),kvStore);
 		EntrySetIterator it = new EntrySetIterator(kvStore);
+		RocksIterator ri = it.getIterator();
+		ri.seekToLast();
+		if(ri.isValid()) {
+			return SerializedComparator.deserializeObject(ri.value());
+		}
+		return null;
+	}
+	/**
+	 * Get the last object associated with greatest valued key in the KVStore
+	 * @param txn Transaction
+	 * @return The value of the Object of the greatest key
+	 * @throws IOException
+	 */
+	protected Object last(Transaction txn) throws IOException {
+		if(DEBUG)
+			System.out.printf("%s.last for kvStore %s%n", this.getClass().getName(),txn);
+		EntrySetIterator it = new EntrySetIterator(txn);
 		RocksIterator ri = it.getIterator();
 		ri.seekToLast();
 		if(ri.isValid()) {
@@ -456,12 +742,45 @@ public class RockSackSession {
 		return null;
 	}
 	/**
+	 * Get the last key in the KVStore
+	 * @param txn Transaction
+	 * @return The last, greatest valued key in the KVStore.
+	 * @throws IOException
+	 */
+	@SuppressWarnings("rawtypes")
+	protected Comparable lastKey(Transaction txn) throws IOException {
+		if(DEBUG)
+			System.out.printf("%s.lastKey for kvStore %s%n", this.getClass().getName(),txn);
+		EntrySetIterator it = new EntrySetIterator(txn);
+		RocksIterator ri = it.getIterator();
+		ri.seekToLast();
+		if(ri.isValid()) {
+			return (Comparable) SerializedComparator.deserializeObject(ri.key());
+		}
+		return null;
+	}
+	/**
 	 * Get the number of keys total.
 	 * @return The size of the KVStore.
 	 * @throws IOException
 	 */
 	protected long size() throws IOException {
 		Iterator it = new KeySetIterator(kvStore);
+		long cnt = 0;
+		while(it.hasNext()) {
+			it.next();
+			++cnt;
+		}
+		return cnt;
+	}
+	/**
+	 * Get the number of keys total.
+	 * @param txn Transaction
+	 * @return The size of the KVStore.
+	 * @throws IOException
+	 */
+	protected long size(Transaction txn) throws IOException {
+		Iterator it = new KeySetIterator(txn);
 		long cnt = 0;
 		while(it.hasNext()) {
 			it.next();
@@ -483,79 +802,10 @@ public class RockSackSession {
 	* @param rollback true to roll back, false to commit
 	* @exception IOException For low level failure
 	*/
-	public void Close(boolean rollback) throws IOException {
-		rollupSession(rollback);
-	}
-	/**
-	 * Open the files associated with the BTree for the instances of class
-	 * @throws IOException
-	 */
-	protected void Open() throws IOException {
-	}
-	
-	/**
-	* @exception IOException for low level failure
-	*/
-	public void Rollback() throws IOException {
-	}
-	
-	/**
-	* @exception IOException for low level failure
-	*/
-	public void Rollback(Transaction txn) throws IOException {
-		try {
-			txn.rollback();
-		} catch (RocksDBException e) {
-			throw new IOException(e);
-		}
-	}
-	/**
-	* Commit the blocks.
-	* @exception IOException For low level failure
-	*/
-	public void Commit() throws IOException {
-	}
-	
-	public void Commit(Transaction txn) throws IOException {
-		try {
-			txn.commit();
-		} catch (RocksDBException e) {
-			throw new IOException(e);
-		}
-	}
-	/**
-	 * Checkpoint the current transaction
-	 * @throws IOException 
-	 * @throws IllegalAccessException 
-	 */
-	public void Checkpoint() throws IllegalAccessException, IOException {
-
-	}
-	/**
-	* Generic session roll up.  Data is committed based on rollback param.
-	* We deallocate the outstanding block
-	* We iterate the tablespaces for each db removing obsolete log files.
-	* Remove the WORKER threads from KeyValueMain, then remove this session from the SessionManager
-	* @param rollback true to roll back, false to commit
-	* @exception IOException For low level failure
-	*/
-	public void rollupSession(boolean rollback) throws IOException {
-		if (rollback) {
-			
-		} else {
-	
-		}
+	public void Close() throws IOException {
 		kvStore.close();
 	}
 	
-	/**
-	* This forces a close with rollback.
-	* for offlining of db's
-	* @exception IOException if low level error occurs
-	*/
-	protected void forceClose() throws IOException {
-		Close(true);
-	}
 
 	protected RocksDB getKVStore() { return kvStore; }
 	

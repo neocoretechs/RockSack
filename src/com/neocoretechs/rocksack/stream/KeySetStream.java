@@ -3,6 +3,7 @@ package com.neocoretechs.rocksack.stream;
 import java.io.IOException;
 
 import org.rocksdb.RocksDB;
+import org.rocksdb.Transaction;
 
 import com.neocoretechs.rocksack.iterator.KeySetIterator;
 
@@ -20,6 +21,8 @@ public class KeySetStream extends SackStream {
 	public KeySetStream(RocksDB kvMain) throws IOException {
 		this(new KeySetIterator(kvMain));
 	}
-
+	public KeySetStream(Transaction kvMain) throws IOException {
+		this(new KeySetIterator(kvMain));
+	}
 
 }

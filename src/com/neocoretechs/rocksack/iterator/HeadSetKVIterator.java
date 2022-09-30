@@ -5,6 +5,7 @@ import java.util.NoSuchElementException;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.Slice;
+import org.rocksdb.Transaction;
 
 import com.neocoretechs.rocksack.SerializedComparator;
 /*
@@ -41,6 +42,14 @@ public class HeadSetKVIterator extends AbstractIterator {
 	@SuppressWarnings("unchecked")
 	public HeadSetKVIterator(@SuppressWarnings("rawtypes") Comparable toKey, RocksDB db) throws IOException {
 		super(db.newIterator(new ReadOptions().setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));
+		this.toKey = toKey;
+		if(kvMain.isValid()) {
+			nextElem = SerializedComparator.deserializeObject(kvMain.value());
+		}
+
+	}
+	public HeadSetKVIterator(@SuppressWarnings("rawtypes") Comparable toKey, Transaction db) throws IOException {
+		super(db.getIterator(new ReadOptions().setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));
 		this.toKey = toKey;
 		if(kvMain.isValid()) {
 			nextElem = SerializedComparator.deserializeObject(kvMain.value());

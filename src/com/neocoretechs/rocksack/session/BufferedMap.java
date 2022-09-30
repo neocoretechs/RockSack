@@ -36,9 +36,7 @@ import org.rocksdb.RocksDB;
 * recovery can occur in the event of failure. The user is not concerned with semantics of recovery
 * when using this construct. The commit
 * operations are performed after each insert/delete and recovery takes place if a failure occurs during
-* runtime writes. Commit after every operation is present for those databases that use transactions by default.
-* In the case of say, RocksDB, the method does nothing. Unintuitively, these operation are absent in the transaction
-* oriented class, as they occur after all operations are executed, not after each operation.<p/>
+* runtime writes.
 * If transparency with existing code is paramount this class is a good choice.
 * Thread safety is with the session object using session.getMutexObject().
 * Java Map backed by pooled serialized objects.
@@ -74,9 +72,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	public boolean put(Comparable tkey, Object tvalue) throws IOException {
 		synchronized (session.getMutexObject()) {
 				// now put new
-				boolean key = session.put(tkey, tvalue);
-				session.Commit();
-				return key;
+				return session.put(tkey, tvalue);
 		}
 	}
 	
@@ -90,12 +86,9 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Object get(Comparable tkey) throws IOException {
-		Object c = null;
 		synchronized (session.getMutexObject()) {
-				c = session.get(tkey);
-				session.Commit();
+				return session.get(tkey);
 		}
-		return c;
 	}
 	
 	/**
@@ -107,9 +100,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	public Object getValue(Object tkey) throws IOException {
 		synchronized (session.getMutexObject()) {
-				Object kvp = session.getValue(tkey);
-				session.Commit();
-				return kvp;
+				return session.getValue(tkey);
 		}
 	}
 	/**
@@ -119,9 +110,8 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	public long size() throws IOException {
 		synchronized (session.getMutexObject()) {
-				long siz = session.size();
-				session.Commit();
-				return siz;
+				return session.size();
+
 		}
 	}
 
@@ -166,9 +156,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	@SuppressWarnings("rawtypes")
 	public boolean containsKey(Comparable tkey) throws IOException {
 		synchronized (session.getMutexObject()) {
-			boolean ret = session.contains(tkey);
-			session.Commit();
-			return ret;
+			return session.contains(tkey);
 		}
 	}
 	/**
@@ -180,9 +168,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	@SuppressWarnings("rawtypes")
 	public Object remove(Comparable tkey) throws IOException {
 		synchronized (session.getMutexObject()) {
-			Object o = session.remove(tkey);
-			session.Commit();
-			return o;
+			return session.remove(tkey);
 		}
 	}
 	/**
@@ -191,9 +177,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	public Comparable firstKey() throws IOException {
 		synchronized (session.getMutexObject()) {
-			Comparable ret = session.firstKey();
-			session.Commit();
-			return ret;
+			return session.firstKey();
 		}
 	}
 	/**
@@ -202,9 +186,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	public Comparable lastKey() throws IOException {
 		synchronized (session.getMutexObject()) {
-			Comparable ret = session.lastKey();
-			session.Commit();
-			return ret;
+			return session.lastKey();
 		}
 	}
 	/**
@@ -215,9 +197,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	public Object last() throws IOException {
 		synchronized (session.getMutexObject()) {
-				Object ret = session.last();
-				session.Commit();
-				return ret;
+				return session.last();
 		}
 	}
 	/**
@@ -228,9 +208,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	public Object first() throws IOException {
 		synchronized (session.getMutexObject()) {
-			Object ret = session.first();
-			session.Commit();
-			return ret;
+			return session.first();
 		}
 	}
 	/**
@@ -354,9 +332,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	public boolean isEmpty() throws IOException {
 		synchronized (session.getMutexObject()) {
-				boolean ret = session.isEmpty();
-				session.Commit();
-				return ret;
+				return session.isEmpty();
 		}
 	}
 	
@@ -404,15 +380,12 @@ public class BufferedMap implements OrderedKVMapInterface {
 
 	@Override
 	public void Open() throws IOException {
-		synchronized (session.getMutexObject()) {
-			session.Open();
-		}
 	}
 
 	@Override
 	public void forceClose() throws IOException {
 		synchronized (session.getMutexObject()) {
-			session.forceClose();
+			session.Close();
 		}
 		
 	}

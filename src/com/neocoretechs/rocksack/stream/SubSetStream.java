@@ -3,6 +3,7 @@ package com.neocoretechs.rocksack.stream;
 import java.io.IOException;
 
 import org.rocksdb.RocksDB;
+import org.rocksdb.Transaction;
 
 import com.neocoretechs.rocksack.iterator.SubSetIterator;
 
@@ -18,6 +19,9 @@ public class SubSetStream extends SackStream {
 	}
 	
 	public SubSetStream(Comparable fkey, Comparable tkey, RocksDB kvMain) throws IOException {
+		this(new SubSetIterator(fkey, tkey, kvMain));
+	}
+	public SubSetStream(Comparable fkey, Comparable tkey, Transaction kvMain) throws IOException {
 		this(new SubSetIterator(fkey, tkey, kvMain));
 	}
 }

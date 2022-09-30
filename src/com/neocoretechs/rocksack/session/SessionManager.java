@@ -2,10 +2,8 @@ package com.neocoretechs.rocksack.session;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Vector;
-import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.rocksdb.BlockBasedTableConfig;
@@ -36,7 +34,6 @@ import org.rocksdb.util.SizeUnit;
 
 import com.neocoretechs.rocksack.SerializedComparator;
 
-
 /*
 * Copyright (c) 2003, NeoCoreTechs
 * All rights reserved.
@@ -63,8 +60,10 @@ import com.neocoretechs.rocksack.SerializedComparator;
 /**
 * SessionManager class is a singleton 
 * that accepts connections and returns a RockSackSession object. A table of one to one sessions and
-* tables is maintained. A path to the log dirs and a path to the tablespace dirs can be specified or
-* a default file structure based on mode can be used if the remoteDbName is null.
+* tables is maintained. Typically the RockSackAdapter will create the proper instance the map based on
+* desired transaction level or none, and the mep then issues a call here to establish a session.<p/>
+* The session openes the database or passes an already opened database to a new transaction map which
+* creates a new transaction context for that map.
 * @author Jonathan Groff (c) NeoCoreTechs 2003, 2017, 2021
 */
 public final class SessionManager {
@@ -163,11 +162,6 @@ public final class SessionManager {
 			SessionTable.put(dbname, hps);
 			if( DEBUG )
 				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,db);
-		} else {
-			// if closed, then open, else if open this does nothing
-			hps.Open();
-			if( DEBUG )
-				System.out.printf("Re-opening existing session for db:%s session:%s%n",dbname,hps);
 		}
 		return hps;
 	}
@@ -204,11 +198,6 @@ public final class SessionManager {
 			SessionTable.put(dbname, hps);
 			if( DEBUG )
 				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,db);
-		} else {
-			// if closed, then open, else if open this does nothing
-			hps.Open();
-			if( DEBUG )
-				System.out.printf("Re-opening existing session for db:%s session:%s%n",dbname,hps);
 		}
 		return hps;
 	}
@@ -329,9 +318,7 @@ public final class SessionManager {
 			if( DEBUG )
 				System.out.println("SessionManager.ConectNoRecovery logging session");
 			SessionTable.put(dbname, hps);
-		} else
-			// if closed, then open, else if open this does nothing
-			hps.Open();
+		} 
 		//
 		return hps;
 	}
@@ -346,7 +333,7 @@ public final class SessionManager {
 		// look for session instance, then signal close
 		RockSackSession hps = (SessionTable.get(dbname));
 		if (hps != null) {
-			hps.forceClose();
+			hps.Close();
 		}
 	}
 	protected static synchronized void setDBOnline(String dbname) {

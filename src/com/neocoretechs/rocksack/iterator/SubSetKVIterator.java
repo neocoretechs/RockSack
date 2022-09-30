@@ -5,6 +5,7 @@ import java.util.NoSuchElementException;
 import java.util.Stack;
 
 import org.rocksdb.RocksDB;
+import org.rocksdb.Transaction;
 
 import com.neocoretechs.rocksack.SerializedComparator;
 
@@ -40,6 +41,12 @@ public class SubSetKVIterator extends SubSetIterator {
 	Object nextElem, retElem;
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public SubSetKVIterator(Comparable fromKey, Comparable toKey, RocksDB db) throws IOException {
+		super(fromKey, toKey, db);
+		if(kvMain.isValid()) {
+			nextElem = SerializedComparator.deserializeObject(kvMain.value());
+		}
+	}
+	public SubSetKVIterator(Comparable fromKey, Comparable toKey, Transaction db) throws IOException {
 		super(fromKey, toKey, db);
 		if(kvMain.isValid()) {
 			nextElem = SerializedComparator.deserializeObject(kvMain.value());

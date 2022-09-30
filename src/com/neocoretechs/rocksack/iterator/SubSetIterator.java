@@ -5,6 +5,7 @@ import java.util.NoSuchElementException;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.Slice;
+import org.rocksdb.Transaction;
 
 import com.neocoretechs.rocksack.SerializedComparator;
 /*
@@ -41,6 +42,13 @@ public class SubSetIterator extends AbstractIterator {
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public SubSetIterator(Comparable fromKey, Comparable toKey, RocksDB db) throws IOException {
 		super(db.newIterator(new ReadOptions().
+				setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey))).
+				setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
+		this.fromKey = fromKey;
+		this.toKey = toKey;
+	}
+	public SubSetIterator(Comparable fromKey, Comparable toKey, Transaction db) throws IOException {
+		super(db.getIterator(new ReadOptions().
 				setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey))).
 				setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
 		this.fromKey = fromKey;

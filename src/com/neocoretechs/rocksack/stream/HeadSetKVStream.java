@@ -3,6 +3,7 @@ package com.neocoretechs.rocksack.stream;
 import java.io.IOException;
 
 import org.rocksdb.RocksDB;
+import org.rocksdb.Transaction;
 
 import com.neocoretechs.rocksack.iterator.HeadSetKVIterator;
 /**
@@ -17,6 +18,9 @@ public class HeadSetKVStream extends SackStream {
 	}
 
 	public HeadSetKVStream(Comparable tkey, RocksDB kvMain) throws IOException {
+		this(new HeadSetKVIterator(tkey, kvMain));
+	}
+	public HeadSetKVStream(Comparable tkey, Transaction kvMain) throws IOException {
 		this(new HeadSetKVIterator(tkey, kvMain));
 	}
 

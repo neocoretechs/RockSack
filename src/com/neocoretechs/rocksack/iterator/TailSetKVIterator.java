@@ -7,6 +7,7 @@ import java.util.Stack;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.Slice;
+import org.rocksdb.Transaction;
 
 import com.neocoretechs.rocksack.SerializedComparator;
 
@@ -43,6 +44,13 @@ public class TailSetKVIterator extends AbstractIterator {
 	Object retElem, nextElem;
 	public TailSetKVIterator(Comparable fromKey, RocksDB db) throws IOException {
 		super(db.newIterator(new ReadOptions().setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
+		this.fromKey = fromKey;
+		if(kvMain.isValid()) {
+			nextElem = SerializedComparator.deserializeObject(kvMain.value());
+		}
+	}
+	public TailSetKVIterator(Comparable fromKey, Transaction db) throws IOException {
+		super(db.getIterator(new ReadOptions().setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
 		this.fromKey = fromKey;
 		if(kvMain.isValid()) {
 			nextElem = SerializedComparator.deserializeObject(kvMain.value());

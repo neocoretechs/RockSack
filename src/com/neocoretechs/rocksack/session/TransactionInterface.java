@@ -2,6 +2,8 @@ package com.neocoretechs.rocksack.session;
 
 import java.io.IOException;
 
+import org.rocksdb.Transaction;
+
 interface TransactionInterface {
 
 	boolean COMMIT = false;
@@ -15,24 +17,24 @@ interface TransactionInterface {
 	* @param rollback true to roll back, false to commit
 	* @exception IOException For low level failure
 	*/
-	void Close(boolean rollback) throws IOException;
+	void Close(Transaction txn, boolean rollback) throws IOException;
 
 	/**
 	* @exception IOException for low level failure
 	*/
-	void Rollback() throws IOException;
+	void Rollback(Transaction txn) throws IOException;
 	
 	/**
 	* Commit the blocks.
 	* @exception IOException For low level failure
 	*/
-	void Commit() throws IOException;
+	void Commit(Transaction txn) throws IOException;
 	/**
 	 * Checkpoint the current transaction
 	 * @throws IOException 
 	 * @throws IllegalAccessException 
 	 */
-	void Checkpoint() throws IllegalAccessException, IOException;
+	void Checkpoint(Transaction txn) throws IllegalAccessException, IOException;
 	/**
 	* Generic session roll up.  Data is committed based on rollback param.
 	* We deallocate the outstanding block
@@ -41,6 +43,6 @@ interface TransactionInterface {
 	* @param rollback true to roll back, false to commit
 	* @exception IOException For low level failure
 	*/
-	void rollupSession(boolean rollback) throws IOException;
+	void rollupSession(Transaction txn, boolean rollback) throws IOException;
 	
 }

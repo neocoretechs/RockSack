@@ -2,7 +2,9 @@ package com.neocoretechs.rocksack.iterator;
 import java.io.IOException;
 import java.util.NoSuchElementException;
 
+import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
+import org.rocksdb.Transaction;
 
 import com.neocoretechs.rocksack.SerializedComparator;
 
@@ -39,6 +41,12 @@ public class EntrySetIterator extends AbstractIterator {
 	@SuppressWarnings("rawtypes")
 	public EntrySetIterator(RocksDB db) throws IOException {
 		super(db.newIterator());
+		if(kvMain.isValid()) {
+			nextElem = SerializedComparator.deserializeObject(kvMain.value());
+		}
+	}
+	public EntrySetIterator(Transaction db) throws IOException {
+		super(db.getIterator(new ReadOptions()));
 		if(kvMain.isValid()) {
 			nextElem = SerializedComparator.deserializeObject(kvMain.value());
 		}

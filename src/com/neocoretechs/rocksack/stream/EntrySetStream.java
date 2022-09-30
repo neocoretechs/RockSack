@@ -3,6 +3,7 @@ package com.neocoretechs.rocksack.stream;
 import java.io.IOException;
 
 import org.rocksdb.RocksDB;
+import org.rocksdb.Transaction;
 
 import com.neocoretechs.rocksack.iterator.EntrySetIterator;
 
@@ -18,6 +19,9 @@ public class EntrySetStream extends SackStream {
 	}
 
 	public EntrySetStream(RocksDB kvMain) throws IOException {
+		this(new EntrySetIterator(kvMain));
+	}
+	public EntrySetStream(Transaction kvMain) throws IOException {
 		this(new EntrySetIterator(kvMain));
 	}
 
