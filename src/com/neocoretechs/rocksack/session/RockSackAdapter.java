@@ -57,13 +57,13 @@ public class RockSackAdapter {
 
 	
 	/**
-	 * Get a TreeMap via Comparable instance.
+	 * Get a Map via Comparable instance.
 	 * @param clazz The Comparable object that the java class name is extracted from
 	 * @return A BufferedTreeMap for the clazz instances.
 	 * @throws IllegalAccessException
 	 * @throws IOException
 	 */
-	public static BufferedMap getRockSackTreeMap(Comparable clazz) throws IllegalAccessException, IOException {
+	public static BufferedMap getRockSackMap(Comparable clazz) throws IllegalAccessException, IOException {
 		return getRockSackMap(clazz.getClass());
 	}
 	/**
