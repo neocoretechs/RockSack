@@ -343,12 +343,6 @@ public class BufferedMap implements OrderedKVMapInterface {
 
 
 	@Override
-	public String getDBPath() {
-		return session.getDBPath();
-	}
-
-
-	@Override
 	public int getUid() {
 		return session.getUid();
 	}

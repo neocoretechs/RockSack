@@ -62,7 +62,7 @@ import com.neocoretechs.rocksack.stream.TailSetStream;
 * @author Jonathan Groff (C) NeoCoreTechs 2003, 2017, 2021
 */
 public class RockSackSession {
-	private boolean DEBUG = false;
+	private boolean DEBUG = true;
 	private int uid;
 	private int gid;
 	protected RocksDB kvStore;
@@ -81,7 +81,7 @@ public class RockSackSession {
 		this.uid = uid;
 		this.gid = gid;
 		if( DEBUG )
-			System.out.println("RockSackSession constructed with db:"+getDBPath());
+			System.out.println("RockSackSession constructed with db:"+getDBname());
 	}
 
 	public long getTransactionId() { return -1L; }
@@ -90,13 +90,10 @@ public class RockSackSession {
 		return kvStore.getName();
 	}
 	
-	protected String getDBPath() {
-		return options.dbPaths().get(0).toString(); // primary path?
-	}
 
 	@Override
 	public String toString() {
-		return "RockSackSession using DB:"+getDBname()+" path:"+getDBPath();
+		return "RockSackSession using DB:"+getDBname()+" path:"+getDBname();
 	}
 	
 	@Override
@@ -161,8 +158,13 @@ public class RockSackSession {
 	 */
 	@SuppressWarnings("rawtypes")
 	protected Object get(Comparable o) throws IOException {
+		if(DEBUG)
+			System.out.printf("%s.get(%s)%n", this.getClass().getName(), o);
 		   try {
-			   return new KeyValue(o,SerializedComparator.deserializeObject(kvStore.get(SerializedComparator.serializeObject(o))));
+			   byte[] b = kvStore.get(SerializedComparator.serializeObject(o));
+			   if(b == null)
+				   return null;
+			   return new KeyValue(o,SerializedComparator.deserializeObject(b));
 		} catch (RocksDBException | IOException e) {
 			throw new IOException(e);
 		}
@@ -177,8 +179,13 @@ public class RockSackSession {
 	 */
 	@SuppressWarnings("rawtypes")
 	protected Object get(Transaction txn, ReadOptions ro, Comparable o) throws IOException {
+		if(DEBUG)
+			System.out.printf("%s.get(%s, %s, %s)%n", this.getClass().getName(), txn, ro, o);
 		   try {
-			   return new KeyValue(o,SerializedComparator.deserializeObject(txn.get(ro,SerializedComparator.serializeObject(o))));
+			   byte[] b = txn.get(ro,SerializedComparator.serializeObject(o));
+			   if(b == null)
+				   return null;
+			   return new KeyValue(o,SerializedComparator.deserializeObject(b));
 		} catch (RocksDBException | IOException e) {
 			throw new IOException(e);
 		}
@@ -584,7 +591,8 @@ public class RockSackSession {
 	 */
 	@SuppressWarnings("rawtypes")
 	protected boolean contains(Comparable o) throws IOException {
-		return kvStore.keyMayExist(ByteBuffer.wrap(SerializedComparator.serializeObject(o)));
+		Object o2 = get(o);
+		return o2 != null;
 	}
 	/**
 	 * Contains a value object. Does a get since RocksDB doesnt seem to have keymayexist in trans context

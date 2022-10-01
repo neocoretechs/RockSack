@@ -45,8 +45,8 @@ import org.rocksdb.WriteOptions;
 public class TransactionalMap implements OrderedKVMapInterface {
 	protected RockSackTransactionSession session;
 	Transaction txn;
-	ReadOptions ro = new ReadOptions();
-	WriteOptions wo = new WriteOptions();
+	ReadOptions ro;
+	WriteOptions wo;
 	/**
 	 * @param dbname
 	 * @param database Database type i.e. RocksDB
@@ -55,7 +55,10 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	 * @throws IllegalAccessException
 	 */
 	public TransactionalMap(String dbname, String database, String backingStore) throws IOException, IllegalAccessException {
+		ro = new ReadOptions();
+		wo = new WriteOptions();
 		session = SessionManager.ConnectTransaction(dbname, database, backingStore);
+		txn = session.getKVStore().beginTransaction(wo);
 	}
 	
 	/**
@@ -64,7 +67,10 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	 * @throws IllegalAccessException
 	 */
 	public TransactionalMap(RockSackTransactionSession session) throws IOException, IllegalAccessException {
+		ro = new ReadOptions();
+		wo = new WriteOptions();
 		this.session = session;
+		txn = session.getKVStore().beginTransaction(wo);
 	}
 	
 	public Transaction getTransaction() {
@@ -410,10 +416,6 @@ public class TransactionalMap implements OrderedKVMapInterface {
 		return session.getDBname();
 	}
 
-	@Override
-	public String getDBPath() {
-		return session.getDBPath();
-	}
 
 	@Override
 	public int getUid() {
