@@ -62,11 +62,12 @@ import com.neocoretechs.rocksack.stream.TailSetStream;
 * @author Jonathan Groff (C) NeoCoreTechs 2003, 2017, 2021
 */
 public class RockSackSession {
-	private boolean DEBUG = true;
+	private boolean DEBUG = false;
 	private int uid;
 	private int gid;
 	protected RocksDB kvStore;
 	private Options options;
+	private boolean dbOpen = false;
 
 	/**
 	* Create a new session
@@ -116,8 +117,36 @@ public class RockSackSession {
 	protected Object getMutexObject() {
 		return kvStore;
 	}
-
-
+	/**
+	 * Wait for rocksdb.stats to report uptime > 0 to ensure DB is open.
+	 * Not sure how necessary this is, and hope to find a better method if it in fact is.
+	 * @throws IOException
+	 */
+	protected void waitOpen() throws IOException {
+		if(dbOpen)
+			return;
+		while(true) {
+			String str;
+			try {
+				str = kvStore.getProperty("rocksdb.stats");
+			} catch (RocksDBException e1) {
+				throw new IOException(e1);
+			}
+			int s = str.indexOf("Uptime");
+			int t = str.indexOf("total",s);
+			String tline = str.substring(s, t);
+			String[] tp = tline.split(" ");
+			float usecs = Float.parseFloat(tp[1]);
+			if(usecs > 0.0)
+				break;
+			if(DEBUG)
+				System.out.println("wait for uptime..."+usecs);
+			try {
+				Thread.sleep(1);
+			} catch (InterruptedException e) {}
+		}
+		dbOpen = true;
+	}
 	/**
 	 * Call the put method of KeyValueMain.
 	 * @param key The key value to attempt add

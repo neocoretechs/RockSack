@@ -277,6 +277,10 @@ public final class SessionManager {
 		RocksDB db = null;
 		  try {	  
 			  db = RocksDB.open(options, dbPath);
+			  if(DEBUG) {
+				  final String str = db.getProperty("rocksdb.stats");
+				  System.out.println(str);
+			  }
 		  } catch (final RocksDBException e) {
 			    System.out.format("[ERROR] caught the unexpected exception -- %s\n", e);
 			    assert (false);

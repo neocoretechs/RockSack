@@ -43,7 +43,8 @@ import org.rocksdb.RocksDB;
 * @author Jonathan Groff (C) NeoCoreTechs 2003, 2017, 2021
 */
 public class BufferedMap implements OrderedKVMapInterface {
-	protected RockSackSession session;
+	private RockSackSession session = null;
+	String dbName, keyValueStore, backingStore;
 
 	/**
 	* Get instance of RockSack session.
@@ -54,11 +55,15 @@ public class BufferedMap implements OrderedKVMapInterface {
 	* @exception IOException if global IO problem
 	* @exception IllegalAccessException if the database has been put offline
 	*/
-	public BufferedMap(String tdbname, String keyValueStore, String backingStore ) throws IOException, IllegalAccessException {
-		session = SessionManager.Connect(tdbname, keyValueStore, backingStore);
+	public BufferedMap(String dbName, String keyValueStore, String backingStore ) throws IllegalAccessException, IOException {
+		this.dbName = dbName;
+		this.keyValueStore = keyValueStore;
+		this.backingStore = backingStore;
+		session = SessionManager.Connect(dbName, keyValueStore, backingStore);
 	}
 		
-	public RockSackSession getSession() {
+	public RockSackSession getSession() throws IOException {
+		session.waitOpen();
 		return session;
 	}
 	/**
@@ -70,7 +75,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public boolean put(Comparable tkey, Object tvalue) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 				// now put new
 				return session.put(tkey, tvalue);
 		}
@@ -86,9 +91,9 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Object get(Comparable tkey) throws IOException {
-		synchronized (session.getMutexObject()) {
-				return session.get(tkey);
-		}
+		//synchronized (getSession().getMutexObject()) {
+				return getSession().get(tkey);
+		//}
 	}
 	
 	/**
@@ -99,7 +104,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	* @exception IOException if get from backing store fails
 	*/
 	public Object getValue(Object tkey) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 				return session.getValue(tkey);
 		}
 	}
@@ -109,7 +114,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	* @exception IOException If backing store retrieval failure
 	*/
 	public long size() throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 				return session.size();
 
 		}
@@ -121,13 +126,13 @@ public class BufferedMap implements OrderedKVMapInterface {
 	* @exception IOException if get from backing store fails
 	*/
 	public Iterator<?> entrySet() throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 				return session.entrySet();
 		}
 	}
 	
 	public Stream<?> entrySetStream() throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 				return session.entrySetStream();
 		}
 	}
@@ -137,13 +142,13 @@ public class BufferedMap implements OrderedKVMapInterface {
 	* @exception IOException if get from backing store fails
 	*/
 	public Iterator<?> keySet() throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 				return session.keySet();
 		}
 	}
 	
 	public Stream<?> keySetStream() throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 				return session.keySetStream();
 		}
 	}
@@ -155,7 +160,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public boolean containsKey(Comparable tkey) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.contains(tkey);
 		}
 	}
@@ -167,7 +172,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Object remove(Comparable tkey) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.remove(tkey);
 		}
 	}
@@ -176,7 +181,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	* @exception IOException If backing store retrieval failure
 	*/
 	public Comparable firstKey() throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.firstKey();
 		}
 	}
@@ -185,7 +190,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	* @exception IOException If backing store retrieval failure
 	*/
 	public Comparable lastKey() throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.lastKey();
 		}
 	}
@@ -196,7 +201,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	* @exception IOException If backing store retrieval failure
 	*/
 	public Object last() throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 				return session.last();
 		}
 	}
@@ -207,7 +212,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	* @exception IOException If backing store retrieval failure
 	*/
 	public Object first() throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.first();
 		}
 	}
@@ -218,14 +223,14 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Iterator<?> headMap(Comparable tkey) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.headSet(tkey);
 		}
 	}
 	
 	@SuppressWarnings("rawtypes")
 	public Stream<?> headMapStream(Comparable tkey) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.headSetStream(tkey);
 		}
 	}
@@ -236,14 +241,14 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Iterator<?> headMapKV(Comparable tkey) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.headSetKV(tkey);
 		}
 	}
 	
 	@SuppressWarnings("rawtypes")
 	public Stream<?> headMapKVStream(Comparable tkey) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.headSetKVStream(tkey);
 		}
 	}
@@ -254,14 +259,14 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Iterator<?> tailMap(Comparable fkey) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.tailSet(fkey);
 		}
 	}
 	
 	@SuppressWarnings("rawtypes")
 	public Stream<?> tailMapStream(Comparable fkey) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.tailSetStream(fkey);
 		}
 	}
@@ -272,14 +277,14 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Iterator<?> tailMapKV(Comparable fkey) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.tailSetKV(fkey);
 		}
 	}
 	
 	@SuppressWarnings("rawtypes")
 	public Stream<?> tailMapKVStream(Comparable fkey) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.tailSetKVStream(fkey);
 		}
 	}
@@ -292,7 +297,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	@SuppressWarnings("rawtypes")
 	public Iterator<?> subMap(Comparable fkey, Comparable tkey)
 		throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.subSet(fkey, tkey);
 		}
 	}
@@ -300,7 +305,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	@SuppressWarnings("rawtypes")
 	public Stream<?> subMapStream(Comparable fkey, Comparable tkey)
 		throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.subSetStream(fkey, tkey);
 		}
 	}
@@ -313,7 +318,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	@SuppressWarnings("rawtypes")
 	public Iterator<?> subMapKV(Comparable fkey, Comparable tkey)
 		throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.subSetKV(fkey, tkey);
 		}
 	}
@@ -321,7 +326,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	@SuppressWarnings("rawtypes")
 	public Stream<?> subMapKVStream(Comparable fkey, Comparable tkey)
 		throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.subSetKVStream(fkey, tkey);
 		}
 	}
@@ -331,43 +336,59 @@ public class BufferedMap implements OrderedKVMapInterface {
 	* @exception IOException If backing store retrieval failure
 	*/
 	public boolean isEmpty() throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 				return session.isEmpty();
 		}
 	}
 	
 	@Override
 	public String getDBName() {
-		return session.getDBname();
+		try {
+			return getSession().getDBname();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 
 	@Override
 	public int getUid() {
-		return session.getUid();
+		try {
+			return getSession().getUid();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override
 	public int getGid() {
-		return session.getGid();
+		try {
+			return getSession().getGid();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override
 	public Object getMutexObject() {
-		return session.getMutexObject();
+		try {
+			return getSession().getMutexObject();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 
 	@Override
 	public Iterator<?> iterator() throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.keySet();
 		}
 	}
 
 	@Override
 	public boolean contains(Comparable o) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.contains(o);
 		}
 	}
@@ -378,7 +399,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 
 	@Override
 	public void forceClose() throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			session.Close();
 		}
 		
@@ -386,14 +407,18 @@ public class BufferedMap implements OrderedKVMapInterface {
 
 	@Override
 	public RocksDB getKVStore() {
-		synchronized (session.getMutexObject()) {
-			return session.getKVStore();
+		try {
+			synchronized (getSession().getMutexObject()) {
+				return session.getKVStore();
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
 		}
 	}
 
 	@Override
 	public boolean containsValue(Object o) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.containsValue(o);
 		}
 	}
@@ -401,84 +426,84 @@ public class BufferedMap implements OrderedKVMapInterface {
 
 	@Override
 	public Iterator<?> subSet(Comparable fkey, Comparable tkey) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.subSet(fkey, tkey);
 		}
 	}
 
 	@Override
 	public Stream<?> subSetStream(Comparable fkey, Comparable tkey) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.subSetStream(fkey, tkey);
 		}
 	}
 
 	@Override
 	public Iterator<?> headSet(Comparable tkey) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.headSet(tkey);
 		}
 	}
 
 	@Override
 	public Stream<?> headSetStream(Comparable tkey) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.headSetStream(tkey);
 		}
 	}
 
 	@Override
 	public Iterator<?> tailSet(Comparable fkey) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.tailSet(fkey);
 		}
 	}
 
 	@Override
 	public Stream<?> tailSetStream(Comparable fkey) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.tailSetStream(fkey);
 		}
 	}
 
 	@Override
 	public Iterator<?> subSetKV(Comparable fkey, Comparable tkey) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.subSetKV(fkey, tkey);
 		}
 	}
 
 	@Override
 	public Stream<?> subSetKVStream(Comparable fkey, Comparable tkey) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.subSetKVStream(fkey, tkey);
 		}
 	}
 
 	@Override
 	public Iterator<?> headSetKV(Comparable tkey) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.headSetKV(tkey);
 		}
 	}
 
 	@Override
 	public Stream<?> headSetKVStream(Comparable tkey) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.headSetKVStream(tkey);
 		}
 	}
 
 	@Override
 	public Iterator<?> tailSetKV(Comparable fkey) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.tailSetKV(fkey);
 		}
 	}
 
 	@Override
 	public Stream<?> tailSetKVStream(Comparable fkey) throws IOException {
-		synchronized (session.getMutexObject()) {
+		synchronized (getSession().getMutexObject()) {
 			return session.tailSetKVStream(fkey);
 		}
 	}
