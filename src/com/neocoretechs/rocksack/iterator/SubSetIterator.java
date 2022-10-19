@@ -36,26 +36,57 @@ import com.neocoretechs.rocksack.SerializedComparator;
 * @author Jonathan Groff Copyright (C) NeoCoreTechs 2021
 */
 public class SubSetIterator extends AbstractIterator {
-	private static boolean DEBUG = false;
+	private static boolean DEBUG = true;
 	@SuppressWarnings("rawtypes")
 	Comparable fromKey, toKey;
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public SubSetIterator(Comparable fromKey, Comparable toKey, RocksDB db) throws IOException {
-		super(db.newIterator(new ReadOptions().
-				setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey))).
-				setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
+		super(db.newIterator(new ReadOptions()));//.
+				//setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));//.
+				//setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
+		//
+		while(kvMain.isValid()) {
+			// set our lower bound
+			kvMain.next();
+			nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
+			if(nextKey.compareTo(fromKey) >= 0)
+				break;
+			if (nextKey.compareTo(toKey) >= 0)  {
+				nextKey = null;
+				break;
+			}
+		}
+		if(DEBUG) {
+			System.out.printf("%s fromKey=%s toKey=%s%n", this.getClass().getName(),fromKey,toKey);
+			System.out.printf("%s start key=%s value=%s%n", this.getClass().getName(),nextKey,SerializedComparator.deserializeObject(kvMain.value()));
+		}
 		this.fromKey = fromKey;
 		this.toKey = toKey;
 	}
 	public SubSetIterator(Comparable fromKey, Comparable toKey, Transaction db) throws IOException {
-		super(db.getIterator(new ReadOptions().
-				setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey))).
-				setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
+		super(db.getIterator(new ReadOptions()));//.
+				//setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));//.
+				//setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
+		while(kvMain.isValid()) {
+			// set our lower bound
+			kvMain.next();
+			nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
+			if(nextKey.compareTo(fromKey) >= 0)
+				break;
+			if (nextKey.compareTo(toKey) >= 0)  {
+				nextKey = null;
+				break;
+			}
+		}
+		if(DEBUG) {
+			System.out.printf("%s fromKey=%s toKey=%s%n", this.getClass().getName(),fromKey,toKey);
+			System.out.printf("%s start key=%s value=%s%n", this.getClass().getName(),nextKey,SerializedComparator.deserializeObject(kvMain.value()));
+		}
 		this.fromKey = fromKey;
 		this.toKey = toKey;
 	}
 	public boolean hasNext() {
-		return kvMain.isValid();
+		return nextKey != null && kvMain.isValid();
 	}
 
 	/**
@@ -65,17 +96,15 @@ public class SubSetIterator extends AbstractIterator {
 	@SuppressWarnings("unchecked")
 	public Object next() {
 		try {
-			if (!kvMain.isValid())
+			if (!kvMain.isValid() || nextKey == null)
 				throw new NoSuchElementException("No next iterator element");
 			retKey = nextKey;
 			kvMain.next();
 			if(kvMain.isValid()) {
 				nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
-				/*
 				if (nextKey.compareTo(toKey) >= 0 || nextKey.compareTo(fromKey) < 0) {
-					System.out.println("WARNING: NON exclusive subset iterator");
+					nextKey = null;
 				}
-				*/
 			} else {
 				nextKey = null;
 			}

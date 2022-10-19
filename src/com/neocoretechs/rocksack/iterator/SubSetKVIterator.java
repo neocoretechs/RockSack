@@ -42,13 +42,13 @@ public class SubSetKVIterator extends SubSetIterator {
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public SubSetKVIterator(Comparable fromKey, Comparable toKey, RocksDB db) throws IOException {
 		super(fromKey, toKey, db);
-		if(kvMain.isValid()) {
+		if(kvMain.isValid() && nextKey != null) {
 			nextElem = SerializedComparator.deserializeObject(kvMain.value());
 		}
 	}
 	public SubSetKVIterator(Comparable fromKey, Comparable toKey, Transaction db) throws IOException {
 		super(fromKey, toKey, db);
-		if(kvMain.isValid()) {
+		if(kvMain.isValid() && nextKey != null) {
 			nextElem = SerializedComparator.deserializeObject(kvMain.value());
 		}
 	}
@@ -56,7 +56,7 @@ public class SubSetKVIterator extends SubSetIterator {
 	@SuppressWarnings("unchecked")
 	public Object next() {
 		try {
-			if (!kvMain.isValid())
+			if (!kvMain.isValid() || nextKey == null)
 				throw new NoSuchElementException("No next iterator element");
 			retKey = nextKey;
 			retElem = nextElem;
@@ -64,11 +64,9 @@ public class SubSetKVIterator extends SubSetIterator {
 			if(kvMain.isValid()) {
 				nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
 				nextElem = SerializedComparator.deserializeObject(kvMain.value());
-				/*
 				if (nextKey.compareTo(toKey) >= 0 || nextKey.compareTo(fromKey) < 0) {
-					System.out.println("WARNING: NON exclusive subset iterator");
+					nextKey = null;
 				}
-				*/
 			} else {
 				nextKey = null;
 			}
