@@ -36,25 +36,42 @@ import com.neocoretechs.rocksack.SerializedComparator;
 */
 /**
 * Provides a persistent collection iterator greater or equal to 'from' element
-* @author Jonathan Groff Copyright (C) NeoCoreTechs 2021
+* @author Jonathan Groff Copyright (C) NeoCoreTechs 2021,2022
 */
 public class TailSetIterator extends AbstractIterator {
 	@SuppressWarnings("rawtypes")
 	private static boolean DEBUG = false;
 	Comparable fromKey;
 	public TailSetIterator(Comparable fromKey, RocksDB db) throws IOException {
-		super(db.newIterator(new ReadOptions().setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
+		super(db.newIterator());//new ReadOptions().setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
+	    //kvMain.seek(SerializedComparator.serializeObject(fromKey));
+		//if(kvMain.isValid()) {
+		//	nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
+		//}
+		while(kvMain.isValid()) {
+			// set our lower bound
+			nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
+			if(nextKey.compareTo(fromKey) >= 0)
+				break;
+			kvMain.next();
+		}
 		this.fromKey = fromKey;
 	}
 	public TailSetIterator(Comparable fromKey, Transaction db) throws IOException {
-		super(db.getIterator(new ReadOptions().setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
+		super(db.getIterator(new ReadOptions()));//.setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
+		while(kvMain.isValid()) {
+			// set our lower bound
+			nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
+			if(nextKey.compareTo(fromKey) >= 0)
+				break;
+			kvMain.next();
+		}
 		this.fromKey = fromKey;
 	}
 	public boolean hasNext() {
 		return kvMain.isValid();
 	}
 	public Object next() {
-		synchronized (kvMain) {
 			try {
 				// move nextelem to retelem, search nextelem, get nextelem
 				if (!kvMain.isValid())
@@ -63,13 +80,6 @@ public class TailSetIterator extends AbstractIterator {
 				kvMain.next();
 				if(kvMain.isValid()) {
 					nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
-					// verify until confirm order exclusive
-					/*
-					if (nextKey.compareTo(fromKey) < 0) {
-						nextKey = null;
-						System.out.println("VERIFY: order NOT exclusive TailSetIterator");
-					}
-					*/
 				} else {
 					nextKey = null;
 				}
@@ -77,7 +87,6 @@ public class TailSetIterator extends AbstractIterator {
 			} catch (IOException ioe) {
 				throw new RuntimeException(ioe.toString());
 			}
-		}
 	}
 	public void remove() {
 		throw new UnsupportedOperationException("No provision to remove from Iterator");

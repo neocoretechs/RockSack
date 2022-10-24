@@ -1,8 +1,6 @@
 package com.neocoretechs.rocksack.iterator;
 import java.io.IOException;
-import java.util.ConcurrentModificationException;
 import java.util.NoSuchElementException;
-import java.util.Stack;
 
 import org.rocksdb.RocksDB;
 import org.rocksdb.Transaction;
@@ -34,7 +32,7 @@ import com.neocoretechs.rocksack.SerializedComparator;
 */
 /**
 * Provides a persistent collection iterator 'from' element inclusive, 'to' element exclusive
-* @author Jonathan Groff Copyright (C) NeoCoreTechs 2021
+* @author Jonathan Groff Copyright (C) NeoCoreTechs 2021,2022
 */
 public class SubSetKVIterator extends SubSetIterator {
 	private boolean DEBUG = true;
@@ -76,7 +74,4 @@ public class SubSetKVIterator extends SubSetIterator {
 		}
 	}
 
-	public void remove() {
-		throw new UnsupportedOperationException("No provision to remove from Iterator");
-	}
 }

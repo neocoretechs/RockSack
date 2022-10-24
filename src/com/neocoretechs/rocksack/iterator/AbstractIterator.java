@@ -9,7 +9,7 @@ import com.neocoretechs.rocksack.SerializedComparator;
 
 /**
  * Provides the superclass for out iterators and drop-in compatibility for java.util.Iterator<> contracts
- * @author Jonathan Groff Copyright (C) NeoCoreTechs 2021
+ * @author Jonathan Groff Copyright (C) NeoCoreTechs 2021,2022
  *
  */
 public abstract class AbstractIterator implements Iterator<Object> {

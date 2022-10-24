@@ -33,7 +33,7 @@ import com.neocoretechs.rocksack.SerializedComparator;
 */
 /**
  * Iterator for entrySet of persistent collection
- * @author Jonathan Groff Copyright (C) NeoCoreTechs 2021
+ * @author Jonathan Groff Copyright (C) NeoCoreTechs 2021,2022
  *
  */
 public class EntrySetIterator extends AbstractIterator {
@@ -55,7 +55,6 @@ public class EntrySetIterator extends AbstractIterator {
 		return kvMain.isValid();
 	}
 	public Object next() {
-		synchronized (kvMain) {
 			try {
 				// move nextelem to retelem, search nextelem, get nextelem
 				if (!kvMain.isValid())
@@ -75,7 +74,6 @@ public class EntrySetIterator extends AbstractIterator {
 			} catch (IOException ioe) {
 				throw new RuntimeException(ioe.toString());
 			}
-		}
 	}
 	
 	public void remove() {

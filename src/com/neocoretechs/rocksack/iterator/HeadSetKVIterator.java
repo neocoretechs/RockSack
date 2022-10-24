@@ -2,9 +2,7 @@ package com.neocoretechs.rocksack.iterator;
 import java.io.IOException;
 import java.util.NoSuchElementException;
 
-import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
-import org.rocksdb.Slice;
 import org.rocksdb.Transaction;
 
 import com.neocoretechs.rocksack.SerializedComparator;
@@ -33,62 +31,49 @@ import com.neocoretechs.rocksack.SerializedComparator;
 */
 /**
 * Iterator for items of persistent collection strictly less than 'to' element
-* @author Jonathan Groff (C) NeoCoreTechs 1997,2003,2020,2021
+* @author Jonathan Groff (C) NeoCoreTechs 1997,2003,2020,2021,2022
 */
-public class HeadSetKVIterator extends AbstractIterator {
+public class HeadSetKVIterator extends HeadSetIterator {
 	@SuppressWarnings("rawtypes")
 	Comparable toKey;
 	Object nextElem, retElem;
 	@SuppressWarnings("unchecked")
 	public HeadSetKVIterator(@SuppressWarnings("rawtypes") Comparable toKey, RocksDB db) throws IOException {
-		super(db.newIterator(new ReadOptions().setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));
-		this.toKey = toKey;
-		if(kvMain.isValid()) {
+		super(toKey, db);
+		if(kvMain.isValid() && nextKey != null) {
 			nextElem = SerializedComparator.deserializeObject(kvMain.value());
 		}
 
 	}
 	public HeadSetKVIterator(@SuppressWarnings("rawtypes") Comparable toKey, Transaction db) throws IOException {
-		super(db.getIterator(new ReadOptions().setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));
-		this.toKey = toKey;
-		if(kvMain.isValid()) {
+		super(toKey, db);
+		if(kvMain.isValid() && nextKey != null) {
 			nextElem = SerializedComparator.deserializeObject(kvMain.value());
 		}
+	}
 
-	}
-	public boolean hasNext() {
-		return kvMain.isValid();
-	}
 	@SuppressWarnings("unchecked")
 	public Object next() {
-		synchronized (kvMain) {
-			try {
-				// move nextelem to retelem, search nextelem, get nextelem
-				if (!kvMain.isValid())
-					throw new NoSuchElementException("No next iterator element");
-				retKey = nextKey;
-				retElem = nextElem;
-				kvMain.next();
-				if(kvMain.isValid()) {
-					nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
-					nextElem = SerializedComparator.deserializeObject(kvMain.value());
-					// verify until confirm order exclusive
-					/*
-					if (nextKey.compareTo(toKey) >= 0) {
-						nextKey = null;
-						System.out.println("VERIFY: order NOT exclusive");
-					}
-					*/
-				} else {
+		try {
+			// move nextelem to retelem, search nextelem, get nextelem
+			if (!kvMain.isValid() || nextKey == null)
+				throw new NoSuchElementException("No next iterator element");
+			retKey = nextKey;
+			retElem = nextElem;
+			kvMain.next();
+			if(kvMain.isValid()) {
+				nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
+				nextElem = SerializedComparator.deserializeObject(kvMain.value());
+				if (nextKey.compareTo(toKey) >= 0) {
 					nextKey = null;
 				}
-				return new KeyValuePair(retKey, retElem);
-			} catch (IOException ioe) {
-				throw new RuntimeException(ioe.toString());
+			} else {
+				nextKey = null;
 			}
+			return new KeyValuePair(retKey, retElem);
+		} catch (IOException ioe) {
+			throw new RuntimeException(ioe.toString());
 		}
 	}
-	public void remove() {
-		throw new UnsupportedOperationException("No provision to remove from Iterator");
-	}
+	
 }

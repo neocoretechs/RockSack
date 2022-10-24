@@ -1,13 +1,9 @@
 package com.neocoretechs.rocksack.iterator;
 import java.io.IOException;
-import java.util.ConcurrentModificationException;
 import java.util.NoSuchElementException;
-import java.util.Stack;
 
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
-import org.rocksdb.RocksIterator;
-import org.rocksdb.Slice;
 import org.rocksdb.Transaction;
 
 import com.neocoretechs.rocksack.SerializedComparator;
@@ -38,39 +34,40 @@ import com.neocoretechs.rocksack.SerializedComparator;
 */
 /**
 * Iterator for items of persistent collection strictly less than 'to' element
-* @author Jonathan Groff Copyright (C) NeoCoreTechs 2021
+* @author Jonathan Groff Copyright (C) NeoCoreTechs 2021,2022
 */
 public class HeadSetIterator extends AbstractIterator {
 	Comparable toKey;
 	public HeadSetIterator(@SuppressWarnings("rawtypes") Comparable toKey, RocksDB db) throws IOException {
-		super(db.newIterator(new ReadOptions().setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));
+		super(db.newIterator());//new ReadOptions().setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));
+		if(kvMain.isValid() && nextKey.compareTo(toKey) >= 0) {
+			nextKey = null;
+		}
 		this.toKey = toKey;
 	}
 	public HeadSetIterator(@SuppressWarnings("rawtypes") Comparable toKey, Transaction db) throws IOException {
-		super(db.getIterator(new ReadOptions().setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));
+		super(db.getIterator(new ReadOptions()));//.setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));
+		if(kvMain.isValid() && nextKey.compareTo(toKey) >= 0) {
+			nextKey = null;
+		}
 		this.toKey = toKey;
 	}
 	public boolean hasNext() {
-		return kvMain.isValid();
+		return nextKey != null && kvMain.isValid();
 	}
 	@SuppressWarnings("unchecked")
 	public Object next() {
-		synchronized (kvMain) {
 			try {
 				// move nextelem to retelem, search nextelem, get nextelem
-				if (!kvMain.isValid())
+				if (!kvMain.isValid() || nextKey == null)
 					throw new NoSuchElementException("No next iterator element");
 				retKey = nextKey;
 				kvMain.next();
 				if(kvMain.isValid()) {
 					nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
-					// verify until confirm order exclusive
-					/*
 					if (nextKey.compareTo(toKey) >= 0) {
 						nextKey = null;
-						System.out.println("VERIFY: order NOT exclusive");
 					}
-					*/
 				} else {
 					nextKey = null;
 				}
@@ -78,7 +75,6 @@ public class HeadSetIterator extends AbstractIterator {
 			} catch (IOException ioe) {
 				throw new RuntimeException(ioe.toString());
 			}
-		}
 	}
 	public void remove() {
 		throw new UnsupportedOperationException("No provision to remove from Iterator");
