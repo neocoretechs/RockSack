@@ -1,8 +1,6 @@
 package com.neocoretechs.rocksack.session;
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.Stack;
-import java.util.TreeMap;
 import java.util.stream.Stream;
 
 import org.rocksdb.ReadOptions;
