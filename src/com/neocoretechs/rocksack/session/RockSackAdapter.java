@@ -1,9 +1,11 @@
 package com.neocoretechs.rocksack.session;
 
 import java.io.IOException;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
 
 import com.neocoretechs.rocksack.DBPhysicalConstants;
 
@@ -39,6 +41,7 @@ public class RockSackAdapter {
 		RocksDB.loadLibrary();
 	}
 	private static ConcurrentHashMap<String, SetInterface> classToIso = new ConcurrentHashMap<String,SetInterface>();
+	private static ConcurrentHashMap<String, ConcurrentHashMap<String,SetInterface>> classToIsoTransaction = new ConcurrentHashMap<String,ConcurrentHashMap<String,SetInterface>>();
 	
 	public static String getTableSpaceDir() {
 		return tableSpaceDir;
@@ -92,8 +95,8 @@ public class RockSackAdapter {
 	 * @throws IllegalAccessException
 	 * @throws IOException
 	 */
-	public static TransactionalMap getRockSackTransactionalMap(Comparable clazz) throws IllegalAccessException, IOException {
-		return getRockSackTransactionalMap(clazz.getClass());
+	public static TransactionalMap getRockSackTransactionalMap(Comparable clazz, String xaction) throws IllegalAccessException, IOException {
+		return getRockSackTransactionalMap(clazz.getClass(), xaction);
 	}
 	/**
 	 * Get a TransactionalTreeMap via Java Class type.
@@ -102,20 +105,56 @@ public class RockSackAdapter {
 	 * @throws IllegalAccessException
 	 * @throws IOException
 	 */
-	public static TransactionalMap getRockSackTransactionalMap(Class clazz) throws IllegalAccessException, IOException {
+	public static TransactionalMap getRockSackTransactionalMap(Class clazz, String xaction) throws IllegalAccessException, IOException {
+		TransactionalMap ret = null;
 		String xClass = translateClass(clazz.getName());
-		TransactionalMap ret = (TransactionalMap) classToIso.get(xClass);
-		if(DEBUG)
-			System.out.println("RockSackAdapter.getRockSackMapTransaction About to return designator: "+tableSpaceDir+xClass+" formed from "+clazz.getClass().getName());
-		if( ret == null ) {
-			ret =  new TransactionalMap(tableSpaceDir+xClass, DBPhysicalConstants.DATABASE, DBPhysicalConstants.BACKINGSTORE);
-			classToIso.put(xClass, ret);
+		ConcurrentHashMap<String, SetInterface> xactions = classToIsoTransaction.get(xClass);
+		if(xactions == null) {
+			ret = new TransactionalMap(tableSpaceDir+xClass, DBPhysicalConstants.DATABASE, DBPhysicalConstants.BACKINGSTORE);
+			xactions = new ConcurrentHashMap<String, SetInterface>();
+			try {
+				ret.txn.setName(UUID.randomUUID().toString());
+			} catch (RocksDBException e) {
+				throw new IOException(e);
+			}
+			xactions.put(ret.txn.getName(), ret);
+			classToIsoTransaction.put(xClass, xactions);
+			if(DEBUG)
+				System.out.println("RockSackAdapter.getRockSackMapTransaction About to return first designator: "+tableSpaceDir+xClass+
+						" transaction:"+ret.txn.getName()+" formed from "+clazz.getClass().getName());
 			return ret;
 		}
-		return new TransactionalMap(ret.session);
+		ret = (TransactionalMap) xactions.get(xaction);
+		// new transaction in existing open DB, create new TransactionalMap which contains encapsulated transaction
+		if( ret == null ) {
+			ret = new TransactionalMap(tableSpaceDir+xClass, DBPhysicalConstants.DATABASE, DBPhysicalConstants.BACKINGSTORE);
+			try {
+				ret.txn.setName(UUID.randomUUID().toString());
+			} catch (RocksDBException e) {
+				throw new IOException(e);
+			}
+			xactions.put(ret.txn.getName(), ret);
+			classToIsoTransaction.put(xClass, xactions);
+			if(DEBUG)
+				System.out.println("RockSackAdapter.getRockSackMapTransaction About to return additional designator: "+tableSpaceDir+xClass+
+						" transaction:"+ret.txn.getName()+" formed from "+clazz.getClass().getName());
+		}
+		return ret;
 	}
-	
-	
+	/**
+	 * Remove the given TransactionalMap from active DB/transaction collection
+	 * @param tmap
+	 */
+	public static void removeRockSackTransactionalMap(SetInterface tmap) {
+		classToIsoTransaction.forEach((k,v) -> {
+			if(v.contains(tmap)) {
+				TransactionalMap verify = (TransactionalMap) v.remove(((TransactionalMap)tmap).txn.getName());
+				if(DEBUG)
+					System.out.println("RockSackAdapter.removeRockSackTransactionalMap removing xaction "+((TransactionalMap)tmap).txn.getName()+" for DB "+k+" which should match "+verify.txn.getName());
+				return;
+			}
+		});
+	}
 	/**
 	 * Translate a class name into a legitimate file name with some aesthetics.
 	 * @param clazz
