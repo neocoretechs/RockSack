@@ -6,9 +6,10 @@ import org.rocksdb.Options;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.Transaction;
 import org.rocksdb.TransactionDB;
+import org.rocksdb.WriteOptions;
 
 public class RockSackTransactionSession extends RockSackSession implements TransactionInterface {
-
+	
 	protected RockSackTransactionSession(TransactionDB kvStore, Options options, int uid, int gid) {
 		super(kvStore, options, uid, gid);
 	}
@@ -17,11 +18,12 @@ public class RockSackTransactionSession extends RockSackSession implements Trans
 	public TransactionDB getKVStore() {
 		return (TransactionDB) kvStore;
 	}
-	
-	@Override
-	public void BeginTransaction() {
 		
+	@Override
+	public Transaction BeginTransaction() {
+		return getKVStore().beginTransaction(new WriteOptions());
 	}
+	
 	@Override
 	/**
 	* @exception IOException for low level failure

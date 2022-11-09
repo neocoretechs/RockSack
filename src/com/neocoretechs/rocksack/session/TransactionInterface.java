@@ -9,9 +9,7 @@ interface TransactionInterface {
 	boolean COMMIT = false;
 	boolean ROLLBACK = true;
 	
-	long getTransactionId();
-
-	void BeginTransaction();
+	Transaction BeginTransaction();
 	/**
 	* Close this session.
 	* @param rollback true to roll back, false to commit

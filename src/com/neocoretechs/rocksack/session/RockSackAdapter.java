@@ -32,7 +32,7 @@ import com.neocoretechs.rocksack.DBPhysicalConstants;
  *
  */
 public class RockSackAdapter {
-	private static boolean DEBUG = false;
+	private static boolean DEBUG = true;
 	private static String tableSpaceDir = "/";
 	private static final char[] ILLEGAL_CHARS = { '[', ']', '!', '+', '=', '|', ';', '?', '*', '\\', '<', '>', '|', '\"', ':' };
 	private static final char[] OK_CHARS = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E' };
@@ -89,7 +89,7 @@ public class RockSackAdapter {
 	}
 
 	/**
-	 * Get a TransactionalTreeMap via Comparable instance.
+	 * Get a TransactionalTreeMap via Comparable instance. Retrieve an existing transaction
 	 * @param clazz The Comparable object that the java class name is extracted from.
 	 * @return A TransactionalTreeMap for the clazz instances.
 	 * @throws IllegalAccessException
@@ -99,16 +99,29 @@ public class RockSackAdapter {
 		return getRockSackTransactionalMap(clazz.getClass(), xaction);
 	}
 	/**
-	 * Get a TransactionalTreeMap via Java Class type.
+	 * Get a TransactionalTreeMap via Comparable instance. Create the initial transaction.
+	 * @param clazz The Comparable object that the java class name is extracted from.
+	 * @return A TransactionalTreeMap for the clazz instances.
+	 * @throws IllegalAccessException
+	 * @throws IOException
+	 */
+	public static TransactionalMap getRockSackTransactionalMap(Comparable clazz) throws IllegalAccessException, IOException {
+		return getRockSackTransactionalMap(clazz.getClass());
+	}
+	/**
+	 * Get a TransactionalTreeMap via Java Class type. Create the initial transaction.
+	 * We connect a new transaction to the first {@link RockSackTransactionSession} 
+	 * in the collection value of the database key at classToIsoTransaction.
 	 * @param clazz The Java Class of the intended database.
 	 * @return The TransactionalTreeMap for the clazz type.
 	 * @throws IllegalAccessException
 	 * @throws IOException
 	 */
-	public static TransactionalMap getRockSackTransactionalMap(Class clazz, String xaction) throws IllegalAccessException, IOException {
+	public static TransactionalMap getRockSackTransactionalMap(Class clazz) throws IllegalAccessException, IOException {
 		TransactionalMap ret = null;
 		String xClass = translateClass(clazz.getName());
 		ConcurrentHashMap<String, SetInterface> xactions = classToIsoTransaction.get(xClass);
+		// If we find no collection of transactions, the DB has not been opened for even one
 		if(xactions == null) {
 			ret = new TransactionalMap(tableSpaceDir+xClass, DBPhysicalConstants.DATABASE, DBPhysicalConstants.BACKINGSTORE);
 			xactions = new ConcurrentHashMap<String, SetInterface>();
@@ -120,26 +133,44 @@ public class RockSackAdapter {
 			xactions.put(ret.txn.getName(), ret);
 			classToIsoTransaction.put(xClass, xactions);
 			if(DEBUG)
-				System.out.println("RockSackAdapter.getRockSackMapTransaction About to return first designator: "+tableSpaceDir+xClass+
+				System.out.println("RockSackAdapter.getRockSackMapTransaction About to return first initial designator: "+tableSpaceDir+xClass+
 						" transaction:"+ret.txn.getName()+" formed from "+clazz.getClass().getName());
 			return ret;
 		}
-		ret = (TransactionalMap) xactions.get(xaction);
-		// new transaction in existing open DB, create new TransactionalMap which contains encapsulated transaction
-		if( ret == null ) {
-			ret = new TransactionalMap(tableSpaceDir+xClass, DBPhysicalConstants.DATABASE, DBPhysicalConstants.BACKINGSTORE);
-			try {
-				ret.txn.setName(UUID.randomUUID().toString());
-			} catch (RocksDBException e) {
-				throw new IOException(e);
-			}
-			xactions.put(ret.txn.getName(), ret);
-			classToIsoTransaction.put(xClass, xactions);
-			if(DEBUG)
-				System.out.println("RockSackAdapter.getRockSackMapTransaction About to return additional designator: "+tableSpaceDir+xClass+
-						" transaction:"+ret.txn.getName()+" formed from "+clazz.getClass().getName());
+		// connect it to the same session as existing transactions. session contains database info
+		// session is database level, not user level...
+		RockSackTransactionSession ti = ((TransactionalMap)xactions.values().toArray()[0]).session;
+		ret = new TransactionalMap(ti);
+		try {
+			ret.txn.setName(UUID.randomUUID().toString());
+		} catch (RocksDBException e) {
+			throw new IOException(e);
 		}
+		xactions.put(ret.txn.getName(), ret);
+		if(DEBUG)
+			System.out.println("RockSackAdapter.getRockSackMapTransaction About to return additional initial designator: "+tableSpaceDir+xClass+
+						" transaction:"+ret.txn.getName()+" formed from "+clazz.getClass().getName());
 		return ret;
+	}
+	/**
+	 * Get a TransactionalTreeMap via Java Class type. Retrieve an existing transaction.
+	 * @param clazz The Java Class of the intended database.
+	 * @param xaction The name of the transaction
+	 * @return The TransactionalTreeMap for the clazz type. null if not found.
+	 * @throws IllegalAccessException
+	 * @throws IOException If no transactions are active for the given class/db
+	 */
+	public static TransactionalMap getRockSackTransactionalMap(Class clazz, String xaction) throws IllegalAccessException, IOException {
+		SetInterface ret = null;
+		String xClass = translateClass(clazz.getName());
+		ConcurrentHashMap<String, SetInterface> xactions = classToIsoTransaction.get(xClass);
+		if(xactions == null) {
+			throw new IOException("No transactions active for class "+xClass);
+		}
+		ret = xactions.get(xaction);
+		if(ret == null)
+			return null;
+		return (TransactionalMap) ret;
 	}
 	/**
 	 * Remove the given TransactionalMap from active DB/transaction collection
