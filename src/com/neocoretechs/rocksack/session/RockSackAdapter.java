@@ -1,6 +1,7 @@
 package com.neocoretechs.rocksack.session;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -57,7 +58,6 @@ public class RockSackAdapter {
 	public static String getDatabaseName(String clazz) {
 		return tableSpaceDir+clazz;
 	}
-
 	
 	/**
 	 * Get a Map via Comparable instance.
@@ -174,7 +174,7 @@ public class RockSackAdapter {
 	}
 	/**
 	 * Remove the given TransactionalMap from active DB/transaction collection
-	 * @param tmap
+	 * @param tmap the TransactionalMap for a given transaction Id
 	 */
 	public static void removeRockSackTransactionalMap(SetInterface tmap) {
 		classToIsoTransaction.forEach((k,v) -> {
@@ -184,6 +184,23 @@ public class RockSackAdapter {
 					System.out.println("RockSackAdapter.removeRockSackTransactionalMap removing xaction "+((TransactionalMap)tmap).txn.getName()+" for DB "+k+" which should match "+verify.txn.getName());
 				return;
 			}
+		});
+	}
+	/**
+	 * Remove the given TransactionalMap from active DB/transaction collection
+	 * @param xid The Transaction Id
+	 */
+	public static void removeRockSackTransactionalMap(String xid) {
+		Collection<ConcurrentHashMap<String, SetInterface>> xactions = classToIsoTransaction.values();
+		xactions.forEach(c -> {
+			c.forEach((k,v) -> {
+				if(k.equals(xid)) {
+					TransactionalMap verify = (TransactionalMap) c.remove(xid);
+					if(DEBUG)
+						System.out.println("RockSackAdapter.removeRockSackTransactionalMap removing xaction "+xid+" for DB "+k+" which should match "+verify.txn.getName());
+					return;
+				}
+			});
 		});
 	}
 	/**
