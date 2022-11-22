@@ -131,7 +131,7 @@ public class RockSackAdapter {
 			classToIsoTransaction.put(xClass, xactions);
 			xactions.put(tx.getName(), tm);
 			if(DEBUG)
-				System.out.println("RockSackAdapter.getRockSackMapTransaction About to return new map with existing xid "+xid+" from: "+tableSpaceDir+xClass+" TransactionalMap:"+tm.toString()+" total maps:"+xactions.size());
+				System.out.println(RockSackAdapter.class.getName()+" About to return new map with existing xid "+xid+" from: "+tableSpaceDir+xClass+" TransactionalMap:"+tm.toString()+" total maps:"+xactions.size());
 			return tm;
 		}
 		// Transaction Id was not present, construct new transaction
@@ -153,18 +153,8 @@ public class RockSackAdapter {
 		// add out new transaction id/transaction map to the collection keyed by class
 		xactions.put(tx.getName(), tm);
 		if(DEBUG)
-			System.out.println("RockSackAdapter.getRockSackMapTransaction About to return new xaction and map from: "+tableSpaceDir+xClass+" TransactionalMap:"+tm.toString()+" total maps:"+xactions.size());
+			System.out.println(RockSackAdapter.class.getName()+" About to return new xaction "+xid+" and map from: "+tableSpaceDir+xClass+" TransactionalMap:"+tm.toString()+" total maps:"+xactions.size());
 		return tm;
-	}
-	/**
-	 * Get a TransactionalTreeMap via Comparable instance. Retrieve an existing transaction
-	 * @param clazz The Comparable object that the java class name is extracted from.
-	 * @return A TransactionalTreeMap for the clazz instances.
-	 * @throws IllegalAccessException
-	 * @throws IOException
-	 */
-	public static TransactionalMap getRockSackTransactionalMap(Comparable clazz, String xaction) throws IllegalAccessException, IOException {
-		return getRockSackTransactionalMap(clazz.getClass(), xaction);
 	}
 
 	/**
