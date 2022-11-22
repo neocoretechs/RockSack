@@ -72,7 +72,6 @@ public final class SessionManager {
 	@SuppressWarnings("rawtypes")
 	private static ConcurrentHashMap<?, ?> AdminSessionTable = new ConcurrentHashMap();
 	private static Vector<String> OfflineDBs = new Vector<String>();
-	private static long globalTransId = System.currentTimeMillis();
 	private static String backingStoreType;
 	//
 	// Sets the maximum number users
@@ -98,13 +97,6 @@ public final class SessionManager {
 	private static long lastStartTime = 0L;
 	private static long lastCommitTime = 0L;
 
-	/**
-	 * Increment the base global trans id and return, one for each session
-	 * @return
-	 */
-	public static long getGlobalTransId() {
-		return ++globalTransId;
-	}
 	/**
 	* Get begin transaction timestamp
 	*/
@@ -354,16 +346,6 @@ public final class SessionManager {
 		return SessionTable;
 	}
 	
-	public static boolean contains(long transId) {
-		Collection<RockSackSession> sess = SessionTable.values();
-		Iterator<RockSackSession> its = sess.iterator();
-		while(its.hasNext()) {
-			RockSackSession sits = its.next();
-			if( sits.getTransactionId() == transId )
-				return true;
-		}
-		return false;
-	}
 	/**
 	 * For those that wish to maintain admin tables
 	 * @return The Hashtable of Admin sessions - you define

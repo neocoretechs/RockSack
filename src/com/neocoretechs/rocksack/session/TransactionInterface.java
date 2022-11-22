@@ -2,6 +2,7 @@ package com.neocoretechs.rocksack.session;
 
 import java.io.IOException;
 
+import org.rocksdb.Snapshot;
 import org.rocksdb.Transaction;
 
 interface TransactionInterface {
@@ -29,10 +30,11 @@ interface TransactionInterface {
 	void Commit(Transaction txn) throws IOException;
 	/**
 	 * Checkpoint the current transaction
+	 * @return 
 	 * @throws IOException 
 	 * @throws IllegalAccessException 
 	 */
-	void Checkpoint(Transaction txn) throws IllegalAccessException, IOException;
+	Snapshot Checkpoint(Transaction txn) throws IllegalAccessException, IOException;
 	/**
 	* Generic session roll up.  Data is committed based on rollback param.
 	* We deallocate the outstanding block

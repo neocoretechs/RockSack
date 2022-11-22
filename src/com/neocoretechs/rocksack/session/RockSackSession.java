@@ -84,27 +84,14 @@ public class RockSackSession {
 		if( DEBUG )
 			System.out.println("RockSackSession constructed with db:"+getDBname());
 	}
-
-	public long getTransactionId() { return -1L; }
 	
 	protected String getDBname() {
 		return kvStore.getName();
 	}
 	
-
 	@Override
 	public String toString() {
-		return "RockSackSession using DB:"+getDBname()+" path:"+getDBname();
-	}
-	
-	@Override
-	public int hashCode() {
-		return Integer.hashCode((int)getTransactionId());
-	}
-	
-	@Override
-	public boolean equals(Object o) {
-		return( getTransactionId() == ((Long)o).longValue());
+		return this.getClass().getName()+" using DB:"+getDBname();
 	}
 	
 	protected int getUid() {
@@ -843,8 +830,6 @@ public class RockSackSession {
 		kvStore.close();
 	}
 	
-
 	protected RocksDB getKVStore() { return kvStore; }
-	
 	
 }

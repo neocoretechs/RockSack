@@ -52,23 +52,24 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	 * @throws IOException
 	 * @throws IllegalAccessException
 	 */
-	public TransactionalMap(String dbname, String database, String backingStore) throws IOException, IllegalAccessException {
-		ro = new ReadOptions();
-		wo = new WriteOptions();
-		session = SessionManager.ConnectTransaction(dbname, database, backingStore);
-		txn = session.getKVStore().beginTransaction(wo);
-	}
+	//public TransactionalMap(String dbname, String database, String backingStore) throws IOException, IllegalAccessException {
+	//	ro = new ReadOptions();
+	//	wo = new WriteOptions();
+	//	session = SessionManager.ConnectTransaction(dbname, database, backingStore);
+	//	txn = session.getKVStore().beginTransaction(wo);
+	//}
 	
 	/**
 	 * @param session Existing transactional database previously opened and ready for new transaction context
 	 * @throws IOException
 	 * @throws IllegalAccessException
 	 */
-	public TransactionalMap(RockSackTransactionSession session) throws IOException, IllegalAccessException {
-		ro = new ReadOptions();
-		wo = new WriteOptions();
+	public TransactionalMap(RockSackTransactionSession session, Transaction txn) throws IOException, IllegalAccessException {
+		//ro = new ReadOptions();
+		//wo = new WriteOptions();
 		this.session = session;
-		txn = session.getKVStore().beginTransaction(wo);
+		this.txn = txn;
+		//txn = session.getKVStore().beginTransaction(wo);
 	}
 	
 	public RockSackTransactionSession getSession() throws IOException {
@@ -395,9 +396,9 @@ public class TransactionalMap implements OrderedKVMapInterface {
 		}
 	}
 
-	public long getTransactionId() throws IOException {
+	public String getTransactionId() throws IOException {
 		synchronized (getSession().getMutexObject()) {
-			return session.getTransactionId();
+			return txn.getName();
 		}
 	}
 
@@ -560,4 +561,9 @@ public class TransactionalMap implements OrderedKVMapInterface {
 		txn = getSession().getKVStore().beginTransaction(wo);	
 	}
 
+	@Override
+	public String toString() {
+		return (session == null ? "TransactionalMap Session NULL" : session.toString())+" Transaction:"+
+				(txn == null ? "TransactionalMap transaction NULL" : txn.getName());
+	}
 }

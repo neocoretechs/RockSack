@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.rocksdb.Options;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.Snapshot;
 import org.rocksdb.Transaction;
 import org.rocksdb.TransactionDB;
 import org.rocksdb.WriteOptions;
@@ -45,11 +46,12 @@ public class RockSackTransactionSession extends RockSackSession implements Trans
 	}
 	/**
 	 * Checkpoint the current transaction
+	 * @return 
 	 * @throws IOException 
 	 * @throws IllegalAccessException 
 	 */
-	public void Checkpoint(Transaction tx) throws IllegalAccessException, IOException {
-
+	public Snapshot Checkpoint(Transaction txn) throws IllegalAccessException, IOException {
+		return getKVStore().getSnapshot();
 	}
 	/**
 	* Close this transaction.
@@ -76,5 +78,10 @@ public class RockSackTransactionSession extends RockSackSession implements Trans
 			Commit(txn);
 		}
 		txn.close();
+	}
+	
+	@Override
+	public String toString() {
+		return super.toString();
 	}
 }
