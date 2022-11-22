@@ -45,19 +45,6 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	Transaction txn;
 	ReadOptions ro;
 	WriteOptions wo;
-	/**
-	 * @param dbname
-	 * @param database Database type i.e. RocksDB
-	 * @param backingStore "MMap or "File" etc.
-	 * @throws IOException
-	 * @throws IllegalAccessException
-	 */
-	//public TransactionalMap(String dbname, String database, String backingStore) throws IOException, IllegalAccessException {
-	//	ro = new ReadOptions();
-	//	wo = new WriteOptions();
-	//	session = SessionManager.ConnectTransaction(dbname, database, backingStore);
-	//	txn = session.getKVStore().beginTransaction(wo);
-	//}
 	
 	/**
 	 * @param session Existing transactional database previously opened and ready for new transaction context
@@ -65,11 +52,10 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	 * @throws IllegalAccessException
 	 */
 	public TransactionalMap(RockSackTransactionSession session, Transaction txn) throws IOException, IllegalAccessException {
-		//ro = new ReadOptions();
-		//wo = new WriteOptions();
+		ro = new ReadOptions();
+		wo = new WriteOptions();
 		this.session = session;
 		this.txn = txn;
-		//txn = session.getKVStore().beginTransaction(wo);
 	}
 	
 	public RockSackTransactionSession getSession() throws IOException {
