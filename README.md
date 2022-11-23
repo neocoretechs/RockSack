@@ -29,13 +29,13 @@ Whats the advantage? Whereas an agnostic K/V store only allows you to index the 
 gives you the ability to index the data based on an arbitrarily complex arrangement of any of the fields in the class, or even through
 a strictly computational process since we are using the result of a method call to control the order in which the data are stored.
 
-There are methods in the class com.neocoretechs.bigsack.BigSackAdapter to organize the maps and sets on the basis of type. In this way a rudimentary schema can be maintained. A non-transactional BufferedMap can be obtained by the following methods:
+There are methods in the class com.neocoretechs.rocksack.RockSackAdapter to organize the maps and sets on the basis of type. In this way a rudimentary schema can be maintained. A non-transactional BufferedMap can be obtained by the following methods:
 
 ```
 
 RockSackAdapter.setTableSpaceDir(argv[0]);
-BufferedMap session = RockSackAdapter.getRockSackMap(key.getClass());
-session.put(key, value);
+BufferedMap map = RockSackAdapter.getRockSackMap(key.getClass());
+map.put(key, value);
 
 
 ```
@@ -45,11 +45,12 @@ If a transaction context is desired, in other words one in which multiple operat
 ```
 
 RockSackAdapter.setTableSpaceDir(argv[0]);
-TransactionalMap session = RockSackAdapter.getRockSackTransactionalMap(key.getClass());
-session.put(key, value);
-session.Commit(); // Or
-session.Rollback(); // Or
-session.Checkpoint(); // establish intermediate checkpoint that can be committed or rolled back to
+String xid = RockSackAdapter.getrockSackTransactionId();
+TransactionalMap map = RockSackAdapter.getRockSackTransactionalMap(key.getClass(), xid);
+map.put(xid, key, value);
+map.Commit(xid); // Or
+map.Rollback(xid); // Or
+Snapshot s = map.Checkpoint(xid); // establish intermediate checkpoint that can be committed or rolled back to
 
 ```
 
@@ -70,19 +71,20 @@ tailMapKV<br/>
 subMap<br/>
 subMapKV<br/>
 ```
-		TransactionalMap session = RockSackAdapter.getRockSackTransactionalMap(Class.forName(argv[1]));
+		String xid = RockSackAdapter.getrockSackTransactionId();
+		TransactionalMap map = RockSackAdapter.getRockSackTransactionalMap(Class.forName(argv[1]), xid);
 		Object o;
 		int i = 0;
-		session.headSetStream((Comparable) session.first()).forEach(o ->System.out.println("["+(i++)+"]"+o));
-		session.headSetStream((Comparable) session.first()).forEach(o -> {			
+		session.headSetStream(xid, (Comparable) session.first()).forEach(o ->System.out.println("["+(i++)+"]"+o));
+		session.headSetStream(xid, (Comparable) session.first()).forEach(o -> {			
 			System.out.println("["+(i++)+"]"+o);
 			comparableClass.mapEntry = (Map.Entry) o;
 			...
 		});
-		session.tailSetStream((Comparable) session.last()).forEach(o -> {
+		session.tailSetStream(xid, (Comparable) session.last()).forEach(o -> {
 			System.out.println("["+(i++)+"]"+o);
 		});
-		session.subSetStream((Comparable) session.first(), (Comparable) session.last()).forEach(o -> {
+		session.subSetStream(xid, (Comparable) session.first(), (Comparable) session.last()).forEach(o -> {
 			System.out.println("["+(i++)+"]"+o);
 		});
 ```
