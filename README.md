@@ -6,6 +6,7 @@
 <li/> Build Java database applications more quickly.
 <li/> Gives RocksDB the power of a true object oriented database.
 <li/> Makes it easier to manage transactions and organize databases by Java class.
+<li/> Supports transaction and transactionless models.
 </dd>
 <h3>Why RockSack?</h3>
 A bag or sack is a computer science term for a structure to hold a large amount of data that is usually unstructured.
