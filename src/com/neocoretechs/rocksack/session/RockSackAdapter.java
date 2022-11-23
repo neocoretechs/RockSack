@@ -123,7 +123,7 @@ public class RockSackAdapter {
 				TransactionalMap tm  = (TransactionalMap) xactions.get(xid);
 				if(tm != null) {
 					if(DEBUG)
-						System.out.println(RockSackAdapter.class.getName()+" About to return existing map with existing xid "+xid+" from: "+tableSpaceDir+xClass+" TransactionalMap:"+tm.toString()+" total maps:"+xactions.size());
+						System.out.println(RockSackAdapter.class.getName()+" About to return EXISTING map with EXISTING xid "+xid+" from: "+tableSpaceDir+xClass+" TransactionalMap:"+tm.toString()+" total xactions this class:"+xactions.size()+" total classes:"+classToIsoTransaction.mappingCount());
 					return tm;
 				} else {
 					// transaction exists, but not for this class
@@ -133,7 +133,7 @@ public class RockSackAdapter {
 					tm = new TransactionalMap(txn, tx);
 					xactions.put(tx.getName(), tm);
 					if(DEBUG)
-						System.out.println(RockSackAdapter.class.getName()+" About to return new map with existing xid "+tx.getName()+" from: "+tableSpaceDir+xClass+" TransactionalMap:"+tm.toString()+" total maps:"+xactions.size());
+						System.out.println(RockSackAdapter.class.getName()+" About to return NEW map with EXISTING xid "+tx.getName()+" from: "+tableSpaceDir+xClass+" TransactionalMap:"+tm.toString()+" total xactions this class:"+xactions.size()+" total classes:"+classToIsoTransaction.mappingCount());
 					return tm;
 				}
 			}
@@ -146,7 +146,7 @@ public class RockSackAdapter {
 			TransactionalMap tm = new TransactionalMap(txn, tx);
 			xactions.put(tx.getName(), tm);
 			if(DEBUG)
-				System.out.println(RockSackAdapter.class.getName()+" About to return new initial map with existing xid "+tx.getName()+" from: "+tableSpaceDir+xClass+" TransactionalMap:"+tm.toString()+" total maps:"+xactions.size());
+				System.out.println(RockSackAdapter.class.getName()+" About to return NEW INITIAL map with EXISTING xid "+tx.getName()+" from: "+tableSpaceDir+xClass+" TransactionalMap:"+tm.toString()+" total xactions this class:"+xactions.size()+" total classes:"+classToIsoTransaction.mappingCount());
 			return tm;
 		}
 		// Transaction Id was not present, construct new transaction
@@ -167,7 +167,7 @@ public class RockSackAdapter {
 		// add out new transaction id/transaction map to the collection keyed by class
 		xactions.put(tx.getName(), tm);
 		if(DEBUG)
-			System.out.println(RockSackAdapter.class.getName()+" About to return new xaction "+tx.getName()+" and map from: "+tableSpaceDir+xClass+" TransactionalMap:"+tm.toString()+" total maps:"+xactions.size());
+			System.out.println(RockSackAdapter.class.getName()+" About to return NEW map with NEW xid "+tx.getName()+" from: "+tableSpaceDir+xClass+" TransactionalMap:"+tm.toString()+" total xactions this class:"+xactions.size()+" total classes:"+classToIsoTransaction.mappingCount());
 		return tm;
 	}
 
