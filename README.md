@@ -45,7 +45,7 @@ If a transaction context is desired, in other words one in which multiple operat
 ```
 
 RockSackAdapter.setTableSpaceDir(argv[0]);
-String xid = RockSackAdapter.getrockSackTransactionId();
+String xid = RockSackAdapter.getRockSackTransactionId();
 TransactionalMap map = RockSackAdapter.getRockSackTransactionalMap(key.getClass(), xid);
 map.put(xid, key, value);
 map.Commit(xid); // Or
