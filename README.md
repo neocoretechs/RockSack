@@ -75,16 +75,16 @@ subMapKV<br/>
 		TransactionalMap map = RockSackAdapter.getRockSackTransactionalMap(Class.forName(argv[1]), xid);
 		Object o;
 		int i = 0;
-		session.headSetStream(xid, (Comparable) session.first()).forEach(o ->System.out.println("["+(i++)+"]"+o));
-		session.headSetStream(xid, (Comparable) session.first()).forEach(o -> {			
+		map.headSetStream(xid, (Comparable) map.first()).forEach(o ->System.out.println("["+(i++)+"]"+o));
+		map.headSetStream(xid, (Comparable) map.first()).forEach(o -> {			
 			System.out.println("["+(i++)+"]"+o);
 			comparableClass.mapEntry = (Map.Entry) o;
 			...
 		});
-		session.tailSetStream(xid, (Comparable) session.last()).forEach(o -> {
+		map.tailSetStream(xid, (Comparable) map.last()).forEach(o -> {
 			System.out.println("["+(i++)+"]"+o);
 		});
-		session.subSetStream(xid, (Comparable) session.first(), (Comparable) session.last()).forEach(o -> {
+		map.subSetStream(xid, (Comparable) map.first(), (Comparable) map.last()).forEach(o -> {
 			System.out.println("["+(i++)+"]"+o);
 		});
 ```
