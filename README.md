@@ -1,6 +1,10 @@
 <h1>RockSack</h1>
-Use the power of Meta RocksDB/RocksJava in a far more seamless and convenient way by abstracting the low level byte-oriented API to use native Java object serialization 
-and ordering with Java methods instead of raw byte array values.
+* Makes it easier to use Facebook/Meta key/value database RocksDB/RocksJava in Java applications.
+* Allows Java objects to control database behavior.
+* Expands RocksDB low level byte-oriented API to use native Java object serialization.
+* Build Java database applications more quickly.
+* Gives RocksDB the power of a true object oriented database.
+* Makes it easier to manage transactions and organize databases by Java class.
 <h3>Why RockSack?</h3>
 A bag or sack is a computer science term for a structure to hold a large amount of data that is usually unstructured.
 RockSack can store Java objects so that they can be efficiently indexed, preserved, and retrieved in a manner that mirrors the java.util.Hashmap, java.util.TreeMap and java.util.TreeSet classes while providing the benefits of a full blown database.
