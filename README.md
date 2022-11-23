@@ -71,7 +71,7 @@ tailMapKV<br/>
 subMap<br/>
 subMapKV<br/>
 ```
-		String xid = RockSackAdapter.getrockSackTransactionId();
+		String xid = RockSackAdapter.getRockSackTransactionId();
 		TransactionalMap map = RockSackAdapter.getRockSackTransactionalMap(Class.forName(argv[1]), xid);
 		Object o;
 		int i = 0;
