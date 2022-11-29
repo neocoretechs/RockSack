@@ -105,7 +105,7 @@ public class RockSackAdapter {
 		}
 	}
 	
-	public static void commitRocksackTransaction(String xid) throws IOException {
+	public static void commitRockSackTransaction(String xid) throws IOException {
 		Transaction t = idToTransaction.get(xid);
 		if(t != null) {
 			try {
@@ -115,7 +115,7 @@ public class RockSackAdapter {
 			}
 		}
 	}
-	public static void rollbackRocksackTransaction(String xid) throws IOException {
+	public static void rollbackRockSackTransaction(String xid) throws IOException {
 		Transaction t = idToTransaction.get(xid);
 		if(t != null) {
 			try {
@@ -125,7 +125,7 @@ public class RockSackAdapter {
 			}
 		}
 	}
-	public static void checkpointRocksackTransaction(String xid) throws IOException {
+	public static void checkpointRockSackTransaction(String xid) throws IOException {
 		Transaction t = idToTransaction.get(xid);
 		if(t != null) {
 			try {
