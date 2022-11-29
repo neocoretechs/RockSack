@@ -5,11 +5,9 @@ import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.Transaction;
-import org.rocksdb.WriteOptions;
 
 import com.neocoretechs.rocksack.DBPhysicalConstants;
 
@@ -104,6 +102,47 @@ public class RockSackAdapter {
 		if(t != null) {
 			t.close();
 			idToTransaction.remove(t);
+		}
+	}
+	
+	public static void commitRocksackTransaction(String xid) throws IOException {
+		Transaction t = idToTransaction.get(xid);
+		if(t != null) {
+			try {
+				t.commit();
+			} catch (RocksDBException e) {
+				throw new IOException(e);
+			}
+		}
+	}
+	public static void rollbackRocksackTransaction(String xid) throws IOException {
+		Transaction t = idToTransaction.get(xid);
+		if(t != null) {
+			try {
+				t.rollback();
+			} catch (RocksDBException e) {
+				throw new IOException(e);
+			}
+		}
+	}
+	public static void checkpointRocksackTransaction(String xid) throws IOException {
+		Transaction t = idToTransaction.get(xid);
+		if(t != null) {
+			try {
+				t.setSavePoint();
+			} catch (RocksDBException e) {
+				throw new IOException(e);
+			}
+		}
+	}
+	public static void rollbackToCheckpoint(String xid) throws IOException {
+		Transaction t = idToTransaction.get(xid);
+		if(t != null) {
+			try {
+				t.rollbackToSavePoint();
+			} catch (RocksDBException e) {
+				throw new IOException(e);
+			}
 		}
 	}
 	/**

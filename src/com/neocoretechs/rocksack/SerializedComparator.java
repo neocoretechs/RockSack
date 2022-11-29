@@ -29,8 +29,8 @@ public class SerializedComparator extends AbstractComparator {
 			Object obj1 = deserializeObject(b1);
 			Object obj2 = deserializeObject(b2);
 			return ((Comparable)obj1).compareTo(obj2);
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch (Exception e) {
+			//e.printStackTrace();
 			throw new RuntimeException(e);
 		}
 	}
