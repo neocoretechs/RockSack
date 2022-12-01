@@ -63,7 +63,7 @@ import com.neocoretechs.rocksack.stream.TailSetStream;
 * @author Jonathan Groff (C) NeoCoreTechs 2003, 2017, 2021, 2022
 */
 public class RockSackSession {
-	private boolean DEBUG = true;
+	private boolean DEBUG = false;
 	private int uid;
 	private int gid;
 	protected RocksDB kvStore;

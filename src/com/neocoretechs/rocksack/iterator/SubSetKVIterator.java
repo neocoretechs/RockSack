@@ -35,7 +35,7 @@ import com.neocoretechs.rocksack.SerializedComparator;
 * @author Jonathan Groff Copyright (C) NeoCoreTechs 2021,2022
 */
 public class SubSetKVIterator extends SubSetIterator {
-	private boolean DEBUG = true;
+	private boolean DEBUG = false;
 	Object nextElem, retElem;
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public SubSetKVIterator(Comparable fromKey, Comparable toKey, RocksDB db) throws IOException {

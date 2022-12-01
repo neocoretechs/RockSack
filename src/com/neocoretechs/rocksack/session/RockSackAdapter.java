@@ -32,7 +32,7 @@ import com.neocoretechs.rocksack.DBPhysicalConstants;
  *
  */
 public class RockSackAdapter {
-	private static boolean DEBUG = true;
+	private static boolean DEBUG = false;
 	private static String tableSpaceDir = "/";
 	private static final char[] ILLEGAL_CHARS = { '[', ']', '!', '+', '=', '|', ';', '?', '*', '\\', '<', '>', '|', '\"', ':' };
 	private static final char[] OK_CHARS = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E' };

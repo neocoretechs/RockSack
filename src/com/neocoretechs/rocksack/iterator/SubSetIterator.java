@@ -36,7 +36,7 @@ import com.neocoretechs.rocksack.SerializedComparator;
 * @author Jonathan Groff Copyright (C) NeoCoreTechs 2021
 */
 public class SubSetIterator extends AbstractIterator {
-	private static boolean DEBUG = true;
+	private static boolean DEBUG = false;
 	@SuppressWarnings("rawtypes")
 	Comparable fromKey, toKey;
 	@SuppressWarnings({ "rawtypes", "unchecked" })

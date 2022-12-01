@@ -37,7 +37,7 @@ import com.neocoretechs.rocksack.SerializedComparator;
  *
  */
 public class EntrySetIterator extends AbstractIterator {
-	public static boolean DEBUG = true;
+	public static boolean DEBUG = false;
 	Object nextElem, retElem;
 	@SuppressWarnings("rawtypes")
 	public EntrySetIterator(RocksDB db) throws IOException {
