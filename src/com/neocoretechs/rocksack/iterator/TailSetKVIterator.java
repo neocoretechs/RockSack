@@ -36,7 +36,6 @@ import com.neocoretechs.rocksack.SerializedComparator;
 */
 public class TailSetKVIterator extends TailSetIterator {
 	@SuppressWarnings("rawtypes")
-	Comparable fromKey;
 	Object retElem, nextElem;
 	public TailSetKVIterator(Comparable fromKey, RocksDB db) throws IOException {
 		super(fromKey, db);

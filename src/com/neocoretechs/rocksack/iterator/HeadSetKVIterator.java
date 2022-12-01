@@ -35,7 +35,6 @@ import com.neocoretechs.rocksack.SerializedComparator;
 */
 public class HeadSetKVIterator extends HeadSetIterator {
 	@SuppressWarnings("rawtypes")
-	Comparable toKey;
 	Object nextElem, retElem;
 	@SuppressWarnings("unchecked")
 	public HeadSetKVIterator(@SuppressWarnings("rawtypes") Comparable toKey, RocksDB db) throws IOException {
