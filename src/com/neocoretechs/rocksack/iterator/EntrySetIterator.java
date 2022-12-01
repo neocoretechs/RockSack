@@ -37,6 +37,7 @@ import com.neocoretechs.rocksack.SerializedComparator;
  *
  */
 public class EntrySetIterator extends AbstractIterator {
+	public static boolean DEBUG = true;
 	Object nextElem, retElem;
 	@SuppressWarnings("rawtypes")
 	public EntrySetIterator(RocksDB db) throws IOException {
@@ -48,7 +49,14 @@ public class EntrySetIterator extends AbstractIterator {
 	public EntrySetIterator(Transaction db) throws IOException {
 		super(db.getIterator(new ReadOptions()));
 		if(kvMain.isValid()) {
+			if(DEBUG) {
+				System.out.printf("%s initial transaction iterator valid%n", this.getClass().getName());
+			}
 			nextElem = SerializedComparator.deserializeObject(kvMain.value());
+		} else {
+			if(DEBUG) {
+				System.out.printf("%s initial transaction iterator not valid%n", this.getClass().getName());
+			}
 		}
 	}
 	public boolean hasNext() {

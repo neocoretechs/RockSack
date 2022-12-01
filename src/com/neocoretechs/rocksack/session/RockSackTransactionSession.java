@@ -84,4 +84,5 @@ public class RockSackTransactionSession extends RockSackSession implements Trans
 	public String toString() {
 		return super.toString();
 	}
+
 }

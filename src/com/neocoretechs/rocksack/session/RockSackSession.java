@@ -1,6 +1,5 @@
 package com.neocoretechs.rocksack.session;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -56,10 +55,12 @@ import com.neocoretechs.rocksack.stream.TailSetStream;
 /**
 * Session object. Returned by SessionManager.Connect().
 * Responsible for providing access to Deep Store key/value interface implementations
-* such as BTree and HMap..  Operations include
+* Operations include
 * handing out iterators, inserting and deleting objects, size, navigation, clearing,
-* and handling commit and rollback.
-* @author Jonathan Groff (C) NeoCoreTechs 2003, 2017, 2021
+* and handling commit and rollback.<p/>
+* Session is the universal collection of transaction and non-transaction methods, subclasses encapsulate
+* specific transaction and non-transaction semantics. 
+* @author Jonathan Groff (C) NeoCoreTechs 2003, 2017, 2021, 2022
 */
 public class RockSackSession {
 	private boolean DEBUG = true;
@@ -818,9 +819,20 @@ public class RockSackSession {
 	 * @throws IOException
 	 */
 	protected boolean isEmpty() throws IOException {
-		return size() == 0;
+		Iterator it = new KeySetIterator(kvStore);
+		if(it.hasNext()) {
+			return true;
+		}
+		return false;
 	}
-
+	
+	protected boolean isEmpty(Transaction txn) throws IOException {
+		Iterator it = new KeySetIterator(txn);
+		if(it.hasNext()) {
+			return true;
+		}
+		return false;
+	}
 	/**
 	* Close this session.
 	* @param rollback true to roll back, false to commit
