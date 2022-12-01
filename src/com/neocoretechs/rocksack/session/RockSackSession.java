@@ -633,9 +633,9 @@ public class RockSackSession {
 		try {
 			byte[] b2 = SerializedComparator.serializeObject(o); // key
 			byte[] b = kvStore.get(b2); // b = value
+			kvStore.delete(b2); // serial bytes of key, call to delete
 			if(b != null) {
-				kvStore.delete(SerializedComparator.serializeObject(b2)); // serial bytes of key, call to delete
-				return SerializedComparator.serializeObject(b); // serialize previous value from retrieved bytes
+				return SerializedComparator.deserializeObject(b); // serialize previous value from retrieved bytes
 			}
 		} catch (RocksDBException | IOException e) {
 			return new IOException(e);
@@ -651,9 +651,9 @@ public class RockSackSession {
 		try {
 			byte[] b2 = SerializedComparator.serializeObject(o); // key
 			byte[] b = txn.get(ro, b2); // b = value
+			txn.delete(b2); // serial bytes of key, call to delete
 			if(b != null) {
-				txn.delete(SerializedComparator.serializeObject(b2)); // serial bytes of key, call to delete
-				return SerializedComparator.serializeObject(b); // serialize previous value from retrieved bytes
+				return SerializedComparator.deserializeObject(b); // serialize previous value from retrieved bytes
 			}
 		} catch (RocksDBException | IOException e) {
 			return new IOException(e);
