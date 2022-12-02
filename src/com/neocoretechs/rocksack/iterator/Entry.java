@@ -6,7 +6,7 @@ import java.io.Serializable;
  * @author Jonathan Groff Copyright (C) NeoCoreTechs 2021
  *
  */
-public class Entry implements java.util.Map.Entry<Comparable, Object>, Serializable {
+public class Entry implements java.util.Map.Entry<Comparable, Object>, Comparable, Serializable {
 	private static final long serialVersionUID = 4761413076980149698L;
 	Comparable key;
 	Object value;
@@ -34,6 +34,11 @@ public class Entry implements java.util.Map.Entry<Comparable, Object>, Serializa
 	@Override
 	public String toString() {
 		return String.format("<%s,%s>%n", key, value);
+	}
+
+	@Override
+	public int compareTo(Object o) {
+		return key.compareTo(((Entry)o).key);
 	}
 
 }

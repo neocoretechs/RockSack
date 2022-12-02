@@ -49,9 +49,9 @@ public class BatteryRockSack2 {
 		 // add min to max
 		battery1(session, argv);
 		// get and verify min to max
-		//battery1A(session, argv);
+		battery1A(session, argv);
 		 // get by value min to max
-		//battery1A0(session, argv);
+		battery1A0(session, argv);
 		// count
 		battery1A1(session, argv);
 		// first last
@@ -68,12 +68,12 @@ public class BatteryRockSack2 {
 		battery1F(session, argv);
 		battery1F1(session, argv);
 		// overwrite
-		//battery1G(session, argv);
+		battery1G(session, argv);
 		// deletion tests below
-		//battery2(session, argv);
-		//battery2A(session, argv);
+		battery2(session, argv);
+		battery2A(session, argv);
 		
-		 System.out.println("TEST BATTERY COMPLETE. "+(System.currentTimeMillis()-tims)+" ms.");
+		 System.out.println("BatteryRockSack2 TEST BATTERY COMPLETE. "+(System.currentTimeMillis()-tims)+" ms.");
 		 System.exit(0);
 		
 	}
