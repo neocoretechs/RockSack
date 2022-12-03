@@ -3,6 +3,7 @@ package com.neocoretechs.rocksack.test;
 import java.util.Iterator;
 import java.util.Map;
 
+import com.neocoretechs.rocksack.KeyValue;
 import com.neocoretechs.rocksack.iterator.Entry;
 import com.neocoretechs.rocksack.session.BufferedMap;
 import com.neocoretechs.rocksack.session.RockSackAdapter;
@@ -95,7 +96,8 @@ public class BatteryKV {
 		for(int i = min; i < max; i++) {
 			fkey = String.format(uniqKeyFmt, i);
 				Object o = bmap.get(fkey);
-				if(i != ((Long)o).intValue()) {
+				KeyValue kv = (KeyValue)o;
+				if(i != ((Long)kv.getmValue()).intValue()) {
 					System.out.println("RANGE KEY MISMATCH for 'get':"+i+" - "+o);
 					++recs;
 				}

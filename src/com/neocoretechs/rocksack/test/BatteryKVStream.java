@@ -3,6 +3,7 @@ package com.neocoretechs.rocksack.test;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import com.neocoretechs.rocksack.KeyValue;
 import com.neocoretechs.rocksack.session.BufferedMap;
 import com.neocoretechs.rocksack.session.RockSackAdapter;
 
@@ -94,7 +95,8 @@ public class BatteryKVStream {
 		for(int i = min; i < max; i++) {
 			fkey = String.format(uniqKeyFmt, i);
 				Object o = bmap.get(fkey);
-				if(i != ((Long)o).intValue()) {
+				KeyValue kv = (KeyValue)o;
+				if(i != ((Long)kv.getmValue()).intValue()) {
 					System.out.println("RANGE KEY MISMATCH for 'get':"+i+" - "+o);
 					++recs;
 				}
