@@ -2,7 +2,6 @@ package com.neocoretechs.rocksack.test;
 
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.Stack;
 
 import com.neocoretechs.rocksack.iterator.KeyValuePair;
 import com.neocoretechs.rocksack.session.RockSackAdapter;
@@ -10,13 +9,10 @@ import com.neocoretechs.rocksack.session.BufferedMap;
 import com.neocoretechs.rocksack.KeyValue;
 
 /**
- * This simple test battery tests the BufferedTreeMap and uses small to medium string K/V pairs
+ * This simple test battery tests the BufferedMap and uses small to medium string K/V pairs
  * with insertion, deletion and retrieval.
  * Parameters: Set the database name as the first argument "/users/you/TestDB1" where
- * the directory  "/users/you" must exist and a series of tablespaces and a log directory
- * are created under that. The database files will be named "TestDB1" under "/users/you/log and 
- * /users/you/tablespace0" to "/users/you/tablespace7".
- * Set the name of the properties file in the VM -DBigSack.properties="/users/you/Relatrix/BigSack.properties"
+ * the directory  "/users/you" must exist 
  * The static constant fields in the class control the key generation for the tests
  * In general, the keys and values are formatted according to uniqKeyFmt to produce
  * a series of canonically correct sort order strings for the DB in the range of min to max vals.
@@ -28,7 +24,7 @@ import com.neocoretechs.rocksack.KeyValue;
  */
 public class BatteryRockSack2 {
 	static String key = "This is a test"; // holds the base random key string for tests
-	static String val = "Of a BigSack K/V pair!"; // holds base random value string
+	static String val = "Of a RockSack K/V pair!"; // holds base random value string
 	static String uniqKeyFmt = "%0100d"; // base + counter formatted with this gives equal length strings for canonical ordering
 	static int min = 0; // controls range of testing
 	static int max = 100000; //make sure insert is INCLUSIVE OF MAX!
