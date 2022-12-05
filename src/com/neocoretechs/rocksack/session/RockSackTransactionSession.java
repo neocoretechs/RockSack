@@ -11,8 +11,8 @@ import org.rocksdb.WriteOptions;
 
 public class RockSackTransactionSession extends RockSackSession implements TransactionInterface {
 	
-	protected RockSackTransactionSession(TransactionDB kvStore, Options options, int uid, int gid) {
-		super(kvStore, options, uid, gid);
+	protected RockSackTransactionSession(TransactionDB kvStore, Options options) {
+		super(kvStore, options);
 	}
 	
 	@Override

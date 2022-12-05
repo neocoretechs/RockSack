@@ -5,11 +5,28 @@ import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.rocksdb.BlockBasedTableConfig;
+import org.rocksdb.BloomFilter;
+import org.rocksdb.Cache;
+import org.rocksdb.CompactionStyle;
+import org.rocksdb.CompressionType;
+import org.rocksdb.Filter;
+import org.rocksdb.HashLinkedListMemTableConfig;
+import org.rocksdb.HashSkipListMemTableConfig;
+import org.rocksdb.LRUCache;
+import org.rocksdb.Options;
+import org.rocksdb.PlainTableConfig;
+import org.rocksdb.RateLimiter;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.SkipListMemTableConfig;
+import org.rocksdb.Statistics;
 import org.rocksdb.Transaction;
+import org.rocksdb.VectorMemTableConfig;
+import org.rocksdb.util.SizeUnit;
 
 import com.neocoretechs.rocksack.DBPhysicalConstants;
+import com.neocoretechs.rocksack.SerializedComparator;
 
 /**
  * This factory class enforces a strong typing for the RockSack using the database naming convention linked to the
@@ -36,6 +53,7 @@ public class RockSackAdapter {
 	private static String tableSpaceDir = "/";
 	private static final char[] ILLEGAL_CHARS = { '[', ']', '!', '+', '=', '|', ';', '?', '*', '\\', '<', '>', '|', '\"', ':' };
 	private static final char[] OK_CHARS = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E' };
+	private static Options options = null;
 	
 	static {
 		RocksDB.loadLibrary();
@@ -57,6 +75,83 @@ public class RockSackAdapter {
 	}
 	public static String getDatabaseName(String clazz) {
 		return tableSpaceDir+clazz;
+	}
+	
+	public static void setDatabaseOptions(Options dboptions) {
+		options = dboptions;
+	}
+	
+	private static Options getDefaultOptions() {
+		//RocksDB db = null;
+		//final String db_path = dbpath;
+		//final String db_path_not_found = db_path + "_not_found";
+		Options options = new Options();
+		final Filter bloomFilter = new BloomFilter(10);
+		//final ReadOptions readOptions = new ReadOptions().setFillCache(false);
+		final Statistics stats = new Statistics();
+		final RateLimiter rateLimiter = new RateLimiter(10000000,10000, 10);
+		options.setComparator(new SerializedComparator());
+		try {
+		    options.setCreateIfMissing(true)
+		        .setStatistics(stats)
+		        .setWriteBufferSize(8 * SizeUnit.KB)
+		        .setMaxWriteBufferNumber(3)
+		        .setMaxBackgroundJobs(10)
+		        .setCompressionType(CompressionType.ZLIB_COMPRESSION)
+		        .setCompactionStyle(CompactionStyle.UNIVERSAL);
+		 } catch (final IllegalArgumentException e) {
+		    assert (false);
+		 }
+		  assert (options.createIfMissing() == true);
+		  assert (options.writeBufferSize() == 8 * SizeUnit.KB);
+		  assert (options.maxWriteBufferNumber() == 3);
+		  assert (options.maxBackgroundJobs() == 10);
+		  assert (options.compressionType() == CompressionType.ZLIB_COMPRESSION);
+		  assert (options.compactionStyle() == CompactionStyle.UNIVERSAL);
+
+		  assert (options.memTableFactoryName().equals("SkipListFactory"));
+		  options.setMemTableConfig(
+		      new HashSkipListMemTableConfig()
+		          .setHeight(4)
+		          .setBranchingFactor(4)
+		          .setBucketCount(2000000));
+		  assert (options.memTableFactoryName().equals("HashSkipListRepFactory"));
+
+		  options.setMemTableConfig(
+		      new HashLinkedListMemTableConfig()
+		          .setBucketCount(100000));
+		  assert (options.memTableFactoryName().equals("HashLinkedListRepFactory"));
+
+		  options.setMemTableConfig(
+		      new VectorMemTableConfig().setReservedSize(10000));
+		  assert (options.memTableFactoryName().equals("VectorRepFactory"));
+
+		  options.setMemTableConfig(new SkipListMemTableConfig());
+		  assert (options.memTableFactoryName().equals("SkipListFactory"));
+
+		  options.setTableFormatConfig(new PlainTableConfig());
+		  // Plain-Table requires mmap read
+		  options.setAllowMmapReads(true);
+		  assert (options.tableFactoryName().equals("PlainTable"));
+
+		  options.setRateLimiter(rateLimiter);
+
+		  final BlockBasedTableConfig table_options = new BlockBasedTableConfig();
+		  Cache cache = new LRUCache(64 * 1024, 6);
+		  table_options.setBlockCache(cache)
+		      .setFilterPolicy(bloomFilter)
+		      .setBlockSizeDeviation(5)
+		      .setBlockRestartInterval(10)
+		      .setCacheIndexAndFilterBlocks(true)
+		      .setBlockCacheCompressed(new LRUCache(64 * 1000, 10));
+
+		  assert (table_options.blockSizeDeviation() == 5);
+		  assert (table_options.blockRestartInterval() == 10);
+		  assert (table_options.cacheIndexAndFilterBlocks() == true);
+
+		  options.setTableFormatConfig(table_options);
+		  assert (options.tableFactoryName().equals("BlockBasedTable"));
+		  return options;
 	}
 	
 	/**
@@ -82,14 +177,12 @@ public class RockSackAdapter {
 		if(DEBUG)
 			System.out.println("RockSackAdapter.getRockSackTreeMap About to return designator: "+tableSpaceDir+xClass+" formed from "+clazz.getClass().getName());
 		if( ret == null ) {
-			ret =  new BufferedMap(tableSpaceDir+xClass,DBPhysicalConstants.DATABASE, DBPhysicalConstants.BACKINGSTORE);
+			if(options == null)
+				options = getDefaultOptions();
+			ret =  new BufferedMap(SessionManager.Connect(tableSpaceDir+xClass, options));
 			classToIso.put(xClass, ret);
 		}
 		return ret;
-	}
-	
-	public static RockSackTransactionSession getRockSackTransactionSession(String dbname, String database, String backingStore) throws IOException, IllegalAccessException {
-		return SessionManager.ConnectTransaction(dbname, database, backingStore);
 	}
 	
 	public static String getRockSackTransactionId() {
@@ -167,7 +260,9 @@ public class RockSackAdapter {
 				} else {
 					// transaction exists, but not for this class
 					// Get the database session, add the existing transaction
-					txn = SessionManager.ConnectTransaction(tableSpaceDir+xClass, DBPhysicalConstants.DATABASE, DBPhysicalConstants.BACKINGSTORE);
+					if(options == null)
+						options = getDefaultOptions();
+					txn = SessionManager.ConnectTransaction(tableSpaceDir+xClass, options);
 					Transaction tx = idToTransaction.get(xid);
 					tm = new TransactionalMap(txn, tx);
 					xactions.put(tx.getName(), tm);
@@ -181,7 +276,9 @@ public class RockSackAdapter {
 			classToIsoTransaction.put(xClass, xactions);
 			// add out new transaction id/transaction map to the collection keyed by class
 			Transaction tx = idToTransaction.get(xid);
-			txn = SessionManager.ConnectTransaction(tableSpaceDir+xClass, DBPhysicalConstants.DATABASE, DBPhysicalConstants.BACKINGSTORE);
+			if(options == null)
+				options = getDefaultOptions();
+			txn = SessionManager.ConnectTransaction(tableSpaceDir+xClass, options);
 			TransactionalMap tm = new TransactionalMap(txn, tx);
 			xactions.put(tx.getName(), tm);
 			if(DEBUG)
@@ -189,7 +286,9 @@ public class RockSackAdapter {
 			return tm;
 		}
 		// Transaction Id was not present, construct new transaction
-		txn = SessionManager.ConnectTransaction(tableSpaceDir+xClass, DBPhysicalConstants.DATABASE, DBPhysicalConstants.BACKINGSTORE);
+		if(options == null)
+			options = getDefaultOptions();
+		txn = SessionManager.ConnectTransaction(tableSpaceDir+xClass, options);
 		Transaction tx = txn.BeginTransaction();
 		try {
 			tx.setName(xid);

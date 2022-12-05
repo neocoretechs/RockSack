@@ -72,7 +72,6 @@ public final class SessionManager {
 	@SuppressWarnings("rawtypes")
 	private static ConcurrentHashMap<?, ?> AdminSessionTable = new ConcurrentHashMap();
 	private static Vector<String> OfflineDBs = new Vector<String>();
-	private static String backingStoreType;
 	//
 	// Sets the maximum number users
 	@SuppressWarnings("unused")
@@ -125,32 +124,23 @@ public final class SessionManager {
 	/**
 	* Connect and return Session instance that is the session.
 	* @param dbname The database name as full path
-	* @param keystoreType "HMap", "BTree" etc.
-	* @param backingstoreType The type of filesystem of memory map "File" "MMap" etc.
+	* @param options RocksDB options
 	* @return RockSackSession The session we use to control access
 	* @exception IOException If low level IO problem
 	* @exception IllegalAccessException If access to database is denied
 	*/
-	public static synchronized RockSackSession Connect(String dbname, String keystoreType, String backingstoreType) throws IOException, IllegalAccessException {
+	public static synchronized RockSackSession Connect(String dbname, Options options) throws IOException, IllegalAccessException {
 		if( DEBUG ) {
-			System.out.printf("Connecting to database:%s with key store:%s and backing store:%s%n", dbname, keystoreType, backingstoreType);
+			System.out.printf("Connecting to database:%s with options:%s%n", dbname, options);
 		}
-		backingStoreType = backingstoreType;
-		// translate user name to uid and group
-		// we can restrict access at database level here possibly
-		int uid = 0;
-		int gid = 1;
 		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
 		if (OfflineDBs.contains(dbname))
 			throw new IllegalAccessException("Database is offline, try later");
 		RockSackSession hps = (SessionTable.get(dbname));
 		if (hps == null) {
-			// did'nt find it, create anew, throws IllegalAccessException if no go.
-			// Global IO and main Key/Value index
-			Options o = new Options();
-			setOptions(o);
-			RocksDB db = OpenDB(dbname, o);
-			hps = new RockSackSession(db, o, uid, gid);
+			// did'nt find it, create anew
+			RocksDB db = OpenDB(dbname, options);
+			hps = new RockSackSession(db, options);
 			SessionTable.put(dbname, hps);
 			if( DEBUG )
 				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,db);
@@ -161,110 +151,30 @@ public final class SessionManager {
 	/**
 	* Connect and return Session instance that is the transaction session.
 	* @param dbname The database name as full path
-	* @param keystoreType "RocksDB", "BTree" etc.
-	* @param backingstoreType The type of filesystem of memory map "File" "MMap" etc.
+	 * @param options "RocksDB", "BTree" etc.
 	* @return RockSackSession The session we use to control access
 	* @exception IOException If low level IO problem
 	* @exception IllegalAccessException If access to database is denied
 	*/
-	public static synchronized RockSackTransactionSession ConnectTransaction(String dbname, String keystoreType, String backingstoreType) throws IOException, IllegalAccessException {
+	public static synchronized RockSackTransactionSession ConnectTransaction(String dbname, Options options) throws IOException, IllegalAccessException {
 		if( DEBUG ) {
-			System.out.printf("Connecting to transaction database:%s with key store:%s and backing store:%s%n", dbname, keystoreType, backingstoreType);
+			System.out.printf("Connecting to transaction database:%s with options:%s%n", dbname, options);
 		}
-		backingStoreType = backingstoreType;
-		// translate user name to uid and group
-		// we can restrict access at database level here possibly
-		int uid = 0;
-		int gid = 1;
 		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
 		if (OfflineDBs.contains(dbname))
 			throw new IllegalAccessException("Database is offline, try later");
 		RockSackTransactionSession hps = (RockSackTransactionSession) (SessionTable.get(dbname));
 		if (hps == null) {
-			// did'nt find it, create anew, throws IllegalAccessException if no go.
-			// Global IO and main Key/Value index
-			Options o = new Options();
-			setOptions(o);
-			TransactionDB db = OpenTransactionDB(dbname,o);
-			hps = new RockSackTransactionSession(db, o, uid, gid);
+			// did'nt find it, create anew
+			TransactionDB db = OpenTransactionDB(dbname,options);
+			hps = new RockSackTransactionSession(db, options);
 			SessionTable.put(dbname, hps);
 			if( DEBUG )
 				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,db);
 		}
 		return hps;
 	}
-	private static void setOptions(Options options) {
-		//RocksDB db = null;
-		//final String db_path = dbpath;
-		//final String db_path_not_found = db_path + "_not_found";
 
-		final Filter bloomFilter = new BloomFilter(10);
-		//final ReadOptions readOptions = new ReadOptions().setFillCache(false);
-		final Statistics stats = new Statistics();
-		final RateLimiter rateLimiter = new RateLimiter(10000000,10000, 10);
-		options.setComparator(new SerializedComparator());
-		try {
-		    options.setCreateIfMissing(true)
-		        .setStatistics(stats)
-		        .setWriteBufferSize(8 * SizeUnit.KB)
-		        .setMaxWriteBufferNumber(3)
-		        .setMaxBackgroundJobs(10)
-		        .setCompressionType(CompressionType.ZLIB_COMPRESSION)
-		        .setCompactionStyle(CompactionStyle.UNIVERSAL);
-		 } catch (final IllegalArgumentException e) {
-		    assert (false);
-		 }
-		  assert (options.createIfMissing() == true);
-		  assert (options.writeBufferSize() == 8 * SizeUnit.KB);
-		  assert (options.maxWriteBufferNumber() == 3);
-		  assert (options.maxBackgroundJobs() == 10);
-		  assert (options.compressionType() == CompressionType.ZLIB_COMPRESSION);
-		  assert (options.compactionStyle() == CompactionStyle.UNIVERSAL);
-
-		  assert (options.memTableFactoryName().equals("SkipListFactory"));
-		  options.setMemTableConfig(
-		      new HashSkipListMemTableConfig()
-		          .setHeight(4)
-		          .setBranchingFactor(4)
-		          .setBucketCount(2000000));
-		  assert (options.memTableFactoryName().equals("HashSkipListRepFactory"));
-
-		  options.setMemTableConfig(
-		      new HashLinkedListMemTableConfig()
-		          .setBucketCount(100000));
-		  assert (options.memTableFactoryName().equals("HashLinkedListRepFactory"));
-
-		  options.setMemTableConfig(
-		      new VectorMemTableConfig().setReservedSize(10000));
-		  assert (options.memTableFactoryName().equals("VectorRepFactory"));
-
-		  options.setMemTableConfig(new SkipListMemTableConfig());
-		  assert (options.memTableFactoryName().equals("SkipListFactory"));
-
-		  options.setTableFormatConfig(new PlainTableConfig());
-		  // Plain-Table requires mmap read
-		  options.setAllowMmapReads(true);
-		  assert (options.tableFactoryName().equals("PlainTable"));
-
-		  options.setRateLimiter(rateLimiter);
-
-		  final BlockBasedTableConfig table_options = new BlockBasedTableConfig();
-		  Cache cache = new LRUCache(64 * 1024, 6);
-		  table_options.setBlockCache(cache)
-		      .setFilterPolicy(bloomFilter)
-		      .setBlockSizeDeviation(5)
-		      .setBlockRestartInterval(10)
-		      .setCacheIndexAndFilterBlocks(true)
-		      .setBlockCacheCompressed(new LRUCache(64 * 1000, 10));
-
-		  assert (table_options.blockSizeDeviation() == 5);
-		  assert (table_options.blockRestartInterval() == 10);
-		  assert (table_options.cacheIndexAndFilterBlocks() == true);
-
-		  options.setTableFormatConfig(table_options);
-		  assert (options.tableFactoryName().equals("BlockBasedTable"));
-	}
-	
 	private static RocksDB OpenDB(String dbPath, Options options) {
 		RocksDB db = null;
 		  try {	  
@@ -288,14 +198,10 @@ public final class SessionManager {
 	 * @throws IOException
 	 * @throws IllegalAccessException
 	 */
-	public static synchronized RockSackSession ConnectNoRecovery(String dbname, String keystoreType, String backingstoreType, int poolBlocks) throws IOException, IllegalAccessException {
+	public static synchronized RockSackSession ConnectNoRecovery(String dbname, Options options) throws IOException, IllegalAccessException {
 		if( DEBUG ) {
 			System.out.println("Connecting WITHOUT RECOVERY to "+dbname);
 		}
-		// translate user name to uid and group
-		// we can restrict access at database level here possibly
-		int uid = 0;
-		int gid = 1;
 		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
 		if (OfflineDBs.contains(dbname))
 			throw new IllegalAccessException("Database is offline, try later");
@@ -305,10 +211,8 @@ public final class SessionManager {
 			// Global IO and main KeyValue implementation
 			if( DEBUG )
 				System.out.println("SessionManager.ConectNoRecovery bringing up IO");
-			Options o = new Options();
-			setOptions(o);
-			RocksDB db = OpenDB(dbname, o);
-			hps = new RockSackSession(db, o, uid, gid);
+			RocksDB db = OpenDB(dbname, options);
+			hps = new RockSackSession(db, options);
 			if( DEBUG )
 				System.out.println("SessionManager.ConectNoRecovery bringing up session");
 			if( DEBUG )

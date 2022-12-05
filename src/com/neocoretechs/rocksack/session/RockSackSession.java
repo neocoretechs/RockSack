@@ -64,8 +64,6 @@ import com.neocoretechs.rocksack.stream.TailSetStream;
 */
 public class RockSackSession {
 	private boolean DEBUG = false;
-	private int uid;
-	private int gid;
 	protected RocksDB kvStore;
 	private Options options;
 	private boolean dbOpen = false;
@@ -77,11 +75,9 @@ public class RockSackSession {
 	* @param tgis The group
 	* @exception IOException If global IO problem
 	*/
-	protected RockSackSession(RocksDB kvStore, Options options, int uid, int gid)  {
+	protected RockSackSession(RocksDB kvStore, Options options)  {
 		this.kvStore = kvStore;
 		this.options = options;
-		this.uid = uid;
-		this.gid = gid;
 		if( DEBUG )
 			System.out.println("RockSackSession constructed with db:"+getDBname());
 	}
@@ -95,13 +91,6 @@ public class RockSackSession {
 		return this.getClass().getName()+" using DB:"+getDBname();
 	}
 	
-	protected int getUid() {
-		return uid;
-	}
-	protected int getGid() {
-		return gid;
-	}
-
 	protected Object getMutexObject() {
 		return kvStore;
 	}
@@ -168,6 +157,38 @@ public class RockSackSession {
 		return true;
 	}
 	/**
+	 * Call the put method of KeyValueMain.
+	 * @param key The key value to attempt add, raw bytes which will not be serialized beforehand
+	 * @param o The value for the key to add
+	 * @return true
+	 * @throws IOException
+	 */
+	@SuppressWarnings("rawtypes")
+	protected boolean putViaBytes(byte[] key, Object o) throws IOException {
+		try {
+			kvStore.put(key,SerializedComparator.serializeObject(o));
+		} catch (RocksDBException | IOException e) {
+			throw new IOException(e);
+		}
+		return true;
+	}
+	/**
+	 * Call the put method of KeyValueMain.
+	 * @param txn The transaction context
+	 * @param key The key value to attempt add, raw bytes unserialized beforehand
+	 * @param o The value for the key to add
+	 * @return true
+	 * @throws IOException
+	 */
+	protected boolean putViaBytes(Transaction txn, byte[] key, Object o) throws IOException {
+		try {
+			txn.put(key,SerializedComparator.serializeObject(o));
+		} catch (RocksDBException | IOException e) {
+			throw new IOException(e);
+		}
+		return true;
+	}
+	/**
 	 * Cause the KvStore to seekKey for the Comparable type.
 	 * @param o the Comparable object to seek.
 	 * @return the Key/Value object from the retrieved node
@@ -203,6 +224,46 @@ public class RockSackSession {
 			   if(b == null)
 				   return null;
 			   return new KeyValue(o,SerializedComparator.deserializeObject(b));
+		} catch (RocksDBException | IOException e) {
+			throw new IOException(e);
+		}
+	}
+	/**
+	 * Cause the KvStore to seekKey for the raw byte array.
+	 * @param o the byte array to seek.
+	 * @return the Value object from the retrieved node
+	 * @throws IOException
+	 */
+	@SuppressWarnings("rawtypes")
+	protected Object getViaBytes(byte[] o) throws IOException {
+		if(DEBUG)
+			System.out.printf("%s.get(%s)%n", this.getClass().getName(), o);
+		   try {
+			   byte[] b = kvStore.get(o);
+			   if(b == null)
+				   return null;
+			   return SerializedComparator.deserializeObject(b);
+		} catch (RocksDBException | IOException e) {
+			throw new IOException(e);
+		}
+	}
+	/**
+	 * Cause the KvStore to seekKey for the Comparable type.
+	 * @param txn Transaction context
+	 * @param ro The ReadOptions
+	 * @param o the byte array to seek.
+	 * @return the Value object from the retrieved node
+	 * @throws IOException
+	 */
+	@SuppressWarnings("rawtypes")
+	protected Object getViaBytes(Transaction txn, ReadOptions ro, byte[] o) throws IOException {
+		if(DEBUG)
+			System.out.printf("%s.get(%s, %s, %s)%n", this.getClass().getName(), txn, ro, o);
+		   try {
+			   byte[] b = txn.get(ro,o);
+			   if(b == null)
+				   return null;
+			   return SerializedComparator.deserializeObject(b);
 		} catch (RocksDBException | IOException e) {
 			throw new IOException(e);
 		}

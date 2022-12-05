@@ -5,6 +5,7 @@ import java.util.Stack;
 import java.util.TreeMap;
 import java.util.stream.Stream;
 
+import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 
 /*
@@ -37,29 +38,23 @@ import org.rocksdb.RocksDB;
 * when using this construct. The commit
 * operations are performed after each insert/delete and recovery takes place if a failure occurs during
 * runtime writes.
-* If transparency with existing code is paramount this class is a good choice.
 * Thread safety is with the session object using session.getMutexObject().
-* Java Map backed by pooled serialized objects.
 * @author Jonathan Groff (C) NeoCoreTechs 2003, 2017, 2021
 */
 public class BufferedMap implements OrderedKVMapInterface {
 	private RockSackSession session = null;
-	String dbName, keyValueStore, backingStore;
+	//String dbName;
 
 	/**
 	* Get instance of RockSack session.
-	* Each new instance of this will connect to the same backing store
-	* with a different in-mem cache.
-	* @param tdbname The database name
-	* @param keyValueStore Type of Key/Value store BTree, HMap, etc. 
+	 * @param tdbname The database name
 	* @exception IOException if global IO problem
 	* @exception IllegalAccessException if the database has been put offline
 	*/
-	public BufferedMap(String dbName, String keyValueStore, String backingStore ) throws IllegalAccessException, IOException {
-		this.dbName = dbName;
-		this.keyValueStore = keyValueStore;
-		this.backingStore = backingStore;
-		session = SessionManager.Connect(dbName, keyValueStore, backingStore);
+	public BufferedMap(RockSackSession session) throws IllegalAccessException, IOException {
+		//this.dbName = dbName;
+		//session = SessionManager.Connect(dbName, options);
+		this.session = session;
 	}
 		
 	public RockSackSession getSession() throws IOException {
@@ -67,8 +62,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 		return session;
 	}
 	/**
-	* Put a  key/value pair to main cache and pool.  We may
-	* toss out an old one when cache size surpasses objectCacheSize
+	* Put a key/value pair to main cache and pool. 
 	* @param tkey The key for the pair
 	* @param tvalue The value for the pair
 	* @exception IOException if put to backing store fails
@@ -80,8 +74,18 @@ public class BufferedMap implements OrderedKVMapInterface {
 				return session.put(tkey, tvalue);
 		}
 	}
-	
-	
+	/**
+	* Put a key/value pair to main cache and pool.
+	* @param tkey The key for the pair, raw bytes unserialized before storage
+	* @param tvalue The value for the pair
+	* @exception IOException if put to backing store fails
+	*/
+	public boolean putViaBytes(byte[] tkey, Object tvalue) throws IOException {
+		synchronized (getSession().getMutexObject()) {
+				// now put new
+				return session.putViaBytes(tkey, tvalue);
+		}
+	}
 	/**
 	* Get a value from backing store if not in cache.
 	* We may toss out one to make room if size surpasses objectCacheSize
@@ -95,7 +99,19 @@ public class BufferedMap implements OrderedKVMapInterface {
 				return getSession().get(tkey);
 		//}
 	}
-	
+	/**
+	* Get a value from backing store if not in cache.
+	* We may toss out one to make room if size surpasses objectCacheSize
+	* @param tkey The key for the value, will not be serialized
+	* @return The key/value for the key
+	* @exception IOException if get from backing store fails
+	*/
+	@SuppressWarnings("rawtypes")
+	public Object getViaBytes(byte[] tkey) throws IOException {
+		//synchronized (getSession().getMutexObject()) {
+				return getSession().getViaBytes(tkey);
+		//}
+	}
 	/**
 	* Get a value from backing store if not in cache.
 	* We may toss out one to make room if size surpasses objectCacheSize
@@ -345,25 +361,6 @@ public class BufferedMap implements OrderedKVMapInterface {
 	public String getDBName() {
 		try {
 			return getSession().getDBname();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-
-	@Override
-	public int getUid() {
-		try {
-			return getSession().getUid();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	@Override
-	public int getGid() {
-		try {
-			return getSession().getGid();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

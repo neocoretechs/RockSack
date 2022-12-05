@@ -34,7 +34,6 @@ import org.rocksdb.WriteOptions;
 /**
 * TransactionalMap. The same underlying session objects are used here but the user has access to the transactional
 * Semantics underlying the recovery protocol. Thread safety is enforced on the session at this level.
-* Java Map backed by pooled serialized objects. It is the users responsibility to commit/rollback/checkpoint.
 * We add an additional constructor to use a previously created session and instantiate an new Transaction instance.
 * In the adapter, we retrieve an existing map, extract the session, and instantiate a new TransactionalMap.
 * The assumption is that the new TransactionalMap is stored in an additional session container outside of the adapter.
@@ -66,9 +65,15 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	public Transaction getTransaction() {
 		return txn;
 	}
+	
+	public void setReadOptions(ReadOptions ro) {
+		this.ro = ro;
+	}
+	public void setWriteOptions(WriteOptions wo) {
+		this.wo = wo;
+	}
 	/**
-	* Put a  key/value pair to main cache and pool.  We may
-	* toss out an old one when cache size surpasses objectCacheSize
+	* Put a  key/value pair to main cache and pool.
 	* @param tkey The key for the pair
 	* @param tvalue The value for the pair
 	* @return true if key previously existed and was not added
@@ -81,10 +86,22 @@ public class TransactionalMap implements OrderedKVMapInterface {
 				return session.put(txn, tkey, tvalue);
 		}
 	}
-	
+	/**
+	* Put a  key/value pair to main cache and pool. 
+	* @param tkey The key for the pair, will not be serialized
+	* @param tvalue The value for the pair
+	* @return true if key previously existed and was not added
+	* @exception IOException if put to backing store fails
+	*/
+	@SuppressWarnings("rawtypes")
+	public boolean putViaBytes(byte[] tkey, Object tvalue) throws IOException {
+		synchronized (getSession().getMutexObject()) {
+				// now put new
+				return session.putViaBytes(txn, tkey, tvalue);
+		}
+	}
 	/**
 	* Get a value from backing store if not in cache.
-	* We may toss out one to make room if size surpasses objectCacheSize
 	* @param tkey The key for the value
 	* @return The value for the key
 	* @exception IOException if get from backing store fails
@@ -92,10 +109,20 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	@SuppressWarnings("rawtypes")
 	public Object get(Comparable tkey) throws IOException {
 		//synchronized (session.getMutexObject()) {
-			return session.get(txn, ro, tkey);
+			return getSession().get(txn, ro, tkey);
 		//}
 	}
-	
+	/**
+	* Get a value from backing store if not in cache.
+	* @param tkey The key for the value
+	* @return The value for the key
+	* @exception IOException if get from backing store fails
+	*/
+	public Object getViaBytes(byte[] tkey) throws IOException {
+		//synchronized (session.getMutexObject()) {
+			return getSession().getViaBytes(txn, ro, tkey);
+		//}
+	}
 	/**
 	* Get a value from backing store if not in cache.
 	* We may toss out one to make room if size surpasses objectCacheSize
@@ -404,17 +431,6 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	@Override
 	public String getDBName() {
 		return session.getDBname();
-	}
-
-
-	@Override
-	public int getUid() {
-		return session.getUid();
-	}
-
-	@Override
-	public int getGid() {
-		return session.getGid();
 	}
 
 	@Override

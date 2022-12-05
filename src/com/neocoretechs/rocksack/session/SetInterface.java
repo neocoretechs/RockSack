@@ -10,12 +10,8 @@ import org.rocksdb.RocksDB;
 public interface SetInterface {
 
 	String getDBName();
-	
-	int getUid();
-	int getGid();
 
 	Object getMutexObject();
-	
 
 	/**
 	 * Cause the b seekKey for the Comparable type.

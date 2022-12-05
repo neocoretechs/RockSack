@@ -25,17 +25,10 @@ package com.neocoretechs.rocksack;
 *
 */
 /**
-* Defines physical constants for tablespaces, buckets, etc
+* Defines physical constants for database options
 * @author Jonathan Groff Copyright (C) NeoCoreTechs 1997,2003,2021
 */
 public interface DBPhysicalConstants {
 
-	public static final String DATABASE = "RocksDB";
-	
-	/**
-	 * The backing store type "File", "MMap" etc, as supported in GlobalDBIO
-	 */
-	public static String BACKINGSTORE = "MMap";
-	//public static String BACKINGSTORE = "File";
 
 }
