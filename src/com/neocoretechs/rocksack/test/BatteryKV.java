@@ -80,7 +80,7 @@ public class BatteryKV {
 			bmap.put(fkey, new Long(i));
 			++recs;
 		}
-		System.out.println("KV BATTERY1 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms. Stored "+recs+" records, rejected.");
+		System.out.println("KV BATTERY1 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms. Stored "+recs+" records.");
 	}
 	
 	/**
