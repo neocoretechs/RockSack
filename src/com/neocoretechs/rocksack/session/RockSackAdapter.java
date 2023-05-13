@@ -27,6 +27,7 @@ import org.rocksdb.util.SizeUnit;
 
 import com.neocoretechs.rocksack.DBPhysicalConstants;
 import com.neocoretechs.rocksack.SerializedComparator;
+import com.neocoretechs.rocksack.session.VolumeManager.Volume;
 
 /**
  * This factory class enforces a strong typing for the RockSack using the database naming convention linked to the
@@ -58,9 +59,7 @@ public class RockSackAdapter {
 	static {
 		RocksDB.loadLibrary();
 	}
-	private static ConcurrentHashMap<String, SetInterface> classToIso = new ConcurrentHashMap<String,SetInterface>();
-	private static ConcurrentHashMap<String, ConcurrentHashMap<String,SetInterface>> classToIsoTransaction = new ConcurrentHashMap<String,ConcurrentHashMap<String,SetInterface>>();
-	private static ConcurrentHashMap<String, Transaction> idToTransaction = new ConcurrentHashMap<String, Transaction>();
+
 	
 	public static String getTableSpaceDir() {
 		return tableSpaceDir;
@@ -173,14 +172,15 @@ public class RockSackAdapter {
 	 */
 	public static BufferedMap getRockSackMap(Class clazz) throws IllegalAccessException, IOException {
 		String xClass = translateClass(clazz.getName());
-		BufferedMap ret = (BufferedMap) classToIso.get(xClass);
+		Volume v = VolumeManager.get(tableSpaceDir);
+		BufferedMap ret = (BufferedMap) v.classToIso.get(xClass);
 		if(DEBUG)
 			System.out.println("RockSackAdapter.getRockSackTreeMap About to return designator: "+tableSpaceDir+xClass+" formed from "+clazz.getClass().getName());
 		if( ret == null ) {
 			if(options == null)
 				options = getDefaultOptions();
 			ret =  new BufferedMap(SessionManager.Connect(tableSpaceDir+xClass, options));
-			classToIso.put(xClass, ret);
+			v.classToIso.put(xClass, ret);
 		}
 		return ret;
 	}
@@ -191,15 +191,17 @@ public class RockSackAdapter {
 	
 	public static synchronized void removeRockSackTransaction(String xid) {
 		removeRockSackTransactionalMap(xid);
-		Transaction t = idToTransaction.get(xid);
+		Volume v = VolumeManager.get(tableSpaceDir);
+		Transaction t = v.idToTransaction.get(xid);
 		if(t != null) {
 			t.close();
-			idToTransaction.remove(t);
+			v.idToTransaction.remove(t);
 		}
 	}
 	
 	public static void commitRockSackTransaction(String xid) throws IOException {
-		Transaction t = idToTransaction.get(xid);
+		Volume v = VolumeManager.get(tableSpaceDir);
+		Transaction t = v.idToTransaction.get(xid);
 		if(t != null) {
 			try {
 				t.commit();
@@ -209,7 +211,8 @@ public class RockSackAdapter {
 		}
 	}
 	public static void rollbackRockSackTransaction(String xid) throws IOException {
-		Transaction t = idToTransaction.get(xid);
+		Volume v = VolumeManager.get(tableSpaceDir);
+		Transaction t = v.idToTransaction.get(xid);
 		if(t != null) {
 			try {
 				t.rollback();
@@ -219,7 +222,8 @@ public class RockSackAdapter {
 		}
 	}
 	public static void checkpointRockSackTransaction(String xid) throws IOException {
-		Transaction t = idToTransaction.get(xid);
+		Volume v = VolumeManager.get(tableSpaceDir);
+		Transaction t = v.idToTransaction.get(xid);
 		if(t != null) {
 			try {
 				t.setSavePoint();
@@ -229,7 +233,8 @@ public class RockSackAdapter {
 		}
 	}
 	public static void rollbackToCheckpoint(String xid) throws IOException {
-		Transaction t = idToTransaction.get(xid);
+		Volume v = VolumeManager.get(tableSpaceDir);
+		Transaction t = v.idToTransaction.get(xid);
 		if(t != null) {
 			try {
 				t.rollbackToSavePoint();
@@ -247,15 +252,16 @@ public class RockSackAdapter {
 	 */
 	public static synchronized TransactionalMap getRockSackTransactionalMap(Class clazz, String xid) throws IllegalAccessException, IOException {
 		String xClass = translateClass(clazz.getName());
-		ConcurrentHashMap<String, SetInterface> xactions = classToIsoTransaction.get(xClass);
+		Volume v = VolumeManager.get(tableSpaceDir);
+		ConcurrentHashMap<String, SetInterface> xactions = v.classToIsoTransaction.get(xClass);
 		RockSackTransactionSession txn = null;
-		if(idToTransaction.containsKey(xid)) {
+		if(v.idToTransaction.containsKey(xid)) {
 			if(xactions != null) {
 				// transaction exists, transactions for this class exist, does this transaction exist for this class?
 				TransactionalMap tm  = (TransactionalMap) xactions.get(xid);
 				if(tm != null) {
 					if(DEBUG)
-						System.out.println(RockSackAdapter.class.getName()+" About to return EXISTING map with EXISTING xid "+xid+" from: "+tableSpaceDir+xClass+" TransactionalMap:"+tm.toString()+" total xactions this class:"+xactions.size()+" total classes:"+classToIsoTransaction.mappingCount());
+						System.out.println(RockSackAdapter.class.getName()+" About to return EXISTING map with EXISTING xid "+xid+" from: "+tableSpaceDir+xClass+" TransactionalMap:"+tm.toString()+" total xactions this class:"+xactions.size()+" total classes:"+v.classToIsoTransaction.mappingCount());
 					return tm;
 				} else {
 					// transaction exists, but not for this class
@@ -263,26 +269,26 @@ public class RockSackAdapter {
 					if(options == null)
 						options = getDefaultOptions();
 					txn = SessionManager.ConnectTransaction(tableSpaceDir+xClass, options);
-					Transaction tx = idToTransaction.get(xid);
+					Transaction tx = v.idToTransaction.get(xid);
 					tm = new TransactionalMap(txn, tx);
 					xactions.put(tx.getName(), tm);
 					if(DEBUG)
-						System.out.println(RockSackAdapter.class.getName()+" About to return NEW map with EXISTING xid "+tx.getName()+" from: "+tableSpaceDir+xClass+" TransactionalMap:"+tm.toString()+" total xactions this class:"+xactions.size()+" total classes:"+classToIsoTransaction.mappingCount());
+						System.out.println(RockSackAdapter.class.getName()+" About to return NEW map with EXISTING xid "+tx.getName()+" from: "+tableSpaceDir+xClass+" TransactionalMap:"+tm.toString()+" total xactions this class:"+xactions.size()+" total classes:"+v.classToIsoTransaction.mappingCount());
 					return tm;
 				}
 			}
 			// transaction exists, but xactions null, nothing for this class
 			xactions = new ConcurrentHashMap<String, SetInterface>();
-			classToIsoTransaction.put(xClass, xactions);
+			v.classToIsoTransaction.put(xClass, xactions);
 			// add out new transaction id/transaction map to the collection keyed by class
-			Transaction tx = idToTransaction.get(xid);
+			Transaction tx = v.idToTransaction.get(xid);
 			if(options == null)
 				options = getDefaultOptions();
 			txn = SessionManager.ConnectTransaction(tableSpaceDir+xClass, options);
 			TransactionalMap tm = new TransactionalMap(txn, tx);
 			xactions.put(tx.getName(), tm);
 			if(DEBUG)
-				System.out.println(RockSackAdapter.class.getName()+" About to return NEW INITIAL map with EXISTING xid "+tx.getName()+" from: "+tableSpaceDir+xClass+" TransactionalMap:"+tm.toString()+" total xactions this class:"+xactions.size()+" total classes:"+classToIsoTransaction.mappingCount());
+				System.out.println(RockSackAdapter.class.getName()+" About to return NEW INITIAL map with EXISTING xid "+tx.getName()+" from: "+tableSpaceDir+xClass+" TransactionalMap:"+tm.toString()+" total xactions this class:"+xactions.size()+" total classes:"+v.classToIsoTransaction.mappingCount());
 			return tm;
 		}
 		// Transaction Id was not present, construct new transaction
@@ -295,17 +301,17 @@ public class RockSackAdapter {
 		} catch (RocksDBException e) {
 			throw new IOException(e);
 		}
-		idToTransaction.put(tx.getName(), tx);
+		v.idToTransaction.put(tx.getName(), tx);
 		TransactionalMap tm = new TransactionalMap(txn, tx);
 		// do any transactions exist for this class/db?
 		if(xactions == null) {
 			xactions = new ConcurrentHashMap<String, SetInterface>();
-			classToIsoTransaction.put(xClass, xactions);
+			v.classToIsoTransaction.put(xClass, xactions);
 		}
 		// add out new transaction id/transaction map to the collection keyed by class
 		xactions.put(tx.getName(), tm);
 		if(DEBUG)
-			System.out.println(RockSackAdapter.class.getName()+" About to return NEW map with NEW xid "+tx.getName()+" from: "+tableSpaceDir+xClass+" TransactionalMap:"+tm.toString()+" total xactions this class:"+xactions.size()+" total classes:"+classToIsoTransaction.mappingCount());
+			System.out.println(RockSackAdapter.class.getName()+" About to return NEW map with NEW xid "+tx.getName()+" from: "+tableSpaceDir+xClass+" TransactionalMap:"+tm.toString()+" total xactions this class:"+xactions.size()+" total classes:"+v.classToIsoTransaction.mappingCount());
 		return tm;
 	}
 
@@ -314,7 +320,8 @@ public class RockSackAdapter {
 	 * @param tmap the TransactionalMap for a given transaction Id
 	 */
 	public static synchronized  void removeRockSackTransactionalMap(SetInterface tmap) {
-		classToIsoTransaction.forEach((k,v) -> {
+		Volume vm = VolumeManager.get(tableSpaceDir);
+		vm.classToIsoTransaction.forEach((k,v) -> {
 			if(v.contains(tmap)) {
 				TransactionalMap verify = (TransactionalMap) v.remove(((TransactionalMap)tmap).txn.getName());
 				if(DEBUG)
@@ -328,7 +335,8 @@ public class RockSackAdapter {
 	 * @param xid The Transaction Id
 	 */
 	public static synchronized void removeRockSackTransactionalMap(String xid) {
-		Collection<ConcurrentHashMap<String, SetInterface>> xactions = classToIsoTransaction.values();
+		Volume vm = VolumeManager.get(tableSpaceDir);
+		Collection<ConcurrentHashMap<String, SetInterface>> xactions = vm.classToIsoTransaction.values();
 		xactions.forEach(c -> {
 			c.forEach((k,v) -> {
 				if(k.equals(xid)) {
