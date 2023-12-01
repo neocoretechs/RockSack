@@ -1,38 +1,20 @@
 package com.neocoretechs.rocksack.session;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.rocksdb.BlockBasedTableConfig;
-import org.rocksdb.BloomFilter;
-import org.rocksdb.Cache;
-import org.rocksdb.CompactionStyle;
-import org.rocksdb.CompressionType;
-import org.rocksdb.Filter;
-import org.rocksdb.HashLinkedListMemTableConfig;
-import org.rocksdb.HashSkipListMemTableConfig;
-import org.rocksdb.LRUCache;
 import org.rocksdb.Options;
-import org.rocksdb.PlainTableConfig;
-import org.rocksdb.RateLimiter;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
-import org.rocksdb.SkipListMemTableConfig;
 import org.rocksdb.Snapshot;
-import org.rocksdb.Statistics;
 import org.rocksdb.Transaction;
 import org.rocksdb.TransactionDB;
 import org.rocksdb.TransactionDBOptions;
 import org.rocksdb.TransactionOptions;
-import org.rocksdb.VectorMemTableConfig;
 import org.rocksdb.WriteOptions;
-import org.rocksdb.util.SizeUnit;
 
-import com.neocoretechs.rocksack.SerializedComparator;
 
 /*
 * Copyright (c) 2003, NeoCoreTechs
@@ -60,9 +42,9 @@ import com.neocoretechs.rocksack.SerializedComparator;
 /**
 * SessionManager class is a singleton 
 * that accepts connections and returns a RockSackSession object. A table of one to one sessions and
-* tables is maintained. Typically the RockSackAdapter will create the proper instance the map based on
-* desired transaction level or none, and the mep then issues a call here to establish a session.<p/>
-* The session openes the database or passes an already opened database to a new transaction map which
+* tables is maintained. Typically the RockSackAdapter will create the proper instance of the map based on
+* desired transaction level or none, and the map then issues a call here to establish a session.<p/>
+* The session opens the database or passes an already opened database to a new transaction map which
 * creates a new transaction context for that map.
 * @author Jonathan Groff (c) NeoCoreTechs 2003, 2017, 2021
 */

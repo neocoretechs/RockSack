@@ -1,5 +1,6 @@
 package com.neocoretechs.rocksack.session;
 
+import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.rocksdb.Transaction;
@@ -14,6 +15,7 @@ import org.rocksdb.Transaction;
  */
 public class VolumeManager {
 	private static ConcurrentHashMap<String, Volume> pathToVolume = new ConcurrentHashMap<String,Volume>();
+	private static ConcurrentHashMap<String, String> aliasToPath = new ConcurrentHashMap<String,String>();
 	/**
 	 * Index by tablespaceDir
 	 */
@@ -23,7 +25,11 @@ public class VolumeManager {
 		public ConcurrentHashMap<String, ConcurrentHashMap<String,SetInterface>> classToIsoTransaction = new ConcurrentHashMap<String,ConcurrentHashMap<String,SetInterface>>();
 		public ConcurrentHashMap<String, Transaction> idToTransaction = new ConcurrentHashMap<String, Transaction>();
 	}
-	
+	/**
+	 * Get the volume for the given tablespace path. If the volume does not exist, it will be created
+	 * @param path
+	 * @return
+	 */
 	public static Volume get(String path) {
 		Volume v = pathToVolume.get(path);
 		if(v == null) {
@@ -32,7 +38,47 @@ public class VolumeManager {
 		}
 		return v;
 	}
-	
+	/**
+	 * Get the tablespace path for the given alias
+	 * @param alias
+	 * @return
+	 */
+	public static String getAliasToPath(String alias) {
+		return aliasToPath.get(alias);
+	}
+	/**
+	 * Get the volume for the given alias. If the alias does not exist, the volume will NOT be created.
+	 * An explicit createAlias call is needed.
+	 * @param alias
+	 * @return
+	 * @throws NoSuchElementException
+	 */
+	public static Volume getByAlias(String alias) throws NoSuchElementException {
+		String path = aliasToPath.get(alias);
+		if(path == null)
+			throw new NoSuchElementException("The alias "+alias+" was not found.");
+		return pathToVolume.get(path);
+	}
+	/**
+	 * Create an alias for the given tablespace path
+	 * @param alias
+	 * @param path
+	 */
+	public static void createAlias(String alias, String path) {
+		aliasToPath.put(alias, path);
+	}
+	/**
+	 * Remove the alias for the given tablespace path. The volume will not be affected.
+	 * @param alias
+	 */
+	public static void removeAlias(String alias) {
+		aliasToPath.remove(alias);
+	}
+	/**
+	 * Remove the Volume for the given tablespace path.
+	 * @param path
+	 * @return
+	 */
 	public static Volume remove(String path) {
 		return pathToVolume.remove(path);
 	}
