@@ -235,7 +235,7 @@ public class RockSackAdapter {
 	 * @throws NoSuchElementException if alias was not found
 	 * @throws IOException
 	 */
-	public static BufferedMap getRockSackMap(String alias, Comparable clazz) throws IllegalAccessException, IOException {
+	public static BufferedMap getRockSackMap(String alias, Comparable clazz) throws IllegalAccessException, IOException, NoSuchElementException {
 		return getRockSackMap(alias, clazz.getClass());
 	}
 	/**
