@@ -63,10 +63,24 @@ public class RockSackAdapter {
 	/**
 	 * Get the tablespace by given alias
 	 * @param alias
-	 * @return
+	 * @return The path for this alias or null if none
 	 */
 	public static String getTableSpaceDir(String alias) {
 		return VolumeManager.getAliasToPath(alias);
+	}
+	/**
+	 * Get the default tablespace set by explicit previous call.
+	 * @return
+	 */
+	public static String getTableSpaceDir() {
+		return tableSpaceDir;
+	}
+	/**
+	 * 
+	 * @return The aliases and paths as 2d array, if none first dimension is zero.
+	 */
+	public static String[][] getAliases() {
+		return RockSackAdapter.getAliases();
 	}
 	/**
 	 * Set the tablespace for a given alias
@@ -77,25 +91,18 @@ public class RockSackAdapter {
 		VolumeManager.createAlias(alias, tableSpaceDir);
 	}
 	/**
-	 * Remove the given alias.
-	 * @param alias
-	 */
-	public static void removeAlias(String alias) {
-		VolumeManager.removeAlias(alias);
-	}
-	/**
-	 * Get the default tablespace set by explicit previous call.
-	 * @return
-	 */
-	public static String getTableSpaceDir() {
-		return tableSpaceDir;
-	}
-	/**
 	 * Set the default tablespace for operations not using alias
 	 * @param tableSpaceDir
 	 */
 	public static void setTableSpaceDir(String tableSpaceDir) {
 		RockSackAdapter.tableSpaceDir = tableSpaceDir;
+	}
+	/**
+	 * Remove the given alias.
+	 * @param alias
+	 */
+	public static void removeAlias(String alias) {
+		VolumeManager.removeAlias(alias);
 	}
 	/**
 	 * Get the fully qualified database name using default tablespace and translated class name

@@ -1,5 +1,6 @@
 package com.neocoretechs.rocksack.session;
 
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -52,7 +53,7 @@ public class VolumeManager {
 	/**
 	 * Get the tablespace path for the given alias
 	 * @param alias
-	 * @return
+	 * @return The path for this alias or null if none
 	 */
 	public static String getAliasToPath(String alias) {
 		if(DEBUG)
@@ -73,6 +74,20 @@ public class VolumeManager {
 		if(DEBUG)
 			System.out.println("VolumeManager.getByAlias attempt for alias:"+alias+" got path:"+path);
 		return get(path);
+	}
+	
+	/**
+	 * @return The aliases and their paths as 2d array. 1st dim is 0 if none.
+	 */
+	public static String[][] getAliases() {
+		String[][] array = new String[aliasToPath.size()][2];
+		int count = 0;
+		for(Map.Entry<String,String> entry : aliasToPath.entrySet()){
+		    array[count][0] = entry.getKey();
+		    array[count][1] = entry.getValue();
+		    count++;
+		}
+		return array;
 	}
 	/**
 	 * Create an alias for the given tablespace path
