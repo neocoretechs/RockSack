@@ -80,7 +80,7 @@ public class RockSackAdapter {
 	 * @return The aliases and paths as 2d array, if none first dimension is zero.
 	 */
 	public static String[][] getAliases() {
-		return RockSackAdapter.getAliases();
+		return VolumeManager.getAliases();
 	}
 	/**
 	 * Set the tablespace for a given alias
