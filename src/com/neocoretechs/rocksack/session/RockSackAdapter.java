@@ -302,7 +302,8 @@ public class RockSackAdapter {
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
-		}
+		} else
+			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	public static void commitRockSackTransaction(String alias, String xid) throws IOException, NoSuchElementException {
 		Volume v = VolumeManager.getByAlias(alias);
@@ -313,7 +314,8 @@ public class RockSackAdapter {
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
-		}
+		} else
+			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	public static void rollbackRockSackTransaction(String xid) throws IOException {
 		Volume v = VolumeManager.get(tableSpaceDir);
@@ -324,7 +326,8 @@ public class RockSackAdapter {
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
-		}
+		} else
+			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	public static void rollbackRockSackTransaction(String alias, String xid) throws IOException, NoSuchElementException {
 		Volume v = VolumeManager.getByAlias(alias);
@@ -335,7 +338,8 @@ public class RockSackAdapter {
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
-		}
+		} else
+			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	public static void checkpointRockSackTransaction(String xid) throws IOException {
 		Volume v = VolumeManager.get(tableSpaceDir);
@@ -346,7 +350,8 @@ public class RockSackAdapter {
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
-		}
+		} else
+			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	public static void checkpointRockSackTransaction(String alias, String xid) throws IOException, NoSuchElementException {
 		Volume v = VolumeManager.getByAlias(alias);
@@ -357,7 +362,8 @@ public class RockSackAdapter {
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
-		}
+		} else
+			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	public static void rollbackToCheckpoint(String xid) throws IOException {
 		Volume v = VolumeManager.get(tableSpaceDir);
@@ -368,7 +374,8 @@ public class RockSackAdapter {
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
-		}
+		} else
+			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	public static void rollbackToCheckpoint(String alias, String xid) throws IOException, NoSuchElementException {
 		Volume v = VolumeManager.getByAlias(alias);
@@ -379,7 +386,8 @@ public class RockSackAdapter {
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
-		}
+		} else
+			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	/**
 	 * Start a new transaction for the given class in the current database
