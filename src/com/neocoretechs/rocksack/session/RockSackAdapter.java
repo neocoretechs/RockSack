@@ -273,6 +273,10 @@ public class RockSackAdapter {
 		return UUID.randomUUID().toString();
 	}
 	
+	/**
+	 * Remove from classToIso then idToTransaction in {@link VolumeManager}
+	 * @param xid
+	 */
 	public static synchronized void removeRockSackTransaction(String xid) {
 		removeRockSackTransactionalMap(xid);
 		Volume v = VolumeManager.get(tableSpaceDir);
@@ -282,7 +286,12 @@ public class RockSackAdapter {
 			v.idToTransaction.remove(t);
 		}
 	}
-	
+	/**
+	 * Remove from classToIso then idToTransaction in {@link VolumeManager}
+	 * @param alias
+	 * @param xid
+	 * @throws NoSuchElementException
+	 */
 	public static synchronized void removeRockSackTransaction(String alias, String xid) throws NoSuchElementException {
 		removeRockSackTransactionalMap(alias, xid);
 		Volume v = VolumeManager.getByAlias(alias);
