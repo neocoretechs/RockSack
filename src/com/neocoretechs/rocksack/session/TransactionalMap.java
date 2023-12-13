@@ -5,6 +5,7 @@ import java.util.stream.Stream;
 
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
+import org.rocksdb.Snapshot;
 import org.rocksdb.Transaction;
 import org.rocksdb.WriteOptions;
 
@@ -393,9 +394,9 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	 * @throws IllegalAccessException
 	 * @throws IOException
 	 */
-	public void Checkpoint() throws IllegalAccessException, IOException {
+	public Snapshot Checkpoint() throws IllegalAccessException, IOException {
 		synchronized (getSession().getMutexObject()) {
-			session.Checkpoint(txn);
+			return session.Checkpoint(txn);
 		}
 	}
 	
