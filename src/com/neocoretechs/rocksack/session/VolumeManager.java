@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.rocksdb.RocksDBException;
 import org.rocksdb.Transaction;
 /**
  * A volume is a set of RocksDb directories and files indexed by a volume name, which is a directory path PLUS database prefix. The
@@ -125,6 +126,11 @@ public class VolumeManager {
 		return pathToVolume.remove(path);
 	}
 	
+	/**
+	 * Return a list of the state of all transactions with id's mapped to transactions
+	 * in the set of active volumes
+	 * @return
+	 */
 	public static List<String> getOutstandingTransactionState() {
 		ArrayList<String> retState = new ArrayList<String>();
 		for(Transaction t: getOutstandingTransactions()) {
@@ -132,7 +138,11 @@ public class VolumeManager {
 		}
 		return retState;
 	}
-	
+	/**
+	 * Return a list all RocksDB transactions with id's mapped to transactions
+	 * in the set of active volumes.
+	 * @return raw RocksDB transactions, use with caution.
+	 */
 	public static List<Transaction> getOutstandingTransactions() {
 		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
 		for(Map.Entry<String, Volume> volumes : pathToVolume.entrySet()) {
@@ -142,7 +152,12 @@ public class VolumeManager {
 		}
 		return retXactn;
 	}
-	
+	/**
+	 * Return a list all RocksDB transactions with id's mapped to transactions
+	 * in the set of active volumes for a particular path
+	 * @param path the path in question
+	 * @return the List of RocksDB Transactions. be wary.
+	 */
 	public static List<Transaction> getOutstandingTransactions(String path) {
 		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
 		Volume v = get(path);
@@ -151,7 +166,12 @@ public class VolumeManager {
 		}
 		return retXactn;
 	}
-	
+	/**
+	 * Return a list all RocksDB transactions with id's mapped to transactions
+	 * in the set of active volumes for a particular alias to a path
+	 * @param alias the path alias
+	 * @return the List of RocksDB Transactions. Use with care.
+	 */
 	public static List<Transaction> getOutstandingTransactionsAlias(String alias) {
 		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
 		Volume v = getByAlias(alias);
@@ -159,5 +179,21 @@ public class VolumeManager {
 				retXactn.add(transactions.getValue());
 		}
 		return retXactn;
+	}
+	
+	/**
+	 * Clear all the outstanding transactions. Roll back all in-progress transactions,
+	 * the clear the id to transaction table in the set of volumes.
+	 * Needless to say, use with caution.
+	 */
+	public static void clearAllOutstandingTransactions() {
+		for(Transaction t: getOutstandingTransactions()) {
+			try {
+				t.rollback();
+			} catch (RocksDBException e) {}
+		}
+		for(Map.Entry<String, Volume> volumes : pathToVolume.entrySet()) {
+			 volumes.getValue().idToTransaction.clear();
+		}
 	}
 }
