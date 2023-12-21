@@ -1,5 +1,7 @@
 package com.neocoretechs.rocksack.session;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -121,5 +123,41 @@ public class VolumeManager {
 		if(DEBUG)
 			System.out.println("VolumeManager.remove for path:"+path+" will return previous Volume:"+pathToVolume.remove(path));
 		return pathToVolume.remove(path);
+	}
+	
+	public static List<String> getOutstandingTransactionState() {
+		ArrayList<String> retState = new ArrayList<String>();
+		for(Transaction t: getOutstandingTransactions()) {
+			retState.add(t.getState().name());
+		}
+		return retState;
+	}
+	
+	public static List<Transaction> getOutstandingTransactions() {
+		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
+		for(Map.Entry<String, Volume> volumes : pathToVolume.entrySet()) {
+			for(Map.Entry<String, Transaction> transactions: volumes.getValue().idToTransaction.entrySet()) {
+				retXactn.add(transactions.getValue());
+			}
+		}
+		return retXactn;
+	}
+	
+	public static List<Transaction> getOutstandingTransactions(String path) {
+		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
+		Volume v = get(path);
+		for(Map.Entry<String, Transaction> transactions: v.idToTransaction.entrySet()) {
+				retXactn.add(transactions.getValue());
+		}
+		return retXactn;
+	}
+	
+	public static List<Transaction> getOutstandingTransactionsAlias(String alias) {
+		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
+		Volume v = getByAlias(alias);
+		for(Map.Entry<String, Transaction> transactions: v.idToTransaction.entrySet()) {
+				retXactn.add(transactions.getValue());
+		}
+		return retXactn;
 	}
 }
