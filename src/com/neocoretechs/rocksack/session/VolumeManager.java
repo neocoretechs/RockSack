@@ -134,7 +134,7 @@ public class VolumeManager {
 	public static List<String> getOutstandingTransactionState() {
 		ArrayList<String> retState = new ArrayList<String>();
 		for(Transaction t: getOutstandingTransactions()) {
-			retState.add(t.getState().name());
+			retState.add("Transaction:"+t.getName()+" State:"+ t.getState().name());
 		}
 		return retState;
 	}
