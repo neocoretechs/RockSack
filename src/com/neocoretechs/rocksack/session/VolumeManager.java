@@ -3,6 +3,7 @@ package com.neocoretechs.rocksack.session;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -194,6 +195,30 @@ public class VolumeManager {
 		}
 		for(Map.Entry<String, Volume> volumes : pathToVolume.entrySet()) {
 			 volumes.getValue().idToTransaction.clear();
+		}
+	}
+	/**
+	 * Roll back all transactions associated with the given transaction uid
+	 * @param uid
+	 */
+	public static void clearOutstandingTransaction(String uid) {
+		for(Transaction t: getOutstandingTransactions()) {
+			if(t.getState().name().equals(uid)) {
+				try {
+					t.rollback();
+				} catch (RocksDBException e) {}
+				for(Map.Entry<String, Volume> volumes : pathToVolume.entrySet()) {
+					 for(Entry<String, Transaction> id: volumes.getValue().idToTransaction.entrySet()) {
+						 if(id.getKey().equals(uid)) {
+							try {
+								id.getValue().rollback();
+							} catch (RocksDBException e) {}
+							volumes.getValue().idToTransaction.remove(id.getKey());
+							// id can occur multiple places, so continue
+						 }
+					 }
+				}
+			}
 		}
 	}
 }
