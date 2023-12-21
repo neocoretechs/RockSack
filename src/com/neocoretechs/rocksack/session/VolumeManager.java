@@ -203,16 +203,25 @@ public class VolumeManager {
 	 */
 	public static void clearOutstandingTransaction(String uid) {
 		for(Transaction t: getOutstandingTransactions()) {
-			if(t.getState().name().equals(uid)) {
+			if(t.getName().equals(uid)) {
+				if(DEBUG)
+					System.out.println("ClearOutstandingTransaction found uid "+uid+" in outstanding transactions.");
 				try {
 					t.rollback();
 				} catch (RocksDBException e) {}
 				for(Map.Entry<String, Volume> volumes : pathToVolume.entrySet()) {
 					 for(Entry<String, Transaction> id: volumes.getValue().idToTransaction.entrySet()) {
 						 if(id.getKey().equals(uid)) {
+							if(DEBUG)
+								System.out.println("ClearOutstandingTransaction found uid "+uid+" in volume map.");
 							try {
 								id.getValue().rollback();
-							} catch (RocksDBException e) {}
+							} catch (RocksDBException e) {
+								if(DEBUG)
+									System.out.println("ClearOutstandingTransaction found uid cant rollback "+uid+" exception "+e);
+							}
+							if(DEBUG)
+								System.out.println("ClearOutstandingTransaction found uid "+uid+" in volume map. Removing "+id+" key.");
 							volumes.getValue().idToTransaction.remove(id.getKey());
 							// id can occur multiple places, so continue
 						 }
