@@ -233,4 +233,14 @@ public class VolumeManager {
 			}
 		}
 	}
+	
+	public static void removeTransaction(String uid) {
+		for(Map.Entry<String, Volume> volumes : pathToVolume.entrySet()) {
+			Object removed = volumes.getValue().idToTransaction.remove(uid);
+			if(DEBUG) {
+				if(removed != null)
+					System.out.println("VolumeManager removed uid "+uid+" for transaction "+removed);
+			}
+		}
+	}
 }
