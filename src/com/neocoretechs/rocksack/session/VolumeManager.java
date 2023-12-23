@@ -1,5 +1,6 @@
 package com.neocoretechs.rocksack.session;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.rocksdb.RocksDBException;
 import org.rocksdb.Transaction;
+import org.rocksdb.Transaction.TransactionState;
 /**
  * A volume is a set of RocksDb directories and files indexed by a volume name, which is a directory path PLUS database prefix. The
  * last component of the volume refers to the prefix of a database name within the parent path. When forming filesets for RocksDb, the
@@ -234,9 +236,13 @@ public class VolumeManager {
 		}
 	}
 	
-	public static void removeTransaction(String uid) {
+	public static void removeTransaction(String uid) throws IOException {
 		for(Map.Entry<String, Volume> volumes : pathToVolume.entrySet()) {
-			Object removed = volumes.getValue().idToTransaction.remove(uid);
+			Transaction removed = volumes.getValue().idToTransaction.get(uid);
+			if(removed.getState().equals(TransactionState.COMMITTED) || removed.getState().equals(TransactionState.ROLLEDBACK))
+				removed = volumes.getValue().idToTransaction.remove(uid);
+			else
+				throw new IOException("Transaction "+uid+" is in state "+removed.getState().name()+" must be COMMITTED or ROLLEDBACK for removal");
 			if(DEBUG) {
 				if(removed != null)
 					System.out.println("VolumeManager removed uid "+uid+" for transaction "+removed);
