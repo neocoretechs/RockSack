@@ -2,6 +2,7 @@ package com.neocoretechs.rocksack.session;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -280,10 +281,9 @@ public class RockSackAdapter {
 	public static synchronized void removeRockSackTransaction(String xid) {
 		removeRockSackTransactionalMap(xid);
 		Volume v = VolumeManager.get(tableSpaceDir);
-		Transaction t = v.idToTransaction.get(xid);
+		Transaction t = v.idToTransaction.remove(xid);
 		if(t != null) {
 			t.close();
-			v.idToTransaction.remove(t);
 		}
 	}
 	/**
@@ -295,109 +295,116 @@ public class RockSackAdapter {
 	public static synchronized void removeRockSackTransaction(String alias, String xid) throws NoSuchElementException {
 		removeRockSackTransactionalMap(alias, xid);
 		Volume v = VolumeManager.getByAlias(alias);
-		Transaction t = v.idToTransaction.get(xid);
+		Transaction t = v.idToTransaction.remove(xid);
 		if(t != null) {
 			t.close();
-			v.idToTransaction.remove(t);
 		}
 	}
 	
 	public static void commitRockSackTransaction(String xid) throws IOException {
-		Volume v = VolumeManager.get(tableSpaceDir);
-		Transaction t = v.idToTransaction.get(xid);
-		if(t != null) {
+		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByPathAndId(tableSpaceDir, xid);
+		if(tx != null && !tx.isEmpty()) {
 			try {
-				t.commit();
+				for(Transaction t: tx)
+					t.commit();
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
 		} else
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
+	
 	public static void commitRockSackTransaction(String alias, String xid) throws IOException, NoSuchElementException {
-		Volume v = VolumeManager.getByAlias(alias);
-		Transaction t = v.idToTransaction.get(xid);
-		if(t != null) {
+		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByAliasAndId(alias, xid);
+		if(tx != null && !tx.isEmpty()) {
 			try {
-				t.commit();
+				for(Transaction t: tx)
+					t.commit();
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
 		} else
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
+	
 	public static void rollbackRockSackTransaction(String xid) throws IOException {
-		Volume v = VolumeManager.get(tableSpaceDir);
-		Transaction t = v.idToTransaction.get(xid);
-		if(t != null) {
+		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByPathAndId(tableSpaceDir, xid);
+		if(tx != null && !tx.isEmpty()) {
 			try {
-				t.rollback();
+				for(Transaction t: tx)
+					t.rollback();
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
 		} else
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
+	
 	public static void rollbackRockSackTransaction(String alias, String xid) throws IOException, NoSuchElementException {
-		Volume v = VolumeManager.getByAlias(alias);
-		Transaction t = v.idToTransaction.get(xid);
-		if(t != null) {
+		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByAliasAndId(alias, xid);
+		if(tx != null && !tx.isEmpty()) {
 			try {
-				t.rollback();
+				for(Transaction t: tx)
+					t.rollback();
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
 		} else
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
+	
 	public static void checkpointRockSackTransaction(String xid) throws IOException {
-		Volume v = VolumeManager.get(tableSpaceDir);
-		Transaction t = v.idToTransaction.get(xid);
-		if(t != null) {
+		List<Transaction> tx = VolumeManager.getOutstandingTransactionsById(xid);
+		if(tx != null && !tx.isEmpty()) {
 			try {
-				t.setSavePoint();
+				for(Transaction t: tx)
+					t.setSavePoint();
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
 		} else
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
+	
 	public static void checkpointRockSackTransaction(String alias, String xid) throws IOException, NoSuchElementException {
-		Volume v = VolumeManager.getByAlias(alias);
-		Transaction t = v.idToTransaction.get(xid);
-		if(t != null) {
+		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByAliasAndId(alias, xid);
+		if(tx != null && !tx.isEmpty()) {
 			try {
-				t.setSavePoint();
+				for(Transaction t: tx)
+					t.setSavePoint();
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
 		} else
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
+	
 	public static void rollbackToCheckpoint(String xid) throws IOException {
-		Volume v = VolumeManager.get(tableSpaceDir);
-		Transaction t = v.idToTransaction.get(xid);
-		if(t != null) {
+		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByPathAndId(tableSpaceDir, xid);
+		if(tx != null && !tx.isEmpty()) {
 			try {
-				t.rollbackToSavePoint();
+				for(Transaction t: tx)
+					t.rollbackToSavePoint();
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
 		} else
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
+	
 	public static void rollbackToCheckpoint(String alias, String xid) throws IOException, NoSuchElementException {
-		Volume v = VolumeManager.getByAlias(alias);
-		Transaction t = v.idToTransaction.get(xid);
-		if(t != null) {
+		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByAliasAndId(alias, xid);
+		if(tx != null && !tx.isEmpty()) {
 			try {
-				t.rollbackToSavePoint();
+				for(Transaction t: tx)
+					t.rollbackToSavePoint();
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
 		} else
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
+	
 	/**
 	 * Start a new transaction for the given class in the current database
 	 * @param clazz
@@ -469,6 +476,7 @@ public class RockSackAdapter {
 			System.out.println(RockSackAdapter.class.getName()+" About to return NEW map with NEW xid "+tx.getName()+" from: "+tableSpaceDir+xClass+" TransactionalMap:"+tm.toString()+" total xactions this class:"+xactions.size()+" total classes:"+v.classToIsoTransaction.mappingCount());
 		return tm;
 	}
+	
 	/**
 	 * Start a new transaction for the given class in the aliased database
 	 * @param alias The alias forthe tablespace
@@ -542,6 +550,7 @@ public class RockSackAdapter {
 			System.out.println(RockSackAdapter.class.getName()+" About to return NEW map with NEW xid "+tx.getName()+" from: "+VolumeManager.getAliasToPath(alias)+xClass+" TransactionalMap:"+tm.toString()+" total xactions this class:"+xactions.size()+" total classes:"+v.classToIsoTransaction.mappingCount());
 		return tm;
 	}
+	
 	/**
 	 * Remove the given TransactionalMap from active DB/transaction collection
 	 * @param tmap the TransactionalMap for a given transaction Id
@@ -557,6 +566,7 @@ public class RockSackAdapter {
 			}
 		});
 	}
+	
 	/**
 	 * Remove the given TransactionalMap from active DB/transaction collection
 	 * @param alias The alias for the tablespace
@@ -573,6 +583,7 @@ public class RockSackAdapter {
 			}
 		});
 	}
+	
 	/**
 	 * Remove the given TransactionalMap from active DB/transaction collection
 	 * @param xid The Transaction Id
@@ -591,6 +602,7 @@ public class RockSackAdapter {
 			});
 		});
 	}
+	
 	/**
 	 * Remove the given TransactionalMap from active DB/transaction collection
 	 * @param alias The alias for the tablespace
@@ -611,6 +623,7 @@ public class RockSackAdapter {
 			});
 		});
 	}
+	
 	/**
 	 * Translate a class name into a legitimate file name with some aesthetics.
 	 * @param clazz

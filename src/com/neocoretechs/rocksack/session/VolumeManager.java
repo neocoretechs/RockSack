@@ -187,6 +187,36 @@ public class VolumeManager {
 		return retXactn;
 	}
 	
+	public static List<Transaction> getOutstandingTransactionsById(String uid) {
+		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
+		for(Map.Entry<String, Volume> volumes : pathToVolume.entrySet()) {
+			for(Map.Entry<String, Transaction> transactions: volumes.getValue().idToTransaction.entrySet()) {
+				if(transactions.getKey().equals(uid))
+					retXactn.add(transactions.getValue());
+			}
+		}
+		return retXactn;
+	}
+	
+	public static List<Transaction> getOutstandingTransactionsByAliasAndId(String alias, String uid) {
+		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
+		Volume v = getByAlias(alias);
+		for(Map.Entry<String, Transaction> transactions: v.idToTransaction.entrySet()) {
+			if(transactions.getKey().equals(uid))
+				retXactn.add(transactions.getValue());
+		}
+		return retXactn;
+	}
+	
+	public static List<Transaction> getOutstandingTransactionsByPathAndId(String path, String uid) {
+		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
+		Volume v = get(path);
+		for(Map.Entry<String, Transaction> transactions: v.idToTransaction.entrySet()) {
+			if(transactions.getKey().equals(uid))
+				retXactn.add(transactions.getValue());
+		}
+		return retXactn;
+	}
 	/**
 	 * Clear all the outstanding transactions. Roll back all in-progress transactions,
 	 * the clear the id to transaction table in the set of volumes.
@@ -207,13 +237,6 @@ public class VolumeManager {
 	 * @param uid
 	 */
 	public static void clearOutstandingTransaction(String uid) {
-		for(Transaction t: getOutstandingTransactions()) {
-			if(t.getName().equals(uid)) {
-				if(DEBUG)
-					System.out.println("ClearOutstandingTransaction found uid "+uid+" in outstanding transactions.");
-				try {
-					t.rollback();
-				} catch (RocksDBException e) {}
 				for(Map.Entry<String, Volume> volumes : pathToVolume.entrySet()) {
 					 for(Entry<String, Transaction> id: volumes.getValue().idToTransaction.entrySet()) {
 						 if(id.getKey().equals(uid)) {
@@ -232,8 +255,6 @@ public class VolumeManager {
 						 }
 					 }
 				}
-			}
-		}
 	}
 	
 	public static void removeTransaction(String uid) throws IOException {
