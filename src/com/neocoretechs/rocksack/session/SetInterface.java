@@ -76,12 +76,6 @@ public interface SetInterface {
 	 */
 	void Open() throws IOException;
 	
-	/**
-	* This forces a close with rollback.
-	* for offlining of db's
-	* @exception IOException if low level error occurs
-	*/
-	void forceClose() throws IOException;
 
 	RocksDB getKVStore();
 	

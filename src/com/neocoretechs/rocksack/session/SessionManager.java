@@ -5,16 +5,10 @@ import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.rocksdb.Options;
-import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
-import org.rocksdb.Snapshot;
-import org.rocksdb.Transaction;
 import org.rocksdb.TransactionDB;
 import org.rocksdb.TransactionDBOptions;
-import org.rocksdb.TransactionOptions;
-import org.rocksdb.WriteOptions;
-
 
 /*
 * Copyright (c) 2003, NeoCoreTechs
@@ -282,7 +276,7 @@ public final class SessionManager {
 	}
 /**
  * Demonstrates "Read Committed" isolation
- */
+ 
 private static void readCommitted(final TransactionDB txnDb,
     final WriteOptions writeOptions, final ReadOptions readOptions)
     throws RocksDBException {
@@ -314,9 +308,9 @@ private static void readCommitted(final TransactionDB txnDb,
     txn.commit();
   }
 }
-/**
+
  * Demonstrates "Repeatable Read" (Snapshot Isolation) isolation
- */
+ 
 private static void repeatableRead(final TransactionDB txnDb,
     final WriteOptions writeOptions, final ReadOptions readOptions)
     throws RocksDBException {
@@ -353,13 +347,13 @@ private static void repeatableRead(final TransactionDB txnDb,
   }
 }
 
-/**
+
  * Demonstrates "Read Committed" (Monotonic Atomic Views) isolation
  *
  * In this example, we set the snapshot multiple times.  This is probably
  * only necessary if you have very strict isolation requirements to
  * implement.
- */
+ 
 private static void readCommitted_monotonicAtomicViews(
     final TransactionDB txnDb, final WriteOptions writeOptions,
     final ReadOptions readOptions) throws RocksDBException {
@@ -406,5 +400,5 @@ private static void readCommitted_monotonicAtomicViews(
     readOptions.setSnapshot(null);
   }
 }
-
+*/
 }

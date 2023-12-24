@@ -379,36 +379,6 @@ public class TransactionalMap implements OrderedKVMapInterface {
 		}
 	}
 	
-	/**
-	 * Commit the outstanding transaction
-	 * @throws IOException
-	 */
-	public void Commit() throws IOException {
-		synchronized (getSession().getMutexObject()) {
-			session.Commit(txn);
-		}
-	}
-	
-	/**
-	 * Checkpoint the current database transaction state for roll forward recovery in event of crash
-	 * @throws IllegalAccessException
-	 * @throws IOException
-	 */
-	public Snapshot Checkpoint() throws IllegalAccessException, IOException {
-		synchronized (getSession().getMutexObject()) {
-			return session.Checkpoint(txn);
-		}
-	}
-	
-	/**
-	 * Roll back the outstanding transactions
-	 * @throws IOException
-	 */
-	public void Rollback() throws IOException {
-		synchronized (getSession().getMutexObject()) {
-			session.Rollback(txn);
-		}
-	}
 
 	public String getTransactionId() throws IOException {
 		synchronized (getSession().getMutexObject()) {
@@ -416,18 +386,6 @@ public class TransactionalMap implements OrderedKVMapInterface {
 		}
 	}
 
-	public void Close(boolean rollback) throws IOException {
-		rollupSession(rollback);
-	}
-
-	public void rollupSession(boolean rollback) throws IOException {
-		synchronized (getSession().getMutexObject()) {
-			if(rollback)
-				session.Rollback(txn);
-			else
-				session.Commit(txn);
-		}
-	}
 
 	@Override
 	public String getDBName() {
@@ -459,14 +417,6 @@ public class TransactionalMap implements OrderedKVMapInterface {
 		synchronized (session.getMutexObject()) {
 			
 		}
-	}
-
-	@Override
-	public void forceClose() throws IOException {
-		synchronized (getSession().getMutexObject()) {
-			session.Close(txn, true);
-		}
-		
 	}
 
 	@Override
