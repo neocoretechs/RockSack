@@ -260,14 +260,15 @@ public class VolumeManager {
 	public static void removeTransaction(String uid) throws IOException {
 		for(Map.Entry<String, Volume> volumes : pathToVolume.entrySet()) {
 			Transaction removed = volumes.getValue().idToTransaction.get(uid);
-			if(removed.getState().equals(TransactionState.COMMITTED) || removed.getState().equals(TransactionState.ROLLEDBACK) ||
+			if(removed != null) {
+				if(removed.getState().equals(TransactionState.COMMITTED) || removed.getState().equals(TransactionState.ROLLEDBACK) ||
 					removed.getState().equals(TransactionState.STARTED)	)
-				removed = volumes.getValue().idToTransaction.remove(uid);
-			else
-				throw new IOException("Transaction "+uid+" is in state "+removed.getState().name()+" must be COMMITTED or ROLLEDBACK or STARTED for removal");
-			if(DEBUG) {
-				if(removed != null)
+					removed = volumes.getValue().idToTransaction.remove(uid);
+				else
+					throw new IOException("Transaction "+uid+" is in state "+removed.getState().name()+" must be COMMITTED or ROLLEDBACK or STARTED for removal");
+				if(DEBUG) {
 					System.out.println("VolumeManager removed uid "+uid+" for transaction "+removed);
+				}
 			}
 		}
 	}
