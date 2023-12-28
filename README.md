@@ -40,6 +40,7 @@ There are methods in the class com.neocoretechs.rocksack.DatabaseManager to orga
 DatabaseManager.setTableSpaceDir(argv[0]);
 BufferedMap map = DatabaseManager.getMap(key.getClass());
 map.put(key, value);
+Comparable c = map.get(key);
 
 
 ```
@@ -52,9 +53,19 @@ DatabaseManager.setTableSpaceDir(argv[0]);
 String xid = DatabaseManager.getTransactionId();
 TransactionalMap map = DatabaseManager.getTransactionalMap(key.getClass(), xid);
 map.put(xid, key, value);
-map.Commit(xid); // Or
-map.Rollback(xid); // Or
-map.Checkpoint(xid); // establish intermediate checkpoint that can be rolled back to
+Comparable c = map.get(xid, key);
+
+DatabaseManager.commitTransaction(xid); // Or
+DatabaseManager.rollbackTransaction(xid); // Or
+DatabaseManager.checkpointTransaction(xid); // establish intermediate checkpoint that can be rolled back to
+DatabaseManager.rollbackToCheckpoint(xid);
+DatabaseManager.clearAllOutstandingTransactions(); // roll back and close all outstanding transactions on all open databases
+
+Various reporting functions:
+List<String> s = DatabaseManager.getOutstandingTransactionState(); // get the status of all outstanding transactions
+List<Transaction> t = DatabaseManager.getOutstandingTransactions(database);
+List<Transaction> t = DatabaseManager.getOutstandingTransactionsById(xid); // gets all transactions under given transaction Id
+etc..
 
 ```
 
