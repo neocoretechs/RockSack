@@ -162,6 +162,18 @@ public class DatabaseManager {
 	}
 	
 	/**
+	 * Return a list of the state of all transactions with id's mapped to transactions
+	 * in the set of active volumes. According to docs states are:
+	 * AWAITING_COMMIT AWAITING_PREPARE AWAITING_ROLLBACK COMMITED COMMITTED (?)
+	 * LOCKS_STOLEN PREPARED ROLLEDBACK STARTED. In practice, it seems to mainly vary between
+	 * STARTED and COMMITTED. The 'COMMITED' state doesnt seem to manifest.
+	 * @return
+	 */
+	public static List<String> getOutstandingTransactionState() {
+		return VolumeManager.getOutstandingTransactionState();
+	}
+	
+	/**
 	 * Set the RocksDB options for all subsequent databases
 	 * @param dboptions
 	 */
