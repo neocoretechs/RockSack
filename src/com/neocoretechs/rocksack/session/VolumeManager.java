@@ -33,7 +33,7 @@ public class VolumeManager {
 	/**
 	 * Index by tablespaceDir
 	 */
-	public static class Volume {
+	static class Volume {
 		public ConcurrentHashMap<String, SetInterface> classToIso = new ConcurrentHashMap<String,SetInterface>();
 		// these are active in a transaction context
 		public ConcurrentHashMap<String, ConcurrentHashMap<String,SetInterface>> classToIsoTransaction = new ConcurrentHashMap<String,ConcurrentHashMap<String,SetInterface>>();
@@ -44,7 +44,7 @@ public class VolumeManager {
 	 * @param path
 	 * @return
 	 */
-	public static Volume get(String path) {
+	static Volume get(String path) {
 		if(DEBUG)
 			System.out.println("VolumeManager.get attempt for path:"+path);
 		Volume v = pathToVolume.get(path);
@@ -61,7 +61,7 @@ public class VolumeManager {
 	 * @param alias
 	 * @return The path for this alias or null if none
 	 */
-	public static String getAliasToPath(String alias) {
+	static String getAliasToPath(String alias) {
 		if(DEBUG)
 			System.out.println("VolumeManager.getAliasToPath attempt for alias:"+alias+" will return:"+aliasToPath.get(alias));
 		return aliasToPath.get(alias);
@@ -73,7 +73,7 @@ public class VolumeManager {
 	 * @return The Volume for the alias
 	 * @throws NoSuchElementException If the alias was not found
 	 */
-	public static Volume getByAlias(String alias) throws NoSuchElementException {
+	static Volume getByAlias(String alias) throws NoSuchElementException {
 		String path = aliasToPath.get(alias);
 		if(path == null)
 			throw new NoSuchElementException("The alias "+alias+" was not found.");
@@ -85,7 +85,7 @@ public class VolumeManager {
 	/**
 	 * @return The aliases and their paths as 2d array. 1st dim is 0 if none.
 	 */
-	public static String[][] getAliases() {
+	static String[][] getAliases() {
 		String[][] array = new String[aliasToPath.size()][2];
 		int count = 0;
 		for(Map.Entry<String,String> entry : aliasToPath.entrySet()){
@@ -100,7 +100,7 @@ public class VolumeManager {
 	 * @param alias
 	 * @param path
 	 */
-	public static Volume createAlias(String alias, String path) throws IllegalArgumentException {
+	static Volume createAlias(String alias, String path) throws IllegalArgumentException {
 		if(DEBUG)
 			System.out.println("VolumeManager.createAlias for alias:"+alias+" and path:"+path);
 		String prevAlias = aliasToPath.get(alias);
@@ -113,7 +113,7 @@ public class VolumeManager {
 	 * Remove the alias for the given tablespace path. The volume will not be affected.
 	 * @param alias
 	 */
-	public static void removeAlias(String alias) {
+	static void removeAlias(String alias) {
 		if(DEBUG)
 			System.out.println("VolumeManager.removeAlias for alias:"+alias);
 		aliasToPath.remove(alias);
@@ -123,7 +123,7 @@ public class VolumeManager {
 	 * @param path
 	 * @return
 	 */
-	public static Volume remove(String path) {
+	static Volume remove(String path) {
 		if(DEBUG)
 			System.out.println("VolumeManager.remove for path:"+path+" will return previous Volume:"+pathToVolume.remove(path));
 		return pathToVolume.remove(path);
@@ -137,7 +137,7 @@ public class VolumeManager {
 	 * STARTED and COMMITTED. The 'COMMITED' state doesnt seem to manifest.
 	 * @return
 	 */
-	public static List<String> getOutstandingTransactionState() {
+	static List<String> getOutstandingTransactionState() {
 		ArrayList<String> retState = new ArrayList<String>();
 		for(Transaction t: getOutstandingTransactions()) {
 			retState.add("Transaction:"+t.getName()+" State:"+ t.getState().name());
@@ -149,7 +149,7 @@ public class VolumeManager {
 	 * in the set of active volumes.
 	 * @return raw RocksDB transactions, use with caution.
 	 */
-	public static List<Transaction> getOutstandingTransactions() {
+	static List<Transaction> getOutstandingTransactions() {
 		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
 		for(Map.Entry<String, Volume> volumes : pathToVolume.entrySet()) {
 			for(Map.Entry<String, Transaction> transactions: volumes.getValue().idToTransaction.entrySet()) {
@@ -164,7 +164,7 @@ public class VolumeManager {
 	 * @param path the path in question
 	 * @return the List of RocksDB Transactions. be wary.
 	 */
-	public static List<Transaction> getOutstandingTransactions(String path) {
+	static List<Transaction> getOutstandingTransactions(String path) {
 		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
 		Volume v = get(path);
 		for(Map.Entry<String, Transaction> transactions: v.idToTransaction.entrySet()) {
@@ -178,7 +178,7 @@ public class VolumeManager {
 	 * @param alias the path alias
 	 * @return the List of RocksDB Transactions. Use with care.
 	 */
-	public static List<Transaction> getOutstandingTransactionsAlias(String alias) {
+	static List<Transaction> getOutstandingTransactionsAlias(String alias) {
 		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
 		Volume v = getByAlias(alias);
 		for(Map.Entry<String, Transaction> transactions: v.idToTransaction.entrySet()) {
@@ -187,7 +187,7 @@ public class VolumeManager {
 		return retXactn;
 	}
 	
-	public static List<Transaction> getOutstandingTransactionsById(String uid) {
+	static List<Transaction> getOutstandingTransactionsById(String uid) {
 		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
 		for(Map.Entry<String, Volume> volumes : pathToVolume.entrySet()) {
 			for(Map.Entry<String, Transaction> transactions: volumes.getValue().idToTransaction.entrySet()) {
@@ -198,7 +198,7 @@ public class VolumeManager {
 		return retXactn;
 	}
 	
-	public static List<Transaction> getOutstandingTransactionsByAliasAndId(String alias, String uid) {
+	static List<Transaction> getOutstandingTransactionsByAliasAndId(String alias, String uid) {
 		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
 		Volume v = getByAlias(alias);
 		for(Map.Entry<String, Transaction> transactions: v.idToTransaction.entrySet()) {
@@ -208,7 +208,7 @@ public class VolumeManager {
 		return retXactn;
 	}
 	
-	public static List<Transaction> getOutstandingTransactionsByPathAndId(String path, String uid) {
+	static List<Transaction> getOutstandingTransactionsByPathAndId(String path, String uid) {
 		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
 		Volume v = get(path);
 		for(Map.Entry<String, Transaction> transactions: v.idToTransaction.entrySet()) {
@@ -222,7 +222,7 @@ public class VolumeManager {
 	 * the clear the id to transaction table in the set of volumes.
 	 * Needless to say, use with caution.
 	 */
-	public static void clearAllOutstandingTransactions() {
+	static void clearAllOutstandingTransactions() {
 		for(Transaction t: getOutstandingTransactions()) {
 			try {
 				t.rollback();
@@ -236,7 +236,7 @@ public class VolumeManager {
 	 * Roll back all transactions associated with the given transaction uid
 	 * @param uid
 	 */
-	public static void clearOutstandingTransaction(String uid) {
+	static void clearOutstandingTransaction(String uid) {
 				for(Map.Entry<String, Volume> volumes : pathToVolume.entrySet()) {
 					 for(Entry<String, Transaction> id: volumes.getValue().idToTransaction.entrySet()) {
 						 if(id.getKey().equals(uid)) {
@@ -257,7 +257,7 @@ public class VolumeManager {
 				}
 	}
 	
-	public static void removeTransaction(String uid) throws IOException {
+	static void removeTransaction(String uid) throws IOException {
 		for(Map.Entry<String, Volume> volumes : pathToVolume.entrySet()) {
 			Transaction removed = volumes.getValue().idToTransaction.get(uid);
 			if(removed != null) {

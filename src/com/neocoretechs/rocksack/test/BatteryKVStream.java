@@ -5,7 +5,7 @@ import java.util.stream.Stream;
 
 import com.neocoretechs.rocksack.KeyValue;
 import com.neocoretechs.rocksack.session.BufferedMap;
-import com.neocoretechs.rocksack.session.RockSackAdapter;
+import com.neocoretechs.rocksack.session.DatabaseManager;
 
 /**
  * Yes, this should be a nice JUnit fixture someday. Test of embedded KV stream retrieval ops.
@@ -39,8 +39,8 @@ public class BatteryKVStream {
 	* Main test fixture driver
 	*/
 	public static void main(String[] argv) throws Exception {
-		RockSackAdapter.setTableSpaceDir(argv[0]);
-		bmap = RockSackAdapter.getRockSackMap(String.class);
+		DatabaseManager.setTableSpaceDir(argv[0]);
+		bmap = DatabaseManager.getMap(String.class);
 		battery1(argv);	// build and store
 		battery11(argv);  // build and store
 		battery1AR6(argv);

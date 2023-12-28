@@ -62,7 +62,7 @@ import com.neocoretechs.rocksack.stream.TailSetStream;
 * specific transaction and non-transaction semantics. 
 * @author Jonathan Groff (C) NeoCoreTechs 2003, 2017, 2021, 2022
 */
-public class RockSackSession {
+public class Session {
 	private boolean DEBUG = false;
 	protected RocksDB kvStore;
 	private Options options;
@@ -75,7 +75,7 @@ public class RockSackSession {
 	* @param tgis The group
 	* @exception IOException If global IO problem
 	*/
-	protected RockSackSession(RocksDB kvStore, Options options)  {
+	protected Session(RocksDB kvStore, Options options)  {
 		this.kvStore = kvStore;
 		this.options = options;
 		if( DEBUG )

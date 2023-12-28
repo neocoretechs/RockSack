@@ -5,7 +5,7 @@ import java.util.Map;
 
 import com.neocoretechs.rocksack.iterator.Entry;
 import com.neocoretechs.rocksack.session.BufferedMap;
-import com.neocoretechs.rocksack.session.RockSackAdapter;
+import com.neocoretechs.rocksack.session.DatabaseManager;
 import com.neocoretechs.rocksack.session.TransactionalMap;
 
 
@@ -43,9 +43,9 @@ public class BatteryKVTransaction {
 			System.out.println("Usage: java com.neocoretechs.relatrix.test.kv.BatteryKVTransaction <DB>");
 			System.exit(1);
 		}
-		RockSackAdapter.setTableSpaceDir(argv[0]);
-		String xid = RockSackAdapter.getRockSackTransactionId();
-		bmap = RockSackAdapter.getRockSackTransactionalMap(String.class, xid);
+		DatabaseManager.setTableSpaceDir(argv[0]);
+		String xid = DatabaseManager.getTransactionId();
+		bmap = DatabaseManager.getTransactionalMap(String.class, xid);
 		battery1(xid);	
 		battery11(xid);
 		battery1AR6(xid);
@@ -63,7 +63,7 @@ public class BatteryKVTransaction {
 		battery1AR17(xid);
 		battery18(xid);
 		System.out.println("BatteryKVTransaction TEST BATTERY COMPLETE.");
-		RockSackAdapter.removeRockSackTransaction(xid);
+		DatabaseManager.removeTransaction(xid);
 	}
 	/**
 	 * Loads up on keys, should be 0 to max-1, or min, to max -1
@@ -87,7 +87,7 @@ public class BatteryKVTransaction {
 				bmap.put(fkey, new Long(i));
 				++recs;
 		}
-		RockSackAdapter.commitRockSackTransaction(xid);
+		DatabaseManager.commitTransaction(xid);
 		System.out.println("KV BATTERY1 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms. Stored "+recs+" records, rejected "+dupes+" dupes.");
 	}
 	
@@ -101,18 +101,18 @@ public class BatteryKVTransaction {
 		long tims = System.currentTimeMillis();
 		int recs = 0;
 		String fkey = null;
-		String xid2 = RockSackAdapter.getRockSackTransactionId();
-		TransactionalMap bmap2 = RockSackAdapter.getRockSackTransactionalMap(String.class, xid2);
+		String xid2 = DatabaseManager.getTransactionId();
+		TransactionalMap bmap2 = DatabaseManager.getTransactionalMap(String.class, xid2);
 		for(int i = max; i < max*2; i++) {
 			fkey = String.format(uniqKeyFmt, i);
 			bmap2.put(fkey, new Long(fkey));
 			++recs;
 		}
 		if( recs > 0) {
-			RockSackAdapter.rollbackRockSackTransaction(xid2);
+			DatabaseManager.rollbackTransaction(xid2);
 			System.out.println("KV BATTERY11 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 		}
-		RockSackAdapter.removeRockSackTransaction(xid2);
+		DatabaseManager.removeTransaction(xid2);
 	}
 	
 	/**
@@ -443,8 +443,8 @@ public class BatteryKVTransaction {
 		long tims = System.currentTimeMillis();
 		//int i = min;
 		//int j = max;
-		String xid2 = RockSackAdapter.getRockSackTransactionId();
-		TransactionalMap bmap2 = RockSackAdapter.getRockSackTransactionalMap(String.class, xid2);
+		String xid2 = DatabaseManager.getTransactionId();
+		TransactionalMap bmap2 = DatabaseManager.getTransactionalMap(String.class, xid2);
 		// with j at max, should get them all since we stored to max -1
 		//String tkey = String.format(uniqKeyFmt, j);
 		System.out.println("KV Battery1AR17");
@@ -458,7 +458,7 @@ public class BatteryKVTransaction {
 				//throw new Exception("KV RANGE 1AR17 KEY MISMATCH:"+i);
 			}
 		}
-		RockSackAdapter.commitRockSackTransaction(xid2);
+		DatabaseManager.commitTransaction(xid2);
 		long siz = bmap2.size();
 		if(siz > 0) {
 			Iterator its = bmap2.entrySet();
@@ -470,7 +470,7 @@ public class BatteryKVTransaction {
 			System.out.println("KV RANGE 1AR17 KEY MISMATCH:"+siz+" > 0 after all deleted and committed");
 			//throw new Exception("KV RANGE 1AR17 KEY MISMATCH:"+siz+" > 0 after delete/commit");
 		}
-		RockSackAdapter.removeRockSackTransaction(xid2);
+		DatabaseManager.removeTransaction(xid2);
 		System.out.println("BATTERY1AR17 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
 	
@@ -481,8 +481,8 @@ public class BatteryKVTransaction {
 	 */
 	public static void battery18(String xid) throws Exception {
 		System.out.println("KV Battery18 ");
-		String xid2 = RockSackAdapter.getRockSackTransactionId();
-		TransactionalMap bmap2 = RockSackAdapter.getRockSackTransactionalMap(String.class, xid2);
+		String xid2 = DatabaseManager.getTransactionId();
+		TransactionalMap bmap2 = DatabaseManager.getTransactionalMap(String.class, xid2);
 		int max1 = max - 50000;
 		long tims = System.currentTimeMillis();
 		int recs = 0;
@@ -493,14 +493,14 @@ public class BatteryKVTransaction {
 			++recs;
 		}
 		System.out.println("Checkpointing..");
-		RockSackAdapter.checkpointRockSackTransaction(xid2);
+		DatabaseManager.checkpointTransaction(xid2);
 		for(int i = max1; i < max; i++) {
 			fkey = String.format(uniqKeyFmt, i);
 			bmap2.put(fkey, new Long(i));
 			++recs;
 		}
-		RockSackAdapter.commitRockSackTransaction(xid2);
-		RockSackAdapter.removeRockSackTransaction(xid2);
+		DatabaseManager.commitTransaction(xid2);
+		DatabaseManager.removeTransaction(xid2);
 		System.out.println("KV BATTERY18 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms. Stored "+recs+" records.");
 	}
 	

@@ -4,7 +4,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 
 import com.neocoretechs.rocksack.iterator.KeyValuePair;
-import com.neocoretechs.rocksack.session.RockSackAdapter;
+import com.neocoretechs.rocksack.session.DatabaseManager;
 import com.neocoretechs.rocksack.session.BufferedMap;
 import com.neocoretechs.rocksack.KeyValue;
 
@@ -39,8 +39,8 @@ public class BatteryRockSack2 {
 			 System.out.println("usage: java BatteryRockSack2 <database>");
 			System.exit(1);
 		}
-		RockSackAdapter.setTableSpaceDir(argv[0]);
-		BufferedMap session = RockSackAdapter.getRockSackMap(key.getClass());
+		DatabaseManager.setTableSpaceDir(argv[0]);
+		BufferedMap session = DatabaseManager.getMap(key.getClass());
 		 System.out.println("Begin Battery Fire!");
 		 // add min to max
 		battery1(session, argv);

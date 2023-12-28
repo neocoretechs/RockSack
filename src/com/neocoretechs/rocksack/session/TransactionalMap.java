@@ -41,7 +41,7 @@ import org.rocksdb.WriteOptions;
 * @author Jonathan Groff (C) NeoCoreTechs 2003,2014,2017,2021,2022
 */
 public class TransactionalMap implements OrderedKVMapInterface {
-	protected RockSackTransactionSession session;
+	protected TransactionSession session;
 	Transaction txn;
 	ReadOptions ro;
 	WriteOptions wo;
@@ -51,14 +51,14 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	 * @throws IOException
 	 * @throws IllegalAccessException
 	 */
-	public TransactionalMap(RockSackTransactionSession session, Transaction txn) throws IOException, IllegalAccessException {
+	public TransactionalMap(TransactionSession session, Transaction txn) throws IOException, IllegalAccessException {
 		ro = new ReadOptions();
 		wo = new WriteOptions();
 		this.session = session;
 		this.txn = txn;
 	}
 	
-	public RockSackTransactionSession getSession() throws IOException {
+	public TransactionSession getSession() throws IOException {
 		session.waitOpen();
 		return session;
 	}

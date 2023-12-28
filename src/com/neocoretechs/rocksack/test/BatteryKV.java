@@ -6,7 +6,7 @@ import java.util.Map;
 import com.neocoretechs.rocksack.KeyValue;
 import com.neocoretechs.rocksack.iterator.Entry;
 import com.neocoretechs.rocksack.session.BufferedMap;
-import com.neocoretechs.rocksack.session.RockSackAdapter;
+import com.neocoretechs.rocksack.session.DatabaseManager;
 
 
 /**
@@ -37,8 +37,8 @@ public class BatteryKV {
 	* Main test fixture driver
 	*/
 	public static void main(String[] argv) throws Exception {
-		RockSackAdapter.setTableSpaceDir(argv[0]);
-		bmap = RockSackAdapter.getRockSackMap(String.class);
+		DatabaseManager.setTableSpaceDir(argv[0]);
+		bmap = DatabaseManager.getMap(String.class);
 		battery1(argv);
 		battery11(argv);
 		battery1AR6(argv);

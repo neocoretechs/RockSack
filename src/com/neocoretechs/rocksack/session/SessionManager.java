@@ -35,7 +35,7 @@ import org.rocksdb.TransactionDBOptions;
 */
 /**
 * SessionManager class is a singleton 
-* that accepts connections and returns a RockSackSession object. A table of one to one sessions and
+* that accepts connections and returns a {@link Session} object. A table of one to one sessions and
 * tables is maintained. Typically the RockSackAdapter will create the proper instance of the map based on
 * desired transaction level or none, and the map then issues a call here to establish a session.<p/>
 * The session opens the database or passes an already opened database to a new transaction map which
@@ -44,7 +44,7 @@ import org.rocksdb.TransactionDBOptions;
 */
 public final class SessionManager {
 	private static boolean DEBUG = false;
-	private static ConcurrentHashMap<String, RockSackSession> SessionTable = new ConcurrentHashMap<String, RockSackSession>();
+	private static ConcurrentHashMap<String, Session> SessionTable = new ConcurrentHashMap<String, Session>();
 	@SuppressWarnings("rawtypes")
 	private static ConcurrentHashMap<?, ?> AdminSessionTable = new ConcurrentHashMap();
 	private static Vector<String> OfflineDBs = new Vector<String>();
@@ -105,18 +105,18 @@ public final class SessionManager {
 	* @exception IOException If low level IO problem
 	* @exception IllegalAccessException If access to database is denied
 	*/
-	public static synchronized RockSackSession Connect(String dbname, Options options) throws IOException, IllegalAccessException {
+	public static synchronized Session Connect(String dbname, Options options) throws IOException, IllegalAccessException {
 		if( DEBUG ) {
 			System.out.printf("Connecting to database:%s with options:%s%n", dbname, options);
 		}
 		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
 		if (OfflineDBs.contains(dbname))
 			throw new IllegalAccessException("Database is offline, try later");
-		RockSackSession hps = (SessionTable.get(dbname));
+		Session hps = (SessionTable.get(dbname));
 		if (hps == null) {
 			// did'nt find it, create anew
 			RocksDB db = OpenDB(dbname, options);
-			hps = new RockSackSession(db, options);
+			hps = new Session(db, options);
 			SessionTable.put(dbname, hps);
 			if( DEBUG )
 				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,db);
@@ -132,18 +132,18 @@ public final class SessionManager {
 	* @exception IOException If low level IO problem
 	* @exception IllegalAccessException If access to database is denied
 	*/
-	public static synchronized RockSackTransactionSession ConnectTransaction(String dbname, Options options) throws IOException, IllegalAccessException {
+	public static synchronized TransactionSession ConnectTransaction(String dbname, Options options) throws IOException, IllegalAccessException {
 		if( DEBUG ) {
 			System.out.printf("Connecting to transaction database:%s with options:%s%n", dbname, options);
 		}
 		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
 		if (OfflineDBs.contains(dbname))
 			throw new IllegalAccessException("Database is offline, try later");
-		RockSackTransactionSession hps = (RockSackTransactionSession) (SessionTable.get(dbname));
+		TransactionSession hps = (TransactionSession) (SessionTable.get(dbname));
 		if (hps == null) {
 			// did'nt find it, create anew
 			TransactionDB db = OpenTransactionDB(dbname,options);
-			hps = new RockSackTransactionSession(db, options);
+			hps = new TransactionSession(db, options);
 			SessionTable.put(dbname, hps);
 			if( DEBUG )
 				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,db);
@@ -174,21 +174,21 @@ public final class SessionManager {
 	 * @throws IOException
 	 * @throws IllegalAccessException
 	 */
-	public static synchronized RockSackSession ConnectNoRecovery(String dbname, Options options) throws IOException, IllegalAccessException {
+	public static synchronized Session ConnectNoRecovery(String dbname, Options options) throws IOException, IllegalAccessException {
 		if( DEBUG ) {
 			System.out.println("Connecting WITHOUT RECOVERY to "+dbname);
 		}
 		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
 		if (OfflineDBs.contains(dbname))
 			throw new IllegalAccessException("Database is offline, try later");
-		RockSackSession hps = (SessionTable.get(dbname));
+		Session hps = (SessionTable.get(dbname));
 		if (hps == null) {
 			// did'nt find it, create anew, throws IllegalAccessException if no go
 			// Global IO and main KeyValue implementation
 			if( DEBUG )
 				System.out.println("SessionManager.ConectNoRecovery bringing up IO");
 			RocksDB db = OpenDB(dbname, options);
-			hps = new RockSackSession(db, options);
+			hps = new Session(db, options);
 			if( DEBUG )
 				System.out.println("SessionManager.ConectNoRecovery bringing up session");
 			if( DEBUG )
@@ -207,7 +207,7 @@ public final class SessionManager {
 	protected static synchronized void setDBOffline(String dbname) throws IOException {
 		OfflineDBs.addElement(dbname);
 		// look for session instance, then signal close
-		RockSackSession hps = (SessionTable.get(dbname));
+		Session hps = (SessionTable.get(dbname));
 		if (hps != null) {
 			hps.Close();
 		}
@@ -222,7 +222,7 @@ public final class SessionManager {
 		SessionTable.remove(DS);
 	}
 
-	public static ConcurrentHashMap<String, RockSackSession> getSessionTable() {
+	public static ConcurrentHashMap<String, Session> getSessionTable() {
 		return SessionTable;
 	}
 	

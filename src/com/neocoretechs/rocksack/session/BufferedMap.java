@@ -1,11 +1,8 @@
 package com.neocoretechs.rocksack.session;
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.Stack;
-import java.util.TreeMap;
 import java.util.stream.Stream;
 
-import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 
 /*
@@ -32,32 +29,27 @@ import org.rocksdb.RocksDB;
 *
 */
 /**
-* BufferedMap. We use the RockSackSession object here.
-* Although transactions are not explicitly controlled they take place atomically so that
-* recovery can occur in the event of failure. The user is not concerned with semantics of recovery
-* when using this construct. The commit
-* operations are performed after each insert/delete and recovery takes place if a failure occurs during
-* runtime writes.
+* BufferedMap. Functions as a wrapper around {@link Session}
 * Thread safety is with the session object using session.getMutexObject().
 * @author Jonathan Groff (C) NeoCoreTechs 2003, 2017, 2021
 */
 public class BufferedMap implements OrderedKVMapInterface {
-	private RockSackSession session = null;
+	private Session session = null;
 	//String dbName;
 
 	/**
 	* Get instance of RockSack session.
-	 * @param tdbname The database name
+	* @param tdbname The database name
 	* @exception IOException if global IO problem
 	* @exception IllegalAccessException if the database has been put offline
 	*/
-	public BufferedMap(RockSackSession session) throws IllegalAccessException, IOException {
+	public BufferedMap(Session session) throws IllegalAccessException, IOException {
 		//this.dbName = dbName;
 		//session = SessionManager.Connect(dbName, options);
 		this.session = session;
 	}
 		
-	public RockSackSession getSession() throws IOException {
+	public Session getSession() throws IOException {
 		session.waitOpen();
 		return session;
 	}
@@ -100,8 +92,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 		//}
 	}
 	/**
-	* Get a value from backing store if not in cache.
-	* We may toss out one to make room if size surpasses objectCacheSize
+	* Get a value from backing store
 	* @param tkey The key for the value, will not be serialized
 	* @return The key/value for the key
 	* @exception IOException if get from backing store fails
@@ -113,8 +104,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 		//}
 	}
 	/**
-	* Get a value from backing store if not in cache.
-	* We may toss out one to make room if size surpasses objectCacheSize
+	* Get a value from backing store .
 	* @param tkey The key for the value
 	* @return The value for the key
 	* @exception IOException if get from backing store fails
@@ -132,7 +122,6 @@ public class BufferedMap implements OrderedKVMapInterface {
 	public long size() throws IOException {
 		synchronized (getSession().getMutexObject()) {
 				return session.size();
-
 		}
 	}
 
@@ -153,7 +142,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 		}
 	}
 	/**
-	* Get a keySet iterator. Get from backing store if not in cache.
+	* Get a keySet iterator.
 	* @return The iterator for the keys
 	* @exception IOException if get from backing store fails
 	*/
@@ -211,8 +200,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 		}
 	}
 	/**
-	* Return the last element, we have to bypass cache for this because
-	* of our random throwouts
+	* Return the last element
 	* @return A long value of number of elements
 	* @exception IOException If backing store retrieval failure
 	*/
