@@ -38,7 +38,7 @@ There are methods in the class com.neocoretechs.rocksack.DatabaseManager to orga
 ```
 
 DatabaseManager.setTableSpaceDir(argv[0]);
-BufferedMap map = DatabaseManager.getRockSackMap(key.getClass());
+BufferedMap map = DatabaseManager.getMap(key.getClass());
 map.put(key, value);
 
 
@@ -75,7 +75,7 @@ tailMapKV<br/>
 subMap<br/>
 subMapKV<br/>
 ```
-		String xid = DatabaseManager.getRockSackTransactionId();
+		String xid = DatabaseManager.getTransactionId();
 		TransactionalMap map = DatabaseManager.getTransactionalMap(Class.forName(argv[1]), xid);
 		Object o;
 		int i = 0;
