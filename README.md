@@ -7,6 +7,7 @@
 <li/> Gives RocksDB the power of a true object oriented database.
 <li/> Makes it easier to manage transactions and organize databases by Java class.
 <li/> Supports transaction and transactionless models.
+<li/> Provides tooling to rapidly adapt existing classes to use Java serialization and inherent language Comparable compatability!
 </dd>
 <h2>RocksDB</h2>
 https://github.com/facebook/rocksdb <br/>
@@ -105,5 +106,94 @@ subMapKV<br/>
 ```
 
 <p/>
+
+New capabilities include a ClassTool to rapidly adapt existing classes to use built-in Java functionality for serialization and class indexing.
+
+Starting with this:
+```
+
+package com;
+
+import com.neocoretechs.rocksack.CompareAndSerialize;
+import com.neocoretechs.rocksack.ComparisonOrderField;
+import com.neocoretechs.rocksack.ComparisonOrderMethod;
+/**
+ * Basic annotation tooling for RockSack to generate the necessary fields and methods for
+ * storage and retrieval under the java.lang.Comparable interface as used throughout the language.
+ * The ordering of the keys is defined here as the order in which they appear: i,j, and l. We
+ * demonstrate method and field access and generate compareTo method and Serializable interface
+ * implementation with SerialUID. No modifications will affect the operation of the original class.
+ * The original class will be backed up as TestTooling2.bak before modification.
+ */
+@CompareAndSerialize
+public class TestTooling2{
+	@ComparisonOrderField
+	private int i;
+	@ComparisonOrderField
+	private String j;
+	@ComparisonOrderField
+	private String l;
+	@ComparisonOrderMethod
+	public String getL() {
+		return l;
+	}
+}
+```
+The ClassTool runs in one command line to produce a fully instrumented version like this:
+
+```
+
+package com;
+
+import com.neocoretechs.rocksack.CompareAndSerialize;
+import com.neocoretechs.rocksack.ComparisonOrderField;
+import com.neocoretechs.rocksack.ComparisonOrderMethod;
+/**
+ * Basic annotation tooling for RockSack to generate the necessary fields and methods for
+ * storage and retrieval under the java.lang.Comparable interface as used throughout the language.
+ * The ordering of the keys is defined here as the order in which they appear: i,j, and l. We
+ * demonstrate method and field access and generate compareTo method and Serializable interface
+ * implementation with SerialUID. No modifications will affect the operation of the original class.
+ * The original class will be backed up as TestTooling2.bak before modification.
+ */
+@CompareAndSerialize
+public class TestTooling2 implements java.io.Serializable,java.lang.Comparable{
+	private static final long serialVersionUID = -1L;
+	@ComparisonOrderField
+	private int i;
+	@ComparisonOrderField
+	private String j;
+	@ComparisonOrderField
+	private String l;
+	@ComparisonOrderMethod
+	public String getL() {
+		return l;
+	}
+	@Override
+	public int compareTo(Object o) {
+		int n;
+		if(i < ((TestTooling2)o).i)
+			return -1;
+		if(i > ((TestTooling2)o).i)
+			return 1;
+		n = j.compareTo(((TestTooling2)o).j);
+		if(n != 0)
+			return n;
+		n = l.compareTo(((TestTooling2)o).l);
+		if(n != 0)
+			return n;
+		n = getL().compareTo(((TestTooling2)o).getL());
+		if(n != 0)
+			return n;
+		return 0;
+	}
+
+	public TestTooling2() {}
+
+}
+
+```
+
+And the class is easily provisioned for indexing in the RocksDB database via the key order specified!
 
 
