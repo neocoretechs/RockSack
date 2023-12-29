@@ -38,6 +38,12 @@ import javax.tools.ToolProvider;
  * need to add Comparable interface.
  * If we generate a serialVersionUID we add a default constructor as well.<p/>
  * Command line is java -cp rockcksdb.jar;rocksack.jar com.neocoretechs.rocksack.ClassTool yourjavaclass.java
+ * <p/>
+ * You also need the correct directory structure to match your package naming convention as the tool relies on runtime
+ * compilation of the source java. Easy way is to call your package com, create com directory, then specify com/yourjavaclass.java on
+ * the command line. Later, change your package name. After running the tool you should see your original
+ * source as yourjavaclass.java.bak, the modified class as yourjavaclass.java, and the associated class files from runtime
+ * compilation process.
  * @author Jonathan Groff Copyright (C) NeoCoreTechs 2023
  *
  */

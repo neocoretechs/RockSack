@@ -10,6 +10,8 @@ import com.neocoretechs.rocksack.ComparisonOrderMethod;
  * demonstrate method and field access and generate compareTo method and Serializable interface
  * implementation with SerialUID. No modifications will affect the operation of the original class.
  * The original class will be backed up as TestTooling2.bak before modification.
+ * {@link CompareAndSerialize} annotation to designate the class as toolable. The {@link ComparisonOrderField} and
+ * {@link ComparisonOrderMethod}. {@link com.neocoretechs.rocksack.ClassTool}
  */
 @CompareAndSerialize
 public class TestTooling2{

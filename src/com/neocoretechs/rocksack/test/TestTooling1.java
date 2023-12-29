@@ -11,6 +11,8 @@ import com.neocoretechs.rocksack.ComparisonOrderMethod;
 * implementation with SerialUID. We also show how to wrap a custom object to give Comparable
 * functionality to any class. No modifications will affect the operation of the original class.
 * The original class will be backed up as TestTooling1.bak before modification.
+* {@link CompareAndSerialize} annotation to designate the class as toolable. The {@link ComparisonOrderField} and
+* {@link ComparisonOrderMethod}. {@link com.neocoretechs.rocksack.ClassTool}
 */
 @CompareAndSerialize
 public class TestTooling1{
