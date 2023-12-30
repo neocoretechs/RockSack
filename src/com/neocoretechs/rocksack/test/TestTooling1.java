@@ -21,12 +21,16 @@ public class TestTooling1{
 	@ComparisonOrderField(order=1)
 	private String j;
 	@ComparisonOrderField(order=3)
-	ByteObject l;
+	private ByteObject l = new ByteObject();
 	@ComparisonOrderMethod
 	public ByteObject getL() {
 		return l;
 	}
-	static class ByteObject implements Comparable {
+	public TestTooling1(String key1, int key2) {
+		j = key1;
+		i = key2;	
+	}
+	static class ByteObject implements Comparable, java.io.Serializable {
 		byte[] bytes = new byte[] {10,9,8,7,6,5,4,3,2,1};
 		@Override
 		public int compareTo(Object o) {
@@ -42,3 +46,4 @@ public class TestTooling1{
 		
 	}
 }
+

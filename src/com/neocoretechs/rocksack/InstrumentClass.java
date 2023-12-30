@@ -67,8 +67,8 @@ public class InstrumentClass {
                 classname.getSerialVersionUID() + "L;";
         } else {
 			if(DEBUG)
-				System.out.println("** WARNING: unable to generate serialVersionUID for class "+classname+" defaulting to -1");
-			return "\tprivate static final long serialVersionUID = -1L;";
+				System.out.println("** WARNING: unable to generate serialVersionUID for class "+classname+" defaulting to 1");
+			return "\tprivate static final long serialVersionUID = 1L;";
         }
     }
    /* private void initializeObject(Object object) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {

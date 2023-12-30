@@ -124,6 +124,8 @@ import com.neocoretechs.rocksack.ComparisonOrderMethod;
  * demonstrate method and field access and generate compareTo method and Serializable interface
  * implementation with SerialUID. No modifications will affect the operation of the original class.
  * The original class will be backed up as TestTooling2.bak before modification.
+ * {@link CompareAndSerialize} annotation to designate the class as toolable. The {@link ComparisonOrderField} and
+ * {@link ComparisonOrderMethod}. {@link com.neocoretechs.rocksack.ClassTool}
  */
 @CompareAndSerialize
 public class TestTooling2{
@@ -131,18 +133,22 @@ public class TestTooling2{
 	private int i;
 	@ComparisonOrderField
 	private String j;
-	@ComparisonOrderField
 	private String l;
 	@ComparisonOrderMethod
 	public String getL() {
 		return l;
 	}
+	public TestTooling2(int key1, String key2, String key3) {
+		this.i = key1;
+		this.j = key2;
+		this.l = key3;
+	}
 }
+
 ```
 The ClassTool runs in one command line to produce a fully instrumented version like this:
 
 ```
-
 package com;
 
 import com.neocoretechs.rocksack.CompareAndSerialize;
@@ -155,19 +161,25 @@ import com.neocoretechs.rocksack.ComparisonOrderMethod;
  * demonstrate method and field access and generate compareTo method and Serializable interface
  * implementation with SerialUID. No modifications will affect the operation of the original class.
  * The original class will be backed up as TestTooling2.bak before modification.
+ * {@link CompareAndSerialize} annotation to designate the class as toolable. The {@link ComparisonOrderField} and
+ * {@link ComparisonOrderMethod}. {@link com.neocoretechs.rocksack.ClassTool}
  */
 @CompareAndSerialize
 public class TestTooling2 implements java.io.Serializable,java.lang.Comparable{
-	private static final long serialVersionUID = -1L;
+	private static final long serialVersionUID = 1L;
 	@ComparisonOrderField
 	private int i;
 	@ComparisonOrderField
 	private String j;
-	@ComparisonOrderField
 	private String l;
 	@ComparisonOrderMethod
 	public String getL() {
 		return l;
+	}
+	public TestTooling2(int key1, String key2, String key3) {
+		this.i = key1;
+		this.j = key2;
+		this.l = key3;
 	}
 	@Override
 	public int compareTo(Object o) {
@@ -179,9 +191,6 @@ public class TestTooling2 implements java.io.Serializable,java.lang.Comparable{
 		n = j.compareTo(((TestTooling2)o).j);
 		if(n != 0)
 			return n;
-		n = l.compareTo(((TestTooling2)o).l);
-		if(n != 0)
-			return n;
 		n = getL().compareTo(((TestTooling2)o).getL());
 		if(n != 0)
 			return n;
@@ -191,6 +200,7 @@ public class TestTooling2 implements java.io.Serializable,java.lang.Comparable{
 	public TestTooling2() {}
 
 }
+
 
 ```
 
