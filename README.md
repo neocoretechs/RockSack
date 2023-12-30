@@ -322,21 +322,21 @@ public class TestTooling1 implements java.io.Serializable,java.lang.Comparable{
 		}
 		
 	}
-    @Override
-    public int compareTo(Object o) {
-                int n;
-                n = j.compareTo(((TestTooling1)o).j);
-                if(n != 0)
-                        return n;
-                if(i < ((TestTooling1)o).i)
-                        return -1;
-                if(i > ((TestTooling1)o).i)
-                        return 1;
-                n = getL().compareTo(((TestTooling1)o).getL());
-                if(n != 0)
-                        return n;
-                return 0;
-    }
+	@Override
+	public int compareTo(Object o) {
+		int n;
+		n = j.compareTo(((TestTooling1)o).j);
+		if(n != 0)
+			return n;
+		if(i < ((TestTooling1)o).i)
+			return -1;
+		if(i > ((TestTooling1)o).i)
+			return 1;
+		n = getL().compareTo(((TestTooling1)o).getL());
+		if(n != 0)
+			return n;
+		return 0;
+	}
 
 	@Override
 	public String toString() {
