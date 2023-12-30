@@ -216,4 +216,192 @@ public class TestTooling2 implements java.io.Serializable,java.lang.Comparable{
 
 And the class is easily provisioned for indexing in the RocksDB database via the key order specified!
 
+Beginning in Java 9 an interactive session application called jshell was included with the JDK. We can perform ad-hoc
+database operations using jshell and RockSack. Beginning with this class:
 
+```
+package com;
+import com.neocoretechs.rocksack.CompareAndSerialize;
+import com.neocoretechs.rocksack.ComparisonOrderField;
+import com.neocoretechs.rocksack.ComparisonOrderMethod;
+/**
+* Basic annotation tooling for RockSack to generate the necessary fields and methods for
+* storage and retrieval under the java.lang.Comparable interface as used throughout the language.
+* The ordering of the keys is defined here as by the annotation order field: j,i, and l. We
+* demonstrate method and field access and generate compareTo method and Serializable interface
+* implementation with SerialUID. We also show how to wrap a custom object to give Comparable
+* functionality to any class. No modifications will affect the operation of the original class.
+* The original class will be backed up as TestTooling1.bak before modification.
+* {@link CompareAndSerialize} annotation to designate the class as toolable. The {@link ComparisonOrderField} and
+* {@link ComparisonOrderMethod}. {@link com.neocoretechs.rocksack.ClassTool}
+*/
+@CompareAndSerialize
+public class TestTooling1{
+	@ComparisonOrderField(order=2)
+	private int i;
+	@ComparisonOrderField(order=1)
+	private String j;
+	@ComparisonOrderField(order=3)
+	private ByteObject l = new ByteObject();
+	@ComparisonOrderMethod
+	public ByteObject getL() {
+		return l;
+	}
+	public TestTooling1(String key1, int key2) {
+		j = key1;
+		i = key2;	
+	}
+	static class ByteObject implements Comparable, java.io.Serializable {
+		byte[] bytes = new byte[] {10,9,8,7,6,5,4,3,2,1};
+		@Override
+		public int compareTo(Object o) {
+			ByteObject b = (ByteObject)o;
+			for(int i = 0; i < b.bytes.length; i++) {
+				if(bytes[i] > b.bytes[i])
+					return 1;
+				if(bytes[i] < b.bytes[i])
+					return -1;
+			}
+			return 0;
+		}
+		
+	}
+	
+	@Override
+	public String toString() {
+		return "Key1="+j+" key2="+i;
+	}
+}
+
+```
+
+Our ClassTool instruments it as follows:
+
+```
+package com;
+
+import com.neocoretechs.rocksack.CompareAndSerialize;
+import com.neocoretechs.rocksack.ComparisonOrderField;
+import com.neocoretechs.rocksack.ComparisonOrderMethod;
+/**
+* Basic annotation tooling for RockSack to generate the necessary fields and methods for
+* storage and retrieval under the java.lang.Comparable interface as used throughout the language.
+* The ordering of the keys is defined here as by the annotation order field: j,i, and l. We
+* demonstrate method and field access and generate compareTo method and Serializable interface
+* implementation with serialVersionUID. We also show how to wrap a custom object to give Comparable
+* functionality to any class. No modifications will affect the operation of the original class.
+* The original class will be backed up as TestTooling1.bak before modification.
+*/
+@CompareAndSerialize
+public class TestTooling1 implements java.io.Serializable,java.lang.Comparable{
+	private static final long serialVersionUID = 1793651491005864392L;
+	@ComparisonOrderField(order=2)
+	private int i;
+	@ComparisonOrderField(order=1)
+	private String j;
+	@ComparisonOrderField(order=3)
+	private ByteObject l = new ByteObject();
+	@ComparisonOrderMethod
+	public ByteObject getL() {
+		return l;
+	}
+	public TestTooling1(String key1, int key2) {
+		j = key1;
+		i = key2;	
+	}
+	static class ByteObject implements Comparable, java.io.Serializable {
+		byte[] bytes = new byte[] {10,9,8,7,6,5,4,3,2,1};
+		@Override
+		public int compareTo(Object o) {
+			ByteObject b = (ByteObject)o;
+			for(int i = 0; i < b.bytes.length; i++) {
+				if(bytes[i] > b.bytes[i])
+					return 1;
+				if(bytes[i] < b.bytes[i])
+					return -1;
+			}
+			return 0;
+		}
+		
+	}
+	@Override
+	public int compareTo(Object o) {
+		int n;
+		n = j.compareTo(((TestTooling1)o).j);
+		if(n != 0)
+			return n;
+		if(i < ((TestTooling1)o).i)
+			return -1;
+		if(i > ((TestTooling1)o).i)
+			return 1;
+		n = l.compareTo(((TestTooling1)o).l);
+		if(n != 0)
+			return n;
+		n = getL().compareTo(((TestTooling1)o).getL());
+		if(n != 0)
+			return n;
+		return 0;
+	}
+
+	@Override
+	public String toString() {
+		return "Key1="+j+" key2="+i;
+	}
+
+	public TestTooling1() {}
+
+}
+
+```
+
+Then the interactive jshell session demonstrates the ease with which ad-hoc data management can be performed using the power of RockSack!
+
+```
+D:\etc>jshell --class-path D:/etc/rocksdbjni-7.7.3-win64.jar;D:/etc/RockSack.jar;D:/etc D:/etc/rocksack.jshell --feedback RockSack
+->DatabaseManager.setTableSpaceDir("D:/etc/db/test");
+->com.TestTooling1 t1 = new com.TestTooling1("a1",1);
+->BufferedMap map = DatabaseManager.getMap(t1.getClass());
+->map.put(t1,new String("value1"));
+->t1 = new com.TestTooling1("a2",2);
+->map.put(t1,new String("value2"));
+->t1 = new com.TestTooling1("a3",3);
+->map.put(t1,new String("value3"));
+->t1 = new com.TestTooling1("a4",4);
+->map.put(t1,new String("value4"));
+->t1 = new com.TestTooling1("a5",5);
+->map.put(t1,new String("value5"));
+->map.tailSetStream((Comparable) map.firstKey()).forEach(System.out::println);
+Key1=a1 key2=1
+Key1=a2 key2=2
+Key1=a3 key2=3
+Key1=a4 key2=4
+Key1=a5 key2=5
+->map.tailSetKVStream((Comparable) map.firstKey()).forEach(System.out::println);
+KeyValuePair:[Key1=a1 key2=1,value1]
+KeyValuePair:[Key1=a2 key2=2,value2]
+KeyValuePair:[Key1=a3 key2=3,value3]
+KeyValuePair:[Key1=a4 key2=4,value4]
+KeyValuePair:[Key1=a5 key2=5,value5]
+->t1 = new com.TestTooling1("a0",0);
+->map.put(t1,new String("zero"));
+->map.tailSetKVStream((Comparable) map.firstKey()).forEach(System.out::println);
+KeyValuePair:[Key1=a0 key2=0,zero]
+KeyValuePair:[Key1=a1 key2=1,value1]
+KeyValuePair:[Key1=a2 key2=2,value2]
+KeyValuePair:[Key1=a3 key2=3,value3]
+KeyValuePair:[Key1=a4 key2=4,value4]
+KeyValuePair:[Key1=a5 key2=5,value5]
+->
+->t1 = new com.TestTooling1("a0",99);
+->map.put(t1,new String("key a-zero and 99"));
+->map.tailSetKVStream((Comparable) map.firstKey()).forEach(System.out::println);
+KeyValuePair:[Key1=a0 key2=0,zero]
+KeyValuePair:[Key1=a0 key2=99,key a-zero and 99]
+KeyValuePair:[Key1=a1 key2=1,value1]
+KeyValuePair:[Key1=a2 key2=2,value2]
+KeyValuePair:[Key1=a3 key2=3,value3]
+KeyValuePair:[Key1=a4 key2=4,value4]
+KeyValuePair:[Key1=a5 key2=5,value5]
+->
+
+```
