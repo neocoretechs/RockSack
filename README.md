@@ -87,6 +87,7 @@ tailMapKV<br/>
 subMap<br/>
 subMapKV<br/>
 ```
+
 		// Basic retrieval format for sub map range:
 		String sminx = "100";
 		String smaxx = "175";
@@ -111,6 +112,7 @@ subMapKV<br/>
 		map.subSetStream(xid, (Comparable) map.firstKey(), (Comparable) map.lastKey()).forEach(o -> {
 			System.out.println("["+(i++)+"]"+o);
 		});
+		
 ```
 
 <p/>
