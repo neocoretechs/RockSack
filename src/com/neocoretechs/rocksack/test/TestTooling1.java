@@ -45,5 +45,10 @@ public class TestTooling1{
 		}
 		
 	}
+	
+	@Override
+	public String toString() {
+		return "Key1="+j+" key2="+i;
+	}
 }
 
