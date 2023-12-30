@@ -8,6 +8,7 @@ import org.rocksdb.Transaction;
 import com.neocoretechs.rocksack.iterator.HeadSetKVIterator;
 /**
  * Java 8 stream extensions for RockSack delivery of ordered persistent datasets.
+ * for items of persistent collection strictly less than 'to' element
  * @author Jonathan Groff Copyright (C) NeoCoreTechs 2021
  *
  */

@@ -9,6 +9,7 @@ import com.neocoretechs.rocksack.iterator.TailSetIterator;
 
 /**
  * Java 8 stream extensions for RockSack delivery of ordered persistent datasets.
+ * greater or equal to 'from' element
  * @author Jonathan Groff Copyright (C) NeoCoreTechs 2021
  *
  */

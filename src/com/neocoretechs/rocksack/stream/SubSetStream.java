@@ -9,6 +9,7 @@ import com.neocoretechs.rocksack.iterator.SubSetIterator;
 
 /**
  * Java 8 stream extensions for RockSack delivery of ordered persistent datasets.
+ * 'from' element inclusive, 'to' element exclusive
  * @author Jonathan Groff Copyright (C) NeoCoreTechs 2021
  *
  */
