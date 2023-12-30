@@ -20,9 +20,8 @@ public class TestTooling1{
 	private int i;
 	@ComparisonOrderField(order=1)
 	private String j;
-	@ComparisonOrderField(order=3)
 	private ByteObject l = new ByteObject();
-	@ComparisonOrderMethod
+	@ComparisonOrderMethod(order=3)
 	public ByteObject getL() {
 		return l;
 	}
