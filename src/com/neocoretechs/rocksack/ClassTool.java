@@ -468,6 +468,6 @@ public class ClassTool {
       } catch (IOException | ClassNotFoundException exp) {//| InstantiationException | IllegalAccessException exp) {
         exp.printStackTrace();
       }
-	  return null;
+	  throw new RuntimeException("There was an error in the source Java that prevented suggessful intermediate compilation, see above");
 	}
 }
