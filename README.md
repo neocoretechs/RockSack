@@ -18,13 +18,15 @@ A bag or sack is a computer science term for a structure to hold a large amount 
 RockSack can store Java objects so that they can be efficiently indexed, preserved, and retrieved in a manner that mirrors the java.util.Hashmap, java.util.TreeMap and java.util.TreeSet classes while providing the benefits of a full blown database.
 The amount of data the system can maintain far exceeds resident and even virtual memory.
 The implementation uses the RocksDB key/value store for performance and durability. The RocksDB K/V store is a Meta project
-used by numerous high volume online orgs and has lots of support. What it lacks is a first class Java object method indexing to
-create a 'functional' Java database.
-So RockSack provides a way of using serialized first class Java objects as indexes for RocksDB.
+used by numerous high volume online orgs and has lots of support. What it lacks is a first class Java object method indexing.<p/>
+Once we can index the stored objects via a built-in method, we add the capabilities of a full object-oriented database. Once we can
+use the objects in streams and lambda expressions, we create a truly 'functional' Java database.<br/>
+So to summarize; RockSack provides a way of using serialized first class Java objects as indexes for RocksDB, unlocking the power of
+object-oriented and functional paradigms in a high-performance environment.
 <p/>
 The assumption is that classes are obviously serializable, and for indexing implement the java.lang.Comparable.compareTo method, which most do by default, including String.
 So in addition to RockSack having the means to store a large number of objects, it adds the properties of recoverability,
-isolation, durability, atomicity, and concurrency.
+isolation, durability, atomicity, and concurrency and provides tools for the user to easily use a widely used and supported, high volume key/value store.
 <h3>Technical Details:</h3>
 RockSack is a Java persistence mechanism that provides key/value store functionality 
 with a small footprint and native object storage capability. Just about any Java object, meaning Serializable objects implementing the 
@@ -32,7 +34,8 @@ java.lang.Comparable interface, can be stored. The Comparable interface
 is part of the standard Java Collections Framework and is implemented in the majority of built-in Java classes such as String.<p/>
 Whats the advantage? Whereas an agnostic K/V store only allows you to index the raw byte values of the key, a 'functional' index
 gives you the ability to index the data based on an arbitrarily complex arrangement of any of the fields in the class, or even through
-a strictly computational process since we are using the result of a method call to control the order in which the data are stored.
+a strictly computational process since we are using the result of a method call to control the order in which the data are stored. RockSack
+abstracts away the details of using RocksDB and provides tools to easily adapt your classes for use in the environment.
 
 There are methods in the class com.neocoretechs.rocksack.DatabaseManager to organize the maps and sets on the basis of type. In this way a rudimentary schema can be maintained. A non-transactional BufferedMap can be obtained by the following methods:
 
@@ -69,9 +72,6 @@ List<Transaction> t = DatabaseManager.getOutstandingTransactionsById(xid); // ge
 etc..
 
 ```
-
-So if you were to store instances of a class named 'com.you.code' you would see a directory similar to "TestDBcom.you.code".
-The typing is not strongly enforced, any key type can be inserted, but a means to manage types is provided that prevents exceptions being thrown in the 'compareTo' method.
 
 In addition to the 'get', 'put', 'remove', 'contains', 'size', 'keySet', 'entrySet', 'contains', 'containsKey', 'first', 'last', 'firstKey', 'lastKey' the full set of
 iterators can be obtained to retrieve subsets of the data for sets and maps:<br>
