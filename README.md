@@ -73,7 +73,7 @@ etc..
 So if you were to store instances of a class named 'com.you.code' you would see a directory similar to "TestDBcom.you.code".
 The typing is not strongly enforced, any key type can be inserted, but a means to manage types is provided that prevents exceptions being thrown in the 'compareTo' method.
 
-In addition to the 'get','put','remove','contains','size','keySet','entrySet','contains','containsKey','first','last','firstKey','lastKey' the full set of
+In addition to the 'get', 'put', 'remove', 'contains', 'size', 'keySet', 'entrySet', 'contains', 'containsKey', 'first', 'last', 'firstKey', 'lastKey' the full set of
 iterators can be obtained to retrieve subsets of the data for sets and maps:<br>
 Sets:<br/>
 headSet<br/>
@@ -86,32 +86,51 @@ tailMap<br/>
 tailMapKV<br/>
 subMap<br/>
 subMapKV<br/>
+
+Streams are supported via corresponding methods to provide functional programming constructs such as lambda expressions, a feature not found in most database environments:
+headSetStream<br/>
+tailSetStream<br/>
+subSetStream<br/>
+headMapStream<br/>
+headMapKVStream<br/>
+tailMapStream<br/>
+tailMapKVStream<br/>
+subMapStream<br/>
+subMapKVStream<br/>
+
 ```
 
-		// Basic retrieval format for sub map range:
-		String sminx = "100";
-		String smaxx = "175";
-		BufferedMap map = DatabaseManager.getMap(sminx); // Get the map for classes of this instance
-		Iterator<?> itk = map.subMap(sminx, smaxx); // retrieve values 'from' inclusive, 'to' exclusive
-		while(itk.hasNext()) {
-			System.out.println(itk.next());
-		}
+	// Basic retrieval format for sub map range:
+	
+	String sminx = "100";
+	String smaxx = "175";
+	BufferedMap map = DatabaseManager.getMap(sminx); // Get the map for classes of this instance
+	Iterator<?> itk = map.subMap(sminx, smaxx); // retrieve values 'from' inclusive, 'to' exclusive
+	while(itk.hasNext()) {
+		System.out.println(itk.next());
+	}
 		
-		// Demonstration of transactional stream retrieval functional lambda expressions:
-		String xid = DatabaseManager.getTransactionId();
-		// Get a transactional map for a fully qualified class name delivered on the command line
-		TransactionalMap map = DatabaseManager.getTransactionalMap(Class.forName(argv[1]), xid);
-		Object o; // Object to hold stream retrieval items
-		int i = 0; // item counter
-		// Functionally equivalent stream retrievals below:
-		map.headSetStream(xid, (Comparable) map.lastKey()).forEach(System.out::println);
+	// Demonstration of transactional stream retrieval functional lambda expressions:
+	
+	String xid = DatabaseManager.getTransactionId();
+	// Get a transactional map for a fully qualified class name delivered on the command line
+	TransactionalMap map = DatabaseManager.getTransactionalMap(Class.forName(argv[1]), xid);
+	Object o; // Object to hold stream retrieval items
+	int i = 0; // item counter
+	
+	// Functionally equivalent stream retrievals below:
+	
+	map.headSetStream(xid, (Comparable) map.lastKey()).forEach(System.out::println);
 
-		map.tailSetStream(xid, (Comparable) map.firstKey()).forEach(o -> {
-			System.out.println("["+(i++)+"]"+o);
-		});
-		map.subSetStream(xid, (Comparable) map.firstKey(), (Comparable) map.lastKey()).forEach(o -> {
-			System.out.println("["+(i++)+"]"+o);
-		});
+	// Lamdba expressions:
+	
+	map.tailSetStream(xid, (Comparable) map.firstKey()).forEach(o -> {
+		System.out.println("["+(i++)+"]"+o);
+	});
+	
+	map.subSetStream(xid, (Comparable) map.firstKey(), (Comparable) map.lastKey()).forEach(o -> {
+		System.out.println("["+(i++)+"]"+o);
+	});
 		
 ```
 
