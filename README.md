@@ -94,7 +94,7 @@ tailMapKV<br/>
 subMap<br/>
 subMapKV<br/>
 
-Streams are supported via corresponding methods to provide functional programming constructs such as lambda expressions, a feature not found in most database environments:
+Streams are supported via corresponding methods to provide functional programming constructs such as lambda expressions, a feature not found in most database environments:<br/>
 headSetStream<br/>
 headSetKVStream<br/>
 tailSetStream<br/>
