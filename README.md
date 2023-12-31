@@ -73,12 +73,19 @@ etc..
 
 ```
 
-In addition to the 'get', 'put', 'remove', 'contains', 'size', 'keySet', 'entrySet', 'contains', 'containsKey', 'first', 'last', 'firstKey', 'lastKey' the full set of
+In addition to the 'get', 'put', 'remove', 'contains', 'size', 'contains', 'containsKey', 'first', 'last', 'firstKey', 'lastKey' the full set of
 iterators can be obtained to retrieve subsets of the data for sets and maps:<br>
+
 Sets:<br/>
 headSet<br/>
+headSetKV<br/>
 tailSet<br/>
+tailSetKV<br/>
 subSet<br/>
+subSetKV<br/>
+keySet<br/>
+entrySet<br/>
+
 Maps:<br/>
 headMap<br/>
 headMapKV (key and value)<br/>
@@ -89,14 +96,19 @@ subMapKV<br/>
 
 Streams are supported via corresponding methods to provide functional programming constructs such as lambda expressions, a feature not found in most database environments:
 headSetStream<br/>
+headSetKVStream<br/>
 tailSetStream<br/>
+tailSetKVStream<br/>
 subSetStream<br/>
+subSetKVStream<br/>
 headMapStream<br/>
 headMapKVStream<br/>
 tailMapStream<br/>
 tailMapKVStream<br/>
 subMapStream<br/>
 subMapKVStream<br/>
+entrySetStream<br/>
+keySetStream<br/>
 
 ```
 
