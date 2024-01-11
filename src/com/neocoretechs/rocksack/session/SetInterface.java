@@ -78,5 +78,7 @@ public interface SetInterface {
 	
 
 	RocksDB getKVStore();
+
+	void Close() throws IOException;
 	
 }

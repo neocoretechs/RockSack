@@ -609,7 +609,44 @@ public class DatabaseManager {
 					verify.session.Close(); // close RocksDB database
 				} catch (IOException e) {}
 				if(DEBUG)
-					System.out.println("RockSackAdapter.removeRockSackTransactionalMap removing xaction "+((TransactionalMap)tmap).txn.getName()+" for DB "+k+" which should match "+verify.txn.getName());
+					System.out.println("DatabaseManager.removeRockSackTransactionalMap removing xaction "+((TransactionalMap)tmap).txn.getName()+" for DB "+k+" which should match "+verify.txn.getName());
+				return;
+			}
+		});
+	}
+	
+	/**
+	 * Remove the given Map from active DB/transaction collection
+	 * @param alias The alias for the tablespace
+	 * @param tmap the Map for a given transaction Id
+	 */
+	public static synchronized void removeMap(String alias, SetInterface tmap) throws NoSuchElementException {
+		Volume vm = VolumeManager.getByAlias(alias);
+		vm.classToIso.forEach((k,v) -> {
+			if(v.equals(tmap)) {
+				try {
+					v.Close(); // close RocksDB database
+				} catch (IOException e) {}
+				if(DEBUG)
+					System.out.println("DatabaseManager.removeRockSackTransactionalMap removing "+tmap.getDBName()+" for DB "+k+" which should match "+v.getDBName());
+				return;
+			}
+		});	
+	}
+	
+	/**
+	 * Remove the given Map from active DB/transaction collection
+	 * @param tmap the Map to remove
+	 */
+	public static synchronized void removeMap(SetInterface tmap) {
+		Volume vm = VolumeManager.get(tableSpaceDir);
+		vm.classToIso.forEach((k,v) -> {
+			if(v.equals(tmap)) {
+				try {
+					v.Close(); // close RocksDB database
+				} catch (IOException e) {}
+				if(DEBUG)
+					System.out.println("DatabaseManager.removeRockSackTransactionalMap removing "+tmap.getDBName()+" for DB "+k+" which should match "+v.getDBName());
 				return;
 			}
 		});
@@ -629,7 +666,7 @@ public class DatabaseManager {
 					verify.session.Close(); // close RocksDB database
 				} catch (IOException e) {}
 				if(DEBUG)
-					System.out.println("RockSackAdapter.removeRockSackTransactionalMap removing xaction "+((TransactionalMap)tmap).txn.getName()+" for DB "+k+" which should match "+verify.txn.getName());
+					System.out.println("DatabaseManager.removeRockSackTransactionalMap removing xaction "+((TransactionalMap)tmap).txn.getName()+" for DB "+k+" which should match "+verify.txn.getName());
 				return;
 			}
 		});
@@ -650,7 +687,7 @@ public class DatabaseManager {
 						verify.session.Close(); //close RocksDB database
 					} catch (IOException e) {}
 					if(DEBUG)
-						System.out.println("RockSackAdapter.removeRockSackTransactionalMap removing xaction "+xid+" for DB "+k+" which should match "+verify.txn.getName());
+						System.out.println("DatabaseManager.removeRockSackTransactionalMap removing xaction "+xid+" for DB "+k+" which should match "+verify.txn.getName());
 					return;
 				}
 			});
@@ -674,7 +711,7 @@ public class DatabaseManager {
 						verify.session.Close(); // close RocksDB database
 					} catch (IOException e) {}
 					if(DEBUG)
-						System.out.println("RockSackAdapter.removeRockSackTransactionalMap removing xaction "+xid+" for DB "+k+" which should match "+verify.txn.getName());
+						System.out.println("DatabaseManager.removeRockSackTransactionalMap removing xaction "+xid+" for DB "+k+" which should match "+verify.txn.getName());
 					return;
 				}
 			});

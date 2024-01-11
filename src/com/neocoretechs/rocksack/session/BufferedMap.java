@@ -382,7 +382,13 @@ public class BufferedMap implements OrderedKVMapInterface {
 	public void Open() throws IOException {
 	}
 
-
+	@Override
+	public void Close() throws IOException {
+		synchronized (getSession().getMutexObject()) {
+			session.getKVStore().close();
+		}
+	}
+	
 	@Override
 	public RocksDB getKVStore() {
 		try {

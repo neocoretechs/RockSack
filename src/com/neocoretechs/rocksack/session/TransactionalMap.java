@@ -379,13 +379,11 @@ public class TransactionalMap implements OrderedKVMapInterface {
 		}
 	}
 	
-
 	public String getTransactionId() throws IOException {
 		synchronized (getSession().getMutexObject()) {
 			return txn.getName();
 		}
 	}
-
 
 	@Override
 	public String getDBName() {
@@ -419,6 +417,13 @@ public class TransactionalMap implements OrderedKVMapInterface {
 		}
 	}
 
+	@Override
+	public void Close() throws IOException {		
+		synchronized (getSession().getMutexObject()) {
+			session.getKVStore().close();
+		}		
+	}
+	
 	@Override
 	public RocksDB getKVStore() {
 		synchronized (session.getMutexObject()) {
@@ -519,4 +524,5 @@ public class TransactionalMap implements OrderedKVMapInterface {
 		return (session == null ? "TransactionalMap Session NULL" : session.toString())+" Transaction:"+
 				(txn == null ? "TransactionalMap transaction NULL" : txn.getName());
 	}
+
 }
