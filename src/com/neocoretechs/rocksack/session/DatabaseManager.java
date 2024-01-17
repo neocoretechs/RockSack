@@ -54,7 +54,7 @@ import com.neocoretechs.rocksack.session.VolumeManager.Volume;
  *
  */
 public class DatabaseManager {
-	private static boolean DEBUG = false;
+	private static boolean DEBUG = true;
 	private static String tableSpaceDir = "/";
 	private static final char[] ILLEGAL_CHARS = { '[', ']', '!', '+', '=', '|', ';', '?', '*', '\\', '<', '>', '|', '\"', ':' };
 	private static final char[] OK_CHARS = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E' };
@@ -276,13 +276,17 @@ public class DatabaseManager {
 		Volume v = VolumeManager.get(tableSpaceDir);
 		BufferedMap ret = (BufferedMap) v.classToIso.get(xClass);
 		if(DEBUG)
-			System.out.println("RockSackAdapter.getRockSackMap About to return designator: "+tableSpaceDir+xClass+" formed from "+clazz.getClass().getName());
+			System.out.println("DatabaseManager.getMap About to return designator for dir:"+tableSpaceDir+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
 		if( ret == null ) {
 			if(options == null)
 				options = getDefaultOptions();
 			ret =  new BufferedMap(SessionManager.Connect(tableSpaceDir+xClass, options));
+			if(DEBUG)
+				System.out.println("DatabaseManager.getMap About to create new map:"+ret);
 			v.classToIso.put(xClass, ret);
 		}
+		if(DEBUG)
+			System.out.println("DatabaseManager.getMap About to return map:"+ret);
 		return ret;
 	}
 	/**
@@ -311,13 +315,17 @@ public class DatabaseManager {
 		Volume v = VolumeManager.getByAlias(alias);
 		BufferedMap ret = (BufferedMap) v.classToIso.get(xClass);
 		if(DEBUG)
-			System.out.println("RockSackAdapter.getRockSackMap About to return designator: "+VolumeManager.getAliasToPath(alias)+xClass+" formed from "+clazz.getClass().getName());
+			System.out.println("DatabaseManager.getMap About to return designator for alias:"+alias+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
 		if( ret == null ) {
 			if(options == null)
 				options = getDefaultOptions();
 			ret =  new BufferedMap(SessionManager.Connect(VolumeManager.getAliasToPath(alias)+xClass, options));
+			if(DEBUG)
+				System.out.println("DatabaseManager.getMap About to create new map:"+ret);
 			v.classToIso.put(xClass, ret);
 		}
+		if(DEBUG)
+			System.out.println("DatabaseManager.getMap About to return map:"+ret);
 		return ret;
 	}
 	
