@@ -54,7 +54,7 @@ import com.neocoretechs.rocksack.session.VolumeManager.Volume;
  *
  */
 public class DatabaseManager {
-	private static boolean DEBUG = true;
+	private static boolean DEBUG = false;
 	private static String tableSpaceDir = "/";
 	private static final char[] ILLEGAL_CHARS = { '[', ']', '!', '+', '=', '|', ';', '?', '*', '\\', '<', '>', '|', '\"', ':' };
 	private static final char[] OK_CHARS = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E' };
@@ -63,6 +63,7 @@ public class DatabaseManager {
 	static {
 		RocksDB.loadLibrary();
 	}
+	
 	/**
 	 * Get the tablespace by given alias
 	 * @param alias
@@ -131,7 +132,11 @@ public class DatabaseManager {
 	public static String getDatabaseName(String clazz) {
 		return tableSpaceDir+clazz;
 	}
-	
+	/**
+	 * Get the tablespace path for the given alias {@link VolumeManager.getAliasToPath}
+	 * @param alias the database alias
+	 * @return the path for this alias or null if none
+	 */
 	public static String getAliasToPath(String alias) {
 		return VolumeManager.getAliasToPath(alias);
 	}
@@ -322,6 +327,43 @@ public class DatabaseManager {
 			ret =  new BufferedMap(SessionManager.Connect(VolumeManager.getAliasToPath(alias)+xClass, options));
 			if(DEBUG)
 				System.out.println("DatabaseManager.getMap About to create new map:"+ret);
+			v.classToIso.put(xClass, ret);
+		}
+		if(DEBUG)
+			System.out.println("DatabaseManager.getMap About to return map:"+ret);
+		return ret;
+	}	
+	/**
+	 * Get a Map via absolute path and Comparable instance. If the {@link VolumeManager} instance does not exist it will be created
+	 * @param path The database path for tablespace
+	 * @param clazz The Comparable object that the java class name is extracted from
+	 * @return A BufferedTreeMap for the clazz instances.
+	 * @throws IllegalAccessException
+	 * @throws IOException
+	 */
+	public static BufferedMap getMapByPath(String path, Comparable clazz) throws IllegalAccessException, IOException {
+		return getMapByPath(path, clazz.getClass());
+	}
+	/**
+	 * Get a Map via absolute path and Java Class type. If the {@link VolumeManager} instance does not exist it will be created
+	 * @param path The database path for tablespace
+	 * @param clazz The Java Class of the intended database
+	 * @return The BufferedMap for the clazz type.
+	 * @throws IllegalAccessException
+	 * @throws IOException
+	 */
+	public static BufferedMap getMapByPath(String path, Class clazz) throws IllegalAccessException, IOException {
+		String xClass = translateClass(clazz.getName());
+		Volume v = VolumeManager.get(path);
+		BufferedMap ret = (BufferedMap) v.classToIso.get(xClass);
+		if(DEBUG)
+			System.out.println("DatabaseManager.getMapByPath About to return designator for path:"+path+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
+		if( ret == null ) {
+			if(options == null)
+				options = getDefaultOptions();
+			ret =  new BufferedMap(SessionManager.Connect(VolumeManager.get(path)+xClass, options));
+			if(DEBUG)
+				System.out.println("DatabaseManager.getMapByPath About to create new map:"+ret);
 			v.classToIso.put(xClass, ret);
 		}
 		if(DEBUG)
