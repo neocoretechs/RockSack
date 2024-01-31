@@ -492,4 +492,8 @@ public class BufferedMap implements OrderedKVMapInterface {
 		}
 	}
 
+	@Override
+	public String toString() {
+		return this.getClass().getSimpleName()+" for session:"+session.getDBname();
+	}
 }

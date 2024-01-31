@@ -88,7 +88,7 @@ public class Session {
 	
 	@Override
 	public String toString() {
-		return this.getClass().getName()+" using DB:"+getDBname();
+		return this.getClass().getSimpleName()+" using DB:"+getDBname();
 	}
 	
 	protected Object getMutexObject() {

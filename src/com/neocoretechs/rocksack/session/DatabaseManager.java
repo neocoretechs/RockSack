@@ -361,7 +361,7 @@ public class DatabaseManager {
 		if( ret == null ) {
 			if(options == null)
 				options = getDefaultOptions();
-			ret =  new BufferedMap(SessionManager.Connect(VolumeManager.get(path)+xClass, options));
+			ret =  new BufferedMap(SessionManager.Connect(path+xClass, options));
 			if(DEBUG)
 				System.out.println("DatabaseManager.getMapByPath About to create new map:"+ret);
 			v.classToIso.put(xClass, ret);
