@@ -34,6 +34,7 @@ public class SerializedComparator extends AbstractComparator {
 
 	@Override
 	public int compare(ByteBuffer arg0, ByteBuffer arg1) {
+		boolean obj1Notify = false;
 		try {
 			byte[] b1 = new byte[arg0.remaining()];
 			arg0.get(b1);
@@ -41,7 +42,14 @@ public class SerializedComparator extends AbstractComparator {
 			arg1.get(b2);
 			Object obj1 = deserializeObject(b1);
 			Object obj2 = deserializeObject(b2);
-			return ((Comparable)obj1).compareTo(obj2);
+			if(obj1 instanceof NotifyDBCompareTo) {
+				obj1Notify = true;
+				((NotifyDBCompareTo)obj1).preCompare();
+			}
+			int n = ((Comparable)obj1).compareTo(obj2);
+			if(obj1Notify)
+				((NotifyDBCompareTo)obj1).postCompare();
+			return n;
 		} catch (Exception e) {
 			//e.printStackTrace();
 			throw new RuntimeException(e);
