@@ -9,6 +9,7 @@ import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.rocksdb.AbstractComparator;
 import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.BloomFilter;
 import org.rocksdb.Cache;
@@ -37,6 +38,7 @@ import com.neocoretechs.rocksack.session.VolumeManager.Volume;
  * This factory class enforces a strong typing for the RockSack using the database naming convention linked to the
  * class name of the class stored there.<p/>
  * In almost all cases, this is the main entry point to obtain a BufferedMap or a TransactionalMap.<p/>
+ * To override options call setDatabaseOptions(Options). If options are not set in this manner the default options will be used.
  * 
  * The main function of this adapter is to ensure that the appropriate map is instantiated.<br/>
  * A map can be obtained by instance of Comparable to impart ordering.<br/>
@@ -58,7 +60,7 @@ public class DatabaseManager {
 	private static String tableSpaceDir = "/";
 	private static final char[] ILLEGAL_CHARS = { '[', ']', '!', '+', '=', '|', ';', '?', '*', '\\', '<', '>', '|', '\"', ':' };
 	private static final char[] OK_CHARS = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E' };
-	private static Options options = null;
+	private static Options options = getDefaultOptions();
 	
 	static {
 		RocksDB.loadLibrary();
@@ -185,8 +187,21 @@ public class DatabaseManager {
 	public static void setDatabaseOptions(Options dboptions) {
 		options = dboptions;
 	}
-	
+	/**
+	 * Get the default options using the RockSack {@link SerializedComparator}
+	 * @return the populated RocksDB options instance
+	 */
 	private static Options getDefaultOptions() {
+		return getDefaultOptions(new SerializedComparator());
+	}
+	/**
+	 * Get the default options using a different comparator, primarily to provide hooks inside compare method.
+	 * The call sequence would be DatabaseManager.setDatabaseOptions(DatabaseManager.getDefaultOptions(your SerializedComparator))
+	 * WARNING: must provide all functionality of RockSack {@link SerializedComparator}
+	 * @param comparator the AbstractComparator instance
+	 * @return the populated RocksDB options instance
+	 */
+	public static Options getDefaultOptions(AbstractComparator comparator) {
 		//RocksDB db = null;
 		//final String db_path = dbpath;
 		//final String db_path_not_found = db_path + "_not_found";
@@ -195,7 +210,7 @@ public class DatabaseManager {
 		//final ReadOptions readOptions = new ReadOptions().setFillCache(false);
 		final Statistics stats = new Statistics();
 		final RateLimiter rateLimiter = new RateLimiter(10000000,10000, 10);
-		options.setComparator(new SerializedComparator());
+		options.setComparator(comparator);
 		try {
 		    options.setCreateIfMissing(true)
 		        .setStatistics(stats)
@@ -283,8 +298,8 @@ public class DatabaseManager {
 		if(DEBUG)
 			System.out.println("DatabaseManager.getMap About to return designator for dir:"+tableSpaceDir+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
 		if( ret == null ) {
-			if(options == null)
-				options = getDefaultOptions();
+			//if(options == null)
+			//	options = getDefaultOptions();
 			ret =  new BufferedMap(SessionManager.Connect(tableSpaceDir+xClass, options));
 			if(DEBUG)
 				System.out.println("DatabaseManager.getMap About to create new map:"+ret);
@@ -322,8 +337,8 @@ public class DatabaseManager {
 		if(DEBUG)
 			System.out.println("DatabaseManager.getMap About to return designator for alias:"+alias+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
 		if( ret == null ) {
-			if(options == null)
-				options = getDefaultOptions();
+			//if(options == null)
+			//	options = getDefaultOptions();
 			ret =  new BufferedMap(SessionManager.Connect(VolumeManager.getAliasToPath(alias)+xClass, options));
 			if(DEBUG)
 				System.out.println("DatabaseManager.getMap About to create new map:"+ret);
@@ -359,8 +374,8 @@ public class DatabaseManager {
 		if(DEBUG)
 			System.out.println("DatabaseManager.getMapByPath About to return designator for path:"+path+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
 		if( ret == null ) {
-			if(options == null)
-				options = getDefaultOptions();
+			//if(options == null)
+			//	options = getDefaultOptions();
 			ret =  new BufferedMap(SessionManager.Connect(path+xClass, options));
 			if(DEBUG)
 				System.out.println("DatabaseManager.getMapByPath About to create new map:"+ret);

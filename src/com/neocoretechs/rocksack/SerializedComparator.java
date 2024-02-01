@@ -12,7 +12,20 @@ import java.nio.channels.ReadableByteChannel;
 import org.rocksdb.AbstractComparator;
 import org.rocksdb.ComparatorOptions;
 
-
+/**
+ * Provide a means by which RocksDB can function on first class Java objects instead of raw bytes
+ * for the purpose of indexing the keys of the key/value store. Use Java object serialization
+ * and the override of the RocksDB AbstractComparator to fulfill the Java language Comparable interface
+ * contract. This class is specified in the RocksDB options during database opening. The user then
+ * provides Java classes that implement the Comparable and Serializable interfaces as used by a large portion
+ * of native Java classes such as String, Integer, Long etc. The compareTo method of the user class then
+ * determines key order by returning -1,0, or 1 depending on comparison to other instances being less, equal, or greater
+ * respectively. User should also provide equals and hashCode methods to support ordering. The RockSack
+ * {@link ClassTool} utility is provided to assist the user in easily instrumenting their classes for this functionality
+ * without the need to modify business logic.
+ * @author Jonathan Groff Copyright (C) NeoCoreTechs 2022,2023,2024
+ *
+ */
 public class SerializedComparator extends AbstractComparator {
 
 	public SerializedComparator() {
