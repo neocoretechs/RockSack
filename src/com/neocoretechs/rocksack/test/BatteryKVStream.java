@@ -1,5 +1,6 @@
 package com.neocoretechs.rocksack.test;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -423,17 +424,26 @@ public class BatteryKVStream {
 		// with j at max, should get them all since we stored to max -1
 		//String tkey = String.format(uniqKeyFmt, j);
 		System.out.println("KV Battery1AR17");
-		// with i at max, should catch them all
-		for(int i = min; i < max; i++) {
-			String fkey = String.format(uniqKeyFmt, i);
-			bmap.remove(fkey);
-			// Map.Entry
-			if(bmap.contains(fkey)) { 
-				System.out.println("KV RANGE 1AR17 KEY MISMATCH:"+i);
-				//throw new Exception("KV RANGE 1AR17 KEY MISMATCH:"+i);
-			}
-		}
 		long siz = bmap.size();
+		if(siz > 0) {
+			Stream stream = bmap.keySetStream();
+			stream.forEach(e ->{
+				//System.out.println(i+"="+key);
+				int i = 0;
+				long timx = System.currentTimeMillis();
+				try {
+					bmap.remove((Comparable) e);
+					++i;
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+				if((System.currentTimeMillis()-timx) > 5000) {
+					System.out.println("Delete Element "+i);
+					timx = System.currentTimeMillis();
+				}
+			});
+		}
+		siz = bmap.size();
 		if(siz > 0) {
 			Stream stream = bmap.entrySetStream();
 			stream.forEach(e ->{
