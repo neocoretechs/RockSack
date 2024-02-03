@@ -43,7 +43,7 @@ public class TailSetIterator extends AbstractIterator {
 	private static boolean DEBUG = false;
 	Comparable fromKey;
 	public TailSetIterator(Comparable fromKey, RocksDB db) throws IOException {
-		super(db.newIterator());//new ReadOptions().setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
+		super(db.newIterator(), fromKey);//new ReadOptions().setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
 	    //kvMain.seek(SerializedComparator.serializeObject(fromKey));
 		//if(kvMain.isValid()) {
 		//	nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());

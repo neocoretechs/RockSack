@@ -22,6 +22,13 @@ public abstract class AbstractIterator implements Iterator<Object> {
 			nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
 		}
 	}
+	public AbstractIterator(RocksIterator kvMain, Comparable seekKey) throws IOException {
+		this.kvMain = kvMain;
+	    kvMain.seek(SerializedComparator.serializeObject(seekKey));
+		if(kvMain.isValid()) {
+			nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
+		}
+	}
 	public abstract boolean hasNext();
 	public abstract Object next();
 	public RocksIterator getIterator() { return kvMain; }

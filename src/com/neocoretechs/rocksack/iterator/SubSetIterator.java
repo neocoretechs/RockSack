@@ -32,7 +32,7 @@ import com.neocoretechs.rocksack.SerializedComparator;
 *
 */
 /**
-* Provides a persistent collection iterator 'from' element inclusive, 'to' element exclusive
+* Provides a persistent collection iterator of keys 'from' element inclusive, 'to' element exclusive of the keys specified
 * @author Jonathan Groff Copyright (C) NeoCoreTechs 2021
 */
 public class SubSetIterator extends AbstractIterator {
@@ -41,7 +41,7 @@ public class SubSetIterator extends AbstractIterator {
 	Comparable fromKey, toKey;
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public SubSetIterator(Comparable fromKey, Comparable toKey, RocksDB db) throws IOException {
-		super(db.newIterator());//new ReadOptions()));//.
+		super(db.newIterator(), fromKey);//new ReadOptions()));//.
 				//setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));//.
 				//setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
 		//

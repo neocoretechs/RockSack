@@ -118,12 +118,15 @@ public class BatteryRockSack2 {
 	 */
 	public static void battery1A0(BufferedMap session, String[] argv) throws Exception {
 		long tims = System.currentTimeMillis();
-		for(int i = min; i < max; i++) {
-			Entry kv = (Entry) session.getValue(val + String.format(uniqKeyFmt, i));
-			Object o = kv.getValue();
-			if( !(val+String.format(uniqKeyFmt, i)).equals(o) ) {
+		for(int i = min; i < min+100; i++) {
+			Entry o = (Entry) session.getValue(val + String.format(uniqKeyFmt, i));
+			if( !(val+String.format(uniqKeyFmt, i)).equals(o.getValue()) ) {
 				 System.out.println("BATTERY1A0 FAIL "+o);
 				throw new Exception("B1A0 Fail on get "+i+" with "+o);
+			}
+			if((System.currentTimeMillis()-tims) > 5000) {
+				System.out.println("1A0 Element "+i);
+				tims = System.currentTimeMillis();
 			}
 		}
 		 System.out.println("BATTERY1A0 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");

@@ -33,7 +33,7 @@ import com.neocoretechs.rocksack.SerializedComparator;
 *
 */
 /**
-* Iterator for items of persistent collection strictly less than 'to' element
+* Iterator for key items of persistent collection strictly less than 'to' element
 * @author Jonathan Groff Copyright (C) NeoCoreTechs 2021,2022
 */
 public class HeadSetIterator extends AbstractIterator {

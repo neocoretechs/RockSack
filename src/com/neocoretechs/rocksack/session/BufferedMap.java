@@ -39,13 +39,11 @@ public class BufferedMap implements OrderedKVMapInterface {
 
 	/**
 	* Get instance of RockSack session.
-	* @param tdbname The database name
+	* @param session the {@link Session} instance
 	* @exception IOException if global IO problem
 	* @exception IllegalAccessException if the database has been put offline
 	*/
 	public BufferedMap(Session session) throws IllegalAccessException, IOException {
-		//this.dbName = dbName;
-		//session = SessionManager.Connect(dbName, options);
 		this.session = session;
 	}
 		
@@ -54,7 +52,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 		return session;
 	}
 	/**
-	* Put a key/value pair to main cache and pool. 
+	* Put a key/value pair to underlying store. {@link Session}
 	* @param tkey The key for the pair
 	* @param tvalue The value for the pair
 	* @exception IOException if put to backing store fails
@@ -67,7 +65,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 		}
 	}
 	/**
-	* Put a key/value pair to main cache and pool.
+	* Put a key/value pair to underlying store. {@link Session}
 	* @param tkey The key for the pair, raw bytes unserialized before storage
 	* @param tvalue The value for the pair
 	* @exception IOException if put to backing store fails
@@ -79,10 +77,9 @@ public class BufferedMap implements OrderedKVMapInterface {
 		}
 	}
 	/**
-	* Get a value from backing store if not in cache.
-	* We may toss out one to make room if size surpasses objectCacheSize
+	* call a get from {@link Session}
 	* @param tkey The key for the value
-	* @return The key/value for the key
+	* @return The key/value for the key returned as {@link com.neocoretechs.rocksack.KeyValue}
 	* @exception IOException if get from backing store fails
 	*/
 	@SuppressWarnings("rawtypes")
@@ -92,9 +89,9 @@ public class BufferedMap implements OrderedKVMapInterface {
 		//}
 	}
 	/**
-	* Get a value from backing store
-	* @param tkey The key for the value, will not be serialized
-	* @return The key/value for the key
+	* Get a value from backing store. {@link Session}
+	* @param tkey The key for the value
+	* @return The value for the key deserialized from RocksDB get
 	* @exception IOException if get from backing store fails
 	*/
 	@SuppressWarnings("rawtypes")
@@ -104,9 +101,9 @@ public class BufferedMap implements OrderedKVMapInterface {
 		//}
 	}
 	/**
-	* Get a value from backing store .
+	* Get a value from backing store. {@link Session}
 	* @param tkey The key for the value
-	* @return The value for the key
+	* @return The value for the key or null if not found returned as {@link com.neocoretechs.rocksack.iterator.Entry} implemented from Map.Entry
 	* @exception IOException if get from backing store fails
 	*/
 	public Object getValue(Object tkey) throws IOException {
@@ -115,7 +112,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 		}
 	}
 	/**
-	* Return the number of elements in the backing store
+	* Return the number of elements in the backing store. {@link Session}
  	* @return A long value of number of elements
 	* @exception IOException If backing store retrieval failure
 	*/
@@ -126,8 +123,8 @@ public class BufferedMap implements OrderedKVMapInterface {
 	}
 
 	/**
-	* Obtain iterator over the entrySet. Retrieve from backing store if not in cache.
-	* @return The Iterator for all elements
+	* Obtain iterator over the entrySet. Retrieve from backing store if not in cache. {@link Session}
+	* @return The Iterator for all elements, iterator over Map.Entry
 	* @exception IOException if get from backing store fails
 	*/
 	public Iterator<?> entrySet() throws IOException {
@@ -136,13 +133,16 @@ public class BufferedMap implements OrderedKVMapInterface {
 		}
 	}
 	
+	/**
+	 * Stream of all elements as Map.Entry {@link Session}
+	 */
 	public Stream<?> entrySetStream() throws IOException {
 		synchronized (getSession().getMutexObject()) {
 				return session.entrySetStream();
 		}
 	}
 	/**
-	* Get a keySet iterator.
+	* Get a keySet iterator. {@link Session}
 	* @return The iterator for the keys
 	* @exception IOException if get from backing store fails
 	*/
@@ -151,14 +151,16 @@ public class BufferedMap implements OrderedKVMapInterface {
 				return session.keySet();
 		}
 	}
-	
+	/**
+	 * Get a stream over keys {@link Session}
+	 */
 	public Stream<?> keySetStream() throws IOException {
 		synchronized (getSession().getMutexObject()) {
 				return session.keySetStream();
 		}
 	}
 	/**
-	* Returns true if the collection contains the given key
+	* Returns true if the collection contains the given key. {@link Session}
 	* @param tkey The key to match
 	* @return true or false if in
 	* @exception IOException If backing store fails
@@ -170,7 +172,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 		}
 	}
 	/**
-	* Remove object from cache and backing store.
+	* Remove object from cache and backing store. {@link Session}
 	* @param tkey The key to match
 	* @return The removed object
 	* @exception IOException If backing store fails
@@ -182,7 +184,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 		}
 	}
 	/**
-	* @return First key in set
+	* @return First key in set. {@link Session}
 	* @exception IOException If backing store retrieval failure
 	*/
 	public Comparable firstKey() throws IOException {
@@ -191,7 +193,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 		}
 	}
 	/**
-	* @return Last key in set
+	* @return Last key in set. {@link Session}
 	* @exception IOException If backing store retrieval failure
 	*/
 	public Comparable lastKey() throws IOException {
@@ -200,7 +202,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 		}
 	}
 	/**
-	* Return the last element
+	* Return the last element. {@link Session}
 	* @return A long value of number of elements
 	* @exception IOException If backing store retrieval failure
 	*/
@@ -210,8 +212,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 		}
 	}
 	/**
-	* Return the first element, we have to bypass cache for this because
-	* of our random throwouts
+	* Return the first element. {@link Session}
 	* @return A long value of number of elements
 	* @exception IOException If backing store retrieval failure
 	*/
@@ -221,7 +222,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 		}
 	}
 	/**
-	* @param tkey Strictly less than 'to' this element
+	* @param tkey Strictly less than 'to' this element. {@link Session}
 	* @return Iterator of first to tkey
 	* @exception IOException If backing store retrieval failure
 	*/
@@ -232,6 +233,12 @@ public class BufferedMap implements OrderedKVMapInterface {
 		}
 	}
 	
+	/**
+	 * Stream of strictly less than 'to' elements. {@link Session}
+	 * @param tkey
+	 * @return
+	 * @throws IOException
+	 */
 	@SuppressWarnings("rawtypes")
 	public Stream<?> headMapStream(Comparable tkey) throws IOException {
 		synchronized (getSession().getMutexObject()) {
@@ -239,8 +246,8 @@ public class BufferedMap implements OrderedKVMapInterface {
 		}
 	}
 	/**
-	* @param tkey Strictly less than 'to' this element
-	* @return Iterator of first to tkey returning KeyValuePairs
+	* @param tkey Strictly less than 'to' this element. {@link Session}
+	* @return Iterator of first to tkey returning KeyValuePairs implementation of Map.Entry
 	* @exception IOException If backing store retrieval failure
 	*/
 	@SuppressWarnings("rawtypes")
@@ -249,7 +256,11 @@ public class BufferedMap implements OrderedKVMapInterface {
 			return session.headSetKV(tkey);
 		}
 	}
-	
+	/**
+	* @param tkey Strictly less than 'to' this element. {@link Session}
+	* @return stream over first to tkey returning KeyValuePairs implementation of Map.Entry
+	* @exception IOException If backing store retrieval failure
+	*/
 	@SuppressWarnings("rawtypes")
 	public Stream<?> headMapKVStream(Comparable tkey) throws IOException {
 		synchronized (getSession().getMutexObject()) {
@@ -257,7 +268,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 		}
 	}
 	/**
-	* @param fkey Greater or equal to 'from' element
+	* @param fkey Greater or equal to 'from' element. {@link Session}
 	* @return Iterator of objects from fkey to end
 	* @exception IOException If backing store retrieval failure
 	*/
@@ -267,7 +278,11 @@ public class BufferedMap implements OrderedKVMapInterface {
 			return session.tailSet(fkey);
 		}
 	}
-	
+	/**
+	* @param fkey Greater or equal to 'from' element. {@link Session}
+	* @return stream over objects from fkey to end.
+	* @exception IOException If backing store retrieval failure
+	*/
 	@SuppressWarnings("rawtypes")
 	public Stream<?> tailMapStream(Comparable fkey) throws IOException {
 		synchronized (getSession().getMutexObject()) {
@@ -275,8 +290,8 @@ public class BufferedMap implements OrderedKVMapInterface {
 		}
 	}
 	/**
-	* @param fkey Greater or equal to 'from' element
-	* @return Iterator of objects from fkey to end which are KeyValuePairs
+	* @param fkey Greater or equal to 'from' element. {@link Session}
+	* @return Iterator of objects from fkey to end which are KeyValuePairs implementation of Map.Entry
 	* @exception IOException If backing store retrieval failure
 	*/
 	@SuppressWarnings("rawtypes")
@@ -285,7 +300,11 @@ public class BufferedMap implements OrderedKVMapInterface {
 			return session.tailSetKV(fkey);
 		}
 	}
-	
+	/**
+	* @param fkey Greater or equal to 'from' element, {@link Session}
+	* @return stream over objects from fkey to end which are KeyValuePairs implementation of Map.Entry
+	* @exception IOException If backing store retrieval failure
+	*/
 	@SuppressWarnings("rawtypes")
 	public Stream<?> tailMapKVStream(Comparable fkey) throws IOException {
 		synchronized (getSession().getMutexObject()) {
@@ -293,7 +312,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 		}
 	}
 	/**
-	* @param fkey 'from' element inclusive 
+	* @param fkey 'from' element inclusive. {@link Session}
 	* @param tkey 'to' element exclusive
 	* @return Iterator of objects in subset from fkey to tkey
 	* @exception IOException If backing store retrieval failure
@@ -305,7 +324,12 @@ public class BufferedMap implements OrderedKVMapInterface {
 			return session.subSet(fkey, tkey);
 		}
 	}
-	
+	/**
+	* @param fkey 'from' element inclusive. {@link Session} 
+	* @param tkey 'to' element exclusive
+	* @return Stream over objects in subset from fkey to tkey
+	* @exception IOException If backing store retrieval failure
+	*/
 	@SuppressWarnings("rawtypes")
 	public Stream<?> subMapStream(Comparable fkey, Comparable tkey)
 		throws IOException {
@@ -314,9 +338,9 @@ public class BufferedMap implements OrderedKVMapInterface {
 		}
 	}
 	/**
-	* @param fkey 'from' element inclusive 
+	* @param fkey 'from' element inclusive. {@link Session}
 	* @param tkey 'to' element exclusive
-	* @return Iterator of objects in subset from fkey to tkey composed of KeyValuePairs
+	* @return Iterator of objects in subset from fkey to tkey composed of KeyValuePairs implementation of Map.Entry
 	* @exception IOException If backing store retrieval failure
 	*/
 	@SuppressWarnings("rawtypes")
@@ -326,7 +350,12 @@ public class BufferedMap implements OrderedKVMapInterface {
 			return session.subSetKV(fkey, tkey);
 		}
 	}
-	
+	/**
+	* @param fkey 'from' element inclusive. {@link Session}
+	* @param tkey 'to' element exclusive
+	* @return stream over objects in subset from fkey to tkey composed of KeyValuePairs implementation of Map.Entry
+	* @exception IOException If backing store retrieval failure
+	*/
 	@SuppressWarnings("rawtypes")
 	public Stream<?> subMapKVStream(Comparable fkey, Comparable tkey)
 		throws IOException {
@@ -363,7 +392,9 @@ public class BufferedMap implements OrderedKVMapInterface {
 		}
 	}
 
-
+	/**
+	 * {@link Session} equivalent of keySet fulfills {@link SetInterface}
+	 */
 	@Override
 	public Iterator<?> iterator() throws IOException {
 		synchronized (getSession().getMutexObject()) {
@@ -388,7 +419,9 @@ public class BufferedMap implements OrderedKVMapInterface {
 			session.getKVStore().close();
 		}
 	}
-	
+	/**
+	 * Return the RocksDB instance.
+	 */
 	@Override
 	public RocksDB getKVStore() {
 		try {
@@ -399,7 +432,9 @@ public class BufferedMap implements OrderedKVMapInterface {
 			throw new RuntimeException(e);
 		}
 	}
-
+	/**
+	 * {@link Session} containsValue
+	 */
 	@Override
 	public boolean containsValue(Object o) throws IOException {
 		synchronized (getSession().getMutexObject()) {

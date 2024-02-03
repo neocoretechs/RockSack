@@ -32,7 +32,7 @@ import com.neocoretechs.rocksack.SerializedComparator;
 *
 */
 /**
- * Iterator for entrySet of persistent collection
+ * Iterator for entrySet of persistent collection of {@link com.neocoretechs.rocksack.iterator.Entry} implemented from Map.Entry
  * @author Jonathan Groff Copyright (C) NeoCoreTechs 2021,2022
  *
  */

@@ -1,7 +1,7 @@
 package com.neocoretechs.rocksack.session;
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.Map;
+
 import java.util.stream.Stream;
 
 import org.rocksdb.Options;
@@ -13,6 +13,7 @@ import org.rocksdb.Transaction;
 
 import com.neocoretechs.rocksack.KeyValue;
 import com.neocoretechs.rocksack.SerializedComparator;
+import com.neocoretechs.rocksack.iterator.Entry;
 import com.neocoretechs.rocksack.iterator.EntrySetIterator;
 import com.neocoretechs.rocksack.iterator.HeadSetIterator;
 import com.neocoretechs.rocksack.iterator.HeadSetKVIterator;
@@ -194,7 +195,7 @@ public class Session {
 	 * @return the Key/Value object from the retrieved node
 	 * @throws IOException
 	 */
-	@SuppressWarnings("rawtypes")
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	protected Object get(Comparable o) throws IOException {
 		if(DEBUG)
 			System.out.printf("%s.get(%s)%n", this.getClass().getName(), o);
@@ -271,40 +272,44 @@ public class Session {
 	/**
 	 * Retrieve an object with this value for first key found to have it.
 	 * @param o the object value to seek
-	 * @return element for the key, null if not found
+	 * @return element for the key, null if not found of type {@link com.neocoretechs.rocksack.iterator.Entry}
 	 * @throws IOException
 	 */
 	@SuppressWarnings("rawtypes")
 	protected Object getValue(Object o) throws IOException {
-		   try {
-			return SerializedComparator.deserializeObject(kvStore.get(SerializedComparator.serializeObject(o)));
-		} catch (RocksDBException | IOException e) {
-			throw new IOException(e);
+		Iterator it = new EntrySetIterator(kvStore);
+		while(it.hasNext()) {
+			Entry e = ((Entry)it.next());
+			if(e.getValue().equals(o))
+				return e;
 		}
+		return null;
 	}
 	
 	/**
-	 * Retrieve an object with this value for first key found to have it.
+	 * Retrieve an object with this value for first key found to have it. {@link com.neocoretechs.rocksack.iterator.EntrySetIterator}
 	 * @param txn Transaction context
 	 * @param ro The ReadOptions
 	 * @param o the object value to seek
-	 * @return element for the key, null if not found
+	 * @return element for the key, null if not found of type {@link com.neocoretechs.rocksack.iterator.Entry}
 	 * @throws IOException
 	 */
 	@SuppressWarnings("rawtypes")
 	protected Object getValue(Transaction txn, ReadOptions ro, Object o) throws IOException {
-		   try {
-			return SerializedComparator.deserializeObject(txn.get(ro, SerializedComparator.serializeObject(o)));
-		} catch (RocksDBException | IOException e) {
-			throw new IOException(e);
+		Iterator it = new EntrySetIterator(txn);
+		while(it.hasNext()) {
+			Entry e = ((Entry)it.next());
+			if(e.getValue().equals(o))
+				return e;
 		}
+		return null;
 	}
 	/**
-	* Returns iterator vs actual subset.
+	* Returns iterator vs actual subset. {@link com.neocoretechs.rocksack.iterator.SubSetIterator}
 	* 'from' element inclusive, 'to' element exclusive
 	* @param fkey Return from fkey
 	* @param tkey Return from fkey to strictly less than tkey
-	* @return The Iterator over the subSet
+	* @return The Iterator over the subSet {@link com.neocoretechs.rocksack.iterator.SubSetIterator}
 	* @exception IOException If we cannot obtain the iterator
 	*/
 	@SuppressWarnings("rawtypes")
@@ -312,7 +317,7 @@ public class Session {
 		return new SubSetIterator(fkey, tkey, kvStore);
 	}
 	/**
-	* Returns iterator vs actual subset.
+	* Returns iterator vs actual subset. {@link com.neocoretechs.rocksack.iterator.SubSetIterator}
 	* 'from' element inclusive, 'to' element exclusive
 	* @param txn Transaction
 	* @param fkey Return from fkey
@@ -325,7 +330,7 @@ public class Session {
 		return new SubSetIterator(fkey, tkey, txn);
 	}
 	/**
-	 * Return a Stream that delivers the subset of fkey to tkey
+	 * Return a Stream that delivers the subset of fkey to tkey. {@link com.neocoretechs.rocksack.stream.SubSetStream}
 	 * @param fkey the from key
 	 * @param tkey the to key
 	 * @return the stream from which the lambda expression can be utilized
@@ -335,7 +340,7 @@ public class Session {
 		return new SubSetStream(new SubSetIterator(fkey, tkey, kvStore));
 	}
 	/**
-	 * Return a Stream that delivers the subset of fkey to tkey
+	 * Return a Stream that delivers the subset of fkey to tkey. {@link com.neocoretechs.rocksack.stream.SubSetStream}
 	 * @param txn Transaction
 	 * @param fkey the from key
 	 * @param tkey the to key
@@ -346,11 +351,11 @@ public class Session {
 		return new SubSetStream(new SubSetIterator(fkey, tkey, txn));
 	}
 	/**
-	* Not a real subset, returns iterator vs set.
+	* Not a real subset, returns iterator vs set. {@link com.neocoretechs.rocksack.iterator.SubSetKVIterator}
 	* 'from' element inclusive, 'to' element exclusive
 	* @param fkey Return from fkey
 	* @param tkey Return from fkey to strictly less than tkey
-	* @return The KeyValuePair Iterator over the subSet
+	* @return The KeyValuePair Iterator over the subSet, implementation of Map.Entry
 	* @exception IOException If we cannot obtain the iterator
 	*/
 	@SuppressWarnings("rawtypes")
@@ -358,12 +363,12 @@ public class Session {
 		return new SubSetKVIterator(fkey, tkey, kvStore);
 	}
 	/**
-	* Not a real subset, returns iterator vs set.
+	* Not a real subset, returns iterator vs set. {@link com.neocoretechs.rocksack.iterator.SubSetKVIterator}
 	* 'from' element inclusive, 'to' element exclusive
 	* @param txn Transaction
 	* @param fkey Return from fkey
 	* @param tkey Return from fkey to strictly less than tkey
-	* @return The KeyValuePair Iterator over the subSet
+	* @return The KeyValuePair Iterator over the subSet, implementation of Map.Entry
 	* @exception IOException If we cannot obtain the iterator
 	*/
 	@SuppressWarnings("rawtypes")
@@ -371,7 +376,7 @@ public class Session {
 		return new SubSetKVIterator(fkey, tkey, txn);
 	}
 	/**
-	 * Return a Streamof key/value pairs that delivers the subset of fkey to tkey
+	 * Return a Streamof key/value pairs that delivers the subset of fkey to tkey. {@link com.neocoretechs.rocksack.stream.SubSetKVStream}
 	 * @param fkey the from key
 	 * @param tkey the to key
 	 * @return the stream from which the lambda expression can be utilized
@@ -381,7 +386,7 @@ public class Session {
 			return new SubSetKVStream(fkey, tkey, kvStore);
 	}
 	/**
-	 * Return a Streamof key/value pairs that delivers the subset of fkey to tkey
+	 * Return a Streamof key/value pairs that delivers the subset of fkey to tkey. {@link com.neocoretechs.rocksack.stream.SubSetKVStream}
 	 * @param txn Transaction
 	 * @param fkey the from key
 	 * @param tkey the to key
@@ -392,7 +397,7 @@ public class Session {
 			return new SubSetKVStream(fkey, tkey, txn);
 	}
 	/**
-	* Not a real subset, returns iterator
+	* Not a real subset, returns iterator. {@link com.neocoretechs.rocksack.iterator.EntrySetIterator}
 	* @return The Iterator over the entrySet
 	* @exception IOException If we cannot obtain the iterator
 	*/
@@ -400,7 +405,7 @@ public class Session {
 		return new EntrySetIterator(kvStore);
 	}
 	/**
-	* Not a real subset, returns iterator
+	* Not a real subset, returns iterator. {@link com.neocoretechs.rocksack.iterator.EntrySetIterator}
 	* @param txn Transaction
 	* @return The Iterator over the entrySet
 	* @exception IOException If we cannot obtain the iterator
@@ -409,7 +414,7 @@ public class Session {
 		return new EntrySetIterator(txn);
 	}
 	/**
-	 * Get a stream of entry set
+	 * Get a stream of entry set. {@link com.neocoretechs.rocksack.stream.EntrySetStream}
 	 * @return
 	 * @throws IOException
 	 */
@@ -417,7 +422,7 @@ public class Session {
 		return new EntrySetStream(kvStore);
 	}
 	/**
-	 * Get a stream of entry set
+	 * Get a stream of entry set. {@link com.neocoretechs.rocksack.stream.EntrySetStream}
 	 * @param txn Transaction
 	 * @return
 	 * @throws IOException
@@ -426,7 +431,7 @@ public class Session {
 		return new EntrySetStream(txn);
 	}
 	/**
-	* Not a real subset, returns Iterator
+	* Not a real subset, returns Iterator. {@link com.neocoretechs.rocksack.iterator.HeadSetIterator}
 	* @param tkey return from head to strictly less than tkey
 	* @return The Iterator over the headSet
 	* @exception IOException If we cannot obtain the iterator
@@ -436,7 +441,7 @@ public class Session {
 		return new HeadSetIterator(tkey, kvStore);
 	}
 	/**
-	* Not a real subset, returns Iterator
+	* Not a real subset, returns Iterator. {@link com.neocoretechs.rocksack.iterator.HeadSetIterator}
 	* @param Transaction txn
 	* @param tkey return from head to strictly less than tkey
 	* @return The Iterator over the headSet
@@ -447,7 +452,7 @@ public class Session {
 		return new HeadSetIterator(tkey, txn);
 	}
 	/**
-	 * Get a stream of headset
+	 * Get a stream of headset. {@link com.neocoretechs.rocksack.stream.HeadSetStream}
 	 * @param tkey
 	 * @return
 	 * @throws IOException
@@ -456,7 +461,7 @@ public class Session {
 		return new HeadSetStream(tkey, kvStore);
 	}
 	/**
-	 * Get a stream of headset
+	 * Get a stream of headset. {@link com.neocoretechs.rocksack.stream.HeadSetStream}
 	 * @param txn Transaction
 	 * @param tkey
 	 * @return
@@ -466,7 +471,7 @@ public class Session {
 		return new HeadSetStream(tkey, txn);
 	}
 	/**
-	* Not a real subset, returns Iterator
+	* Not a real subset, returns Iterator. {@link com.neocoretechs.rocksack.iterator.HeadSetKVIterator}
 	* @param tkey return from head to strictly less than tkey
 	* @return The KeyValuePair Iterator over the headSet
 	* @exception IOException If we cannot obtain the iterator
@@ -476,7 +481,7 @@ public class Session {
 		return new HeadSetKVIterator(tkey, kvStore);
 	}
 	/**
-	* Not a real subset, returns Iterator
+	* Not a real subset, returns Iterator. {@link com.neocoretechs.rocksack.iterator.HeadSetKVIterator}
 	* @param txn Transaction
 	* @param tkey return from head to strictly less than tkey
 	* @return The KeyValuePair Iterator over the headSet
@@ -487,7 +492,7 @@ public class Session {
 		return new HeadSetKVIterator(tkey, txn);
 	}
 	/**
-	 * Get a stream of head set
+	 * Get a stream of head set. {@link com.neocoretechs.rocksack.stream.HeadSetKVStream}
 	 * @param tkey
 	 * @return
 	 * @throws IOException
@@ -496,17 +501,17 @@ public class Session {
 		return new HeadSetKVStream(tkey, kvStore);
 	}
 	/**
-	 * Get a stream of head set
+	 * Get a stream of head set. {@link com.neocoretechs.rocksack.stream.HeadSetKVStream}
 	 * @param txn Transaction
 	 * @param tkey
-	 * @return
+	 * @return The Stream over KV elements
 	 * @throws IOException
 	 */
 	protected Stream<?> headSetKVStream(Transaction txn, Comparable tkey) throws IOException {
 		return new HeadSetKVStream(tkey, txn);
 	}
 	/**
-	* Return the keyset Iterator over all elements
+	* Return the keyset Iterator over all elements. {@link com.neocoretechs.rocksack.iterator.KeySetIterator}
 	* @return The Iterator over the keySet
 	* @exception IOException If we cannot obtain the iterator
 	*/
@@ -514,7 +519,7 @@ public class Session {
 		return new KeySetIterator(kvStore);
 	}
 	/**
-	* Return the keyset Iterator over all elements
+	* Return the keyset Iterator over all elements. {@link com.neocoretechs.rocksack.iterator.KeySetIterator}
 	* @param txn Transaction
 	* @return The Iterator over the keySet
 	* @exception IOException If we cannot obtain the iterator
@@ -523,7 +528,7 @@ public class Session {
 		return new KeySetIterator(txn);
 	}
 	/**
-	 * Get a keyset stream
+	 * Get a keyset stream. {@link com.neocoretechs.rocksack.stream.KeySetStream}
 	 * @return
 	 * @throws IOException
 	 */
@@ -531,7 +536,7 @@ public class Session {
 		return new KeySetStream(kvStore);
 	}
 	/**
-	 * Get a keyset stream
+	 * Get a keyset stream.  {@link com.neocoretechs.rocksack.stream.KeySetStream}
 	 * @param txn Transaction
 	 * @return
 	 * @throws IOException
@@ -540,7 +545,7 @@ public class Session {
 		return new KeySetStream(txn);
 	}
 	/**
-	* Not a real subset, returns Iterator
+	* Not a real subset, returns Iterator, {@link com.neocoretechs.rocksack.iterator.TailSetIterator}
 	* @param fkey return from value to end
 	* @return The Iterator over the tailSet
 	* @exception IOException If we cannot obtain the iterator
@@ -550,7 +555,7 @@ public class Session {
 		return new TailSetIterator(fkey, kvStore);
 	}
 	/**
-	* Not a real subset, returns Iterator
+	* Not a real subset, returns Iterator. {@link com.neocoretechs.rocksack.iterator.TailSetIterator}
 	* @param txn Transaction
 	* @param fkey return from value to end
 	* @return The Iterator over the tailSet
@@ -561,7 +566,7 @@ public class Session {
 		return new TailSetIterator(fkey, txn);
 	}
 	/**
-	 * Return a tail set stream
+	 * Return a tail set stream. {@link com.neocoretechs.rocksack.stream.TailSetStream}
 	 * @param fkey
 	 * @return
 	 * @throws IOException
@@ -570,7 +575,7 @@ public class Session {
 		return new TailSetStream(fkey, kvStore);
 	}
 	/**
-	 * Return a tail set stream
+	 * Return a tail set stream. {@link com.neocoretechs.rocksack.stream.TailSetStream}
 	 * @param txn Transaction
 	 * @param fkey
 	 * @return
@@ -580,7 +585,7 @@ public class Session {
 		return new TailSetStream(fkey, txn);
 	}
 	/**
-	* Not a real subset, returns Iterator
+	* Not a real subset, returns Iterator. {@link com.neocoretechs.rocksack.iterator.TailSetKVIterator}
 	* @param fkey return from value to end
 	* @return The KeyValuePair Iterator over the tailSet
 	* @exception IOException If we cannot obtain the iterator
@@ -590,7 +595,7 @@ public class Session {
 		return new TailSetKVIterator(fkey, kvStore);
 	}
 	/**
-	* Not a real subset, returns Iterator
+	* Not a real subset, returns Iterator. {@link com.neocoretechs.rocksack.iterator.TailSetKVIterator}
 	* @param txn Transaction
 	* @param fkey return from value to end
 	* @return The KeyValuePair Iterator over the tailSet
@@ -601,7 +606,7 @@ public class Session {
 		return new TailSetKVIterator(fkey, txn);
 	}
 	/**
-	 * Return a tail set key/value stream
+	 * Return a tail set key/value stream. {@link com.neocoretechs.rocksack.stream.TailSetKVStream}
 	 * @param fkey from key of tailset
 	 * @return the stream from which the lambda can be utilized
 	 * @throws IOException
@@ -610,7 +615,7 @@ public class Session {
 		return new TailSetKVStream(fkey, kvStore);
 	}
 	/**
-	 * Return a tail set key/value stream
+	 * Return a tail set key/value stream. {@link com.neocoretechs.rocksack.stream.TailSetKVStream}
 	 * @param txn Transaction
 	 * @param fkey from key of tailset
 	 * @return the stream from which the lambda can be utilized
@@ -627,17 +632,7 @@ public class Session {
 	 */
 	@SuppressWarnings("rawtypes")
 	protected boolean containsValue(Object o) throws IOException {
-		Iterator it = new KeySetIterator(kvStore);
-		while(it.hasNext()) {
-			try {
-				Object o2 = SerializedComparator.deserializeObject(kvStore.get(SerializedComparator.serializeObject(it.next())));
-				if(o.equals(o2))
-					return true;
-			} catch (RocksDBException | IOException e) {
-				throw new IOException(e);
-			}
-		}
-		return false;
+		return (getValue(o) != null);
 	}
 	/**
 	 * Contains a value object
@@ -649,17 +644,7 @@ public class Session {
 	 */
 	@SuppressWarnings("rawtypes")
 	protected boolean containsValue(Transaction txn, ReadOptions ro, Object o) throws IOException {
-		Iterator it = new KeySetIterator(txn);
-		while(it.hasNext()) {
-			try {
-				Object o2 = SerializedComparator.deserializeObject(txn.get(ro, SerializedComparator.serializeObject(it.next())));
-				if(o.equals(o2))
-					return true;
-			} catch (RocksDBException | IOException e) {
-				throw new IOException(e);
-			}
-		}
-		return false;
+		return (getValue(txn, ro, o) != null);
 	}
 	/**
 	 * Contains a value object
@@ -729,7 +714,7 @@ public class Session {
 	protected Object first() throws IOException {
 		Iterator it = new EntrySetIterator(kvStore);
 		if(it.hasNext()) {
-			return ((Map.Entry)it.next()).getValue();
+			return ((Entry)it.next()).getValue();
 		}
 		return null;
 	}
@@ -742,7 +727,7 @@ public class Session {
 	protected Object first(Transaction txn) throws IOException {
 		Iterator it = new EntrySetIterator(txn);
 		if(it.hasNext()) {
-			return ((Map.Entry)it.next()).getValue();
+			return ((Entry)it.next()).getValue();
 		}
 		return null;
 	}
@@ -757,7 +742,7 @@ public class Session {
 			System.out.printf("%s.firstKey for kvStore %s%n", this.getClass().getName(),kvStore);
 		Iterator it = new EntrySetIterator(kvStore);
 		if(it.hasNext()) {
-			return (Comparable) ((Map.Entry)it.next()).getKey();
+			return (Comparable) ((Entry)it.next()).getKey();
 		}
 		return null;
 	}
@@ -773,7 +758,7 @@ public class Session {
 			System.out.printf("%s.firstKey for kvStore %s%n", this.getClass().getName(),txn);
 		Iterator it = new EntrySetIterator(txn);
 		if(it.hasNext()) {
-			return (Comparable) ((Map.Entry)it.next()).getKey();
+			return (Comparable) ((Entry)it.next()).getKey();
 		}
 		return null;
 	}

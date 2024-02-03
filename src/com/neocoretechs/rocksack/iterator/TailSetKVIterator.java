@@ -31,7 +31,7 @@ import com.neocoretechs.rocksack.SerializedComparator;
 *
 */
 /**
-* Provides a persistent collection iterator greater or equal to 'from' element
+* Provides a persistent collection iterator greater or equal to 'from' element of {@link com.neocoretechs.rocksack.iterator.KeyValuePair} or Map.Entry
 * @author Jonathan Groff Copyright (C) NeoCoreTechs 2021,2022
 */
 public class TailSetKVIterator extends TailSetIterator {

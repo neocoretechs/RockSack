@@ -27,7 +27,7 @@ import java.util.Map;
 /**
 * Key-Value pair to be stored in persistent collection.
 * Collections are transparent to type, so we provide this wrapper to give a key-value type
-* if necessary.
+* if necessary. For compatibility we conform to Map.Entry interface contract
 * @author Jonathan Groff Copyright (C) NeoCoreTechs 2021,2022
 */
 @SuppressWarnings("rawtypes")

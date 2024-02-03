@@ -30,7 +30,7 @@ import com.neocoretechs.rocksack.SerializedComparator;
 *
 */
 /**
-* Iterator for items of persistent collection strictly less than 'to' element
+* Iterator for items of persistent collection strictly less than 'to' element of {@link com.neocoretechs.rocksack.iterator.KeyValuePair} of Map.Entry
 * @author Jonathan Groff (C) NeoCoreTechs 1997,2003,2020,2021,2022
 */
 public class HeadSetKVIterator extends HeadSetIterator {

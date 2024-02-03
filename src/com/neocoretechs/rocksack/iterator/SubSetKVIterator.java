@@ -31,7 +31,7 @@ import com.neocoretechs.rocksack.SerializedComparator;
 *
 */
 /**
-* Provides a persistent collection iterator 'from' element inclusive, 'to' element exclusive
+* Provides a persistent collection iterator 'from' element inclusive, 'to' element exclusive of {@link com.neocoretechs.rocksack.iterator.KeyValuePair} of Map.Entry
 * @author Jonathan Groff Copyright (C) NeoCoreTechs 2021,2022
 */
 public class SubSetKVIterator extends SubSetIterator {
