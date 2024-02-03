@@ -36,6 +36,8 @@ public class BatteryKVStream {
 	static int i;
 	static int j;
 	static BufferedMap bmap;
+	static long timx = System.currentTimeMillis();
+	static int idel = 0;
 	/**
 	* Main test fixture driver
 	*/
@@ -425,12 +427,12 @@ public class BatteryKVStream {
 		//String tkey = String.format(uniqKeyFmt, j);
 		System.out.println("KV Battery1AR17");
 		long siz = bmap.size();
+		timx = System.currentTimeMillis();
+		idel = 0;
 		if(siz > 0) {
 			Stream stream = bmap.keySetStream();
 			stream.forEach(e ->{
 				//System.out.println(i+"="+key);
-				int i = 0;
-				long timx = System.currentTimeMillis();
 				try {
 					bmap.remove((Comparable) e);
 					++i;
