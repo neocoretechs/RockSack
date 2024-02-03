@@ -1,6 +1,7 @@
 package com.neocoretechs.rocksack.test;
 
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import com.neocoretechs.rocksack.iterator.KeyValuePair;
@@ -398,8 +399,8 @@ public class BatteryRockSack2 {
 		for(int i = min; i < max; i++) {
 			String nkey = key + String.format(uniqKeyFmt, i);
 			session.put(nkey, "Overwrite"+String.format(uniqKeyFmt, i));
-			Object o = session.get(key + String.format(uniqKeyFmt, i));
-			if( !o.equals("Overwrite"+String.format(uniqKeyFmt, i)) ){
+			Map.Entry o = (Entry) session.get(key + String.format(uniqKeyFmt, i));
+			if( !o.getValue().equals("Overwrite"+String.format(uniqKeyFmt, i)) ){
 				 System.out.println("BATTERY1G FAIL, found "+o+" after replace on iteration "+i+" for target "+nkey);
 				throw new Exception("BATTERY1G FAIL, found "+o+" after replace on iteration "+i+" for target "+nkey);
 			}
