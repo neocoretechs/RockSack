@@ -255,7 +255,7 @@ public class BatteryRockSack2 {
 		int maxx = max-100;
 		String smaxx =  key+String.format(uniqKeyFmt, maxx);
 		Iterator<?> itk = session.subMap(sminx, smaxx); // 'to' exclusive so we use max val
-		int ctr = minx;
+		int ctr = 0;
 		while(itk.hasNext()) {
 			Object f = itk.next();
 			String nval = key + String.format(uniqKeyFmt, ctr);
@@ -268,7 +268,7 @@ public class BatteryRockSack2 {
 			++ctr;
 		}
 		if(maxx-minx != ctr)
-			throw new Exception("subset count incorrect:"+(maxx-minx-1)+" but iterated:"+ctr);
+			throw new Exception("subset count incorrect:"+(maxx-minx)+" but iterated:"+ctr);
 		 System.out.println("BATTERY1E SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
 	/**
@@ -347,7 +347,7 @@ public class BatteryRockSack2 {
 		int maxx = max-100;
 		String smaxx =  key+String.format(uniqKeyFmt, maxx);
 		Iterator<?> itk = session.subMapKV(sminx, smaxx); // 'to' exclusive so we use max val
-		int ctr = minx;
+		int ctr = 0;
 		while(itk.hasNext()) {
 			KeyValuePair f = (KeyValuePair) itk.next();
 			String nval = key + String.format(uniqKeyFmt, ctr);
@@ -358,10 +358,10 @@ public class BatteryRockSack2 {
 				 System.out.println("BATTERY1E1 FAIL counter reached "+ctr);
 				throw new Exception("B1E1 Fail on get with retrieved:"+f+" -- expected:"+nval);
 			}
-			if(ctr == maxx)
-				break;
 			++ctr;
 		}
+		if(maxx-minx != ctr)
+			throw new Exception("subset count incorrect:"+(maxx-minx)+" but iterated:"+ctr);
 		 System.out.println("BATTERY1E1 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
 	/**
