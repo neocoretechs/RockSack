@@ -256,16 +256,18 @@ public class BatteryRockSack2 {
 		String smaxx =  key+String.format(uniqKeyFmt, maxx);
 		Iterator<?> itk = session.subMap(sminx, smaxx); // 'to' exclusive so we use max val
 		int ctr = 0;
+		int ctrx = minx;
 		while(itk.hasNext()) {
 			Object f = itk.next();
-			String nval = key + String.format(uniqKeyFmt, ctr);
+			String nval = key + String.format(uniqKeyFmt, ctrx);
 			//System.out.println(nval);
 			if( !f.equals(nval) ) {
 				 System.out.println("BATTERY1E FAIL retrieved:"+f+" -- expected:"+nval);
-				 System.out.println("BATTERY1E FAIL counter reached "+ctr+" not "+maxx);
+				 System.out.println("BATTERY1E FAIL counter reached "+ctr+" not "+(maxx-minx));
 				throw new Exception("B1E Fail on get with retrieved:"+f+" -- expected:"+nval);
 			}
 			++ctr;
+			++ctrx;
 		}
 		if(maxx-minx != ctr)
 			throw new Exception("subset count incorrect:"+(maxx-minx)+" but iterated:"+ctr);
@@ -348,10 +350,11 @@ public class BatteryRockSack2 {
 		String smaxx =  key+String.format(uniqKeyFmt, maxx);
 		Iterator<?> itk = session.subMapKV(sminx, smaxx); // 'to' exclusive so we use max val
 		int ctr = 0;
+		int ctrx = minx;
 		while(itk.hasNext()) {
 			KeyValuePair f = (KeyValuePair) itk.next();
-			String nval = key + String.format(uniqKeyFmt, ctr);
-			String nvalx = val + String.format(uniqKeyFmt, ctr);
+			String nval = key + String.format(uniqKeyFmt, ctrx);
+			String nvalx = val + String.format(uniqKeyFmt, ctrx);
 			//System.out.println(nval);
 			if( !f.key.equals(nval) || !f.value.equals(nvalx)) {
 				 System.out.println("BATTERY1E1 FAIL retrieved:"+f+" -- expected:"+nval);
@@ -359,6 +362,7 @@ public class BatteryRockSack2 {
 				throw new Exception("B1E1 Fail on get with retrieved:"+f+" -- expected:"+nval);
 			}
 			++ctr;
+			++ctrx;
 		}
 		if(maxx-minx != ctr)
 			throw new Exception("subset count incorrect:"+(maxx-minx)+" but iterated:"+ctr);
