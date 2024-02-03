@@ -1,8 +1,10 @@
 package com.neocoretechs.rocksack.test;
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Stream;
 
 import com.neocoretechs.rocksack.iterator.KeyValuePair;
 import com.neocoretechs.rocksack.session.DatabaseManager;
@@ -30,7 +32,9 @@ public class BatteryRockSack2 {
 	static int min = 0; // controls range of testing
 	static int max = 100000; //make sure insert is INCLUSIVE OF MAX!
 	static int numDelete = 100; // for delete test
-	static int l3CacheSize = 100; // size of object cache
+	static long timx = System.currentTimeMillis();
+	static int idel = 0;
+
 	/**
 	* Analysis test fixture, pass supplemental method payloads on cmdl.
 	*/
@@ -43,6 +47,7 @@ public class BatteryRockSack2 {
 		DatabaseManager.setTableSpaceDir(argv[0]);
 		BufferedMap session = DatabaseManager.getMap(key.getClass());
 		 System.out.println("Begin Battery Fire!");
+		 battery1AR17(session);
 		 // add min to max
 		battery1(session, argv);
 		// get and verify min to max
@@ -260,10 +265,10 @@ public class BatteryRockSack2 {
 				 System.out.println("BATTERY1E FAIL counter reached "+ctr+" not "+maxx);
 				throw new Exception("B1E Fail on get with retrieved:"+f+" -- expected:"+nval);
 			}
-			if(ctr == maxx)
-				break;
 			++ctr;
 		}
+		if(maxx-minx != ctr)
+			throw new Exception("subset count incorrect:"+(maxx-minx-1)+" but iterated:"+ctr);
 		 System.out.println("BATTERY1E SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
 	/**
@@ -449,5 +454,47 @@ public class BatteryRockSack2 {
 		 System.out.println("BATTERY2A SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
 
-
+	/**
+	 * remove entries
+	 * @param argv
+	 * @throws Exception
+	 */
+	public static void battery1AR17(BufferedMap bmap) throws Exception {
+		long tims = System.currentTimeMillis();
+		//int i = min;
+		//int j = max;
+		// with j at max, should get them all since we stored to max -1
+		//String tkey = String.format(uniqKeyFmt, j);
+		System.out.println("Clean Battery1AR17");
+		long siz = bmap.size();
+		timx = System.currentTimeMillis();
+		idel = 0;
+		if(siz > 0) {
+			Stream stream = bmap.keySetStream();
+			stream.forEach(e ->{
+				//System.out.println(i+"="+key);
+				try {
+					bmap.remove((Comparable) e);
+					++idel;
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+				if((System.currentTimeMillis()-timx) > 5000) {
+					System.out.println("Deleted Elements "+idel);
+					timx = System.currentTimeMillis();
+				}
+			});
+		}
+		siz = bmap.size();
+		if(siz > 0) {
+			Stream stream = bmap.entrySetStream();
+			stream.forEach(e ->{
+				//System.out.println(i+"="+key);
+				System.out.println(key+"="+e);
+			});
+			System.out.println("KV RANGE 1AR17 KEY MISMATCH:"+siz+" > 0 after all deleted and committed");
+			//throw new Exception("KV RANGE 1AR17 KEY MISMATCH:"+siz+" > 0 after delete/commit");
+		}
+		 System.out.println("BATTERY1AR17 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
+	}
 }
