@@ -1,7 +1,7 @@
 package com.neocoretechs.rocksack.session;
 import java.io.IOException;
 import java.util.Iterator;
-
+import java.util.NoSuchElementException;
 import java.util.stream.Stream;
 
 import org.rocksdb.Options;
@@ -303,6 +303,33 @@ public class Session {
 				return e;
 		}
 		return null;
+	}
+	/**
+	 * Return the key/value pair of Map.Entry implementation of the closest key to the passed key template.
+	 * May be exact match Up to user. Essentially starts a tailSet iterator seeking nearest key.
+	 * @param key target key template
+	 * @return null if no next for initial iteration
+	 * @throws IOException
+	 */
+	public Object nearest(Comparable key) throws IOException {
+		Iterator<?> it = new TailSetKVIterator(key, kvStore);
+		if(!it.hasNext())
+			return null;
+		return it.next();
+	}
+	/**
+	 * Return the key/value pair of Map.Entry implementation of the closest key to the passed key template.
+	 * May be exact match Up to user. Essentially starts a tailSet iterator seeking nearest key.
+	 * @param alias the database alias
+	 * @param key target key template
+	 * @return null if no next for initial iteration
+	 * @throws IOException
+	 */
+	public Object nearest(Transaction txn, Comparable key) throws IOException {
+		Iterator<?> it = new TailSetKVIterator(key, txn);
+		if(!it.hasNext())
+			return null;
+		return it.next();
 	}
 	/**
 	* Returns iterator vs actual subset. {@link com.neocoretechs.rocksack.iterator.SubSetIterator}

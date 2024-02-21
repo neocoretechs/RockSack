@@ -246,14 +246,24 @@ public class TransactionalMap implements OrderedKVMapInterface {
 		}
 	}
 	/**
-	* Return the first element, we have to bypass cache for this because
-	* of our random throwouts
+	* Return the first element
 	* @return A long value of number of elements
 	* @exception IOException If backing store retrieval failure
 	*/
 	public Object first() throws IOException {
 		synchronized (getSession().getMutexObject()) {
 			return session.first(txn);
+		}
+	}
+	/**
+	 * Return the element nearest to given key
+	 * @param tkey the key to sear for
+	 * @return the key/value of closest element to tkey
+	 * @throws IOException
+	 */
+	public Object nearest(Comparable tkey) throws IOException {
+		synchronized (getSession().getMutexObject()) {
+			return session.nearest(txn, tkey);
 		}
 	}
 	/**

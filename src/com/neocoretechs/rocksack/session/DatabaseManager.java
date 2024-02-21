@@ -210,25 +210,27 @@ public class DatabaseManager {
 		final Filter bloomFilter = new BloomFilter(10);
 		//final ReadOptions readOptions = new ReadOptions().setFillCache(false);
 		final Statistics stats = new Statistics();
-		final RateLimiter rateLimiter = new RateLimiter(10000000,10000, 10);
+		//final RateLimiter rateLimiter = new RateLimiter(10000000,10000, 10);
 		options.setComparator(comparator);
 		try {
 		    options.setCreateIfMissing(true)
 		        .setStatistics(stats)
-		        .setWriteBufferSize(8 * SizeUnit.KB)
+		        .setWriteBufferSize(8 * SizeUnit.MB)
 		        .setMaxWriteBufferNumber(3)
-		        .setMaxBackgroundJobs(10)
-		        .setCompressionType(CompressionType.ZLIB_COMPRESSION)
-		        .setCompactionStyle(CompactionStyle.UNIVERSAL);
+		        .setMaxBackgroundJobs(24)
+		        .setCompressionType(CompressionType.SNAPPY_COMPRESSION)
+		        .setCompactionStyle(CompactionStyle.LEVEL);
 		 } catch (final IllegalArgumentException e) {
-		    assert (false);
+		    //assert (false);
+			 bloomFilter.close();
+			 throw new RuntimeException(e);
 		 }
-		  assert (options.createIfMissing() == true);
-		  assert (options.writeBufferSize() == 8 * SizeUnit.KB);
-		  assert (options.maxWriteBufferNumber() == 3);
-		  assert (options.maxBackgroundJobs() == 10);
-		  assert (options.compressionType() == CompressionType.ZLIB_COMPRESSION);
-		  assert (options.compactionStyle() == CompactionStyle.UNIVERSAL);
+		  //assert (options.createIfMissing() == true);
+		  //assert (options.writeBufferSize() == 8 * SizeUnit.KB);
+		  //assert (options.maxWriteBufferNumber() == 3);
+		  //assert (options.maxBackgroundJobs() == 10);
+		  //assert (options.compressionType() == CompressionType.ZLIB_COMPRESSION);
+		  //assert (options.compactionStyle() == CompactionStyle.UNIVERSAL);
 
 		  assert (options.memTableFactoryName().equals("SkipListFactory"));
 		  options.setMemTableConfig(
@@ -255,7 +257,7 @@ public class DatabaseManager {
 		  options.setAllowMmapReads(true);
 		  assert (options.tableFactoryName().equals("PlainTable"));
 
-		  options.setRateLimiter(rateLimiter);
+		  //options.setRateLimiter(rateLimiter);
 
 		  final BlockBasedTableConfig table_options = new BlockBasedTableConfig();
 		  Cache cache = new LRUCache(64 * 1024, 6);
@@ -820,4 +822,11 @@ public class DatabaseManager {
 		return sb.toString();
 	}
 
+	public static void main(String[] args) throws Exception {
+		DatabaseManager.setTableSpaceDir(args[0]);
+		BufferedMap bm = DatabaseManager.getMap(args[1]);
+		bm.entrySetStream().forEach(e -> {
+			System.out.println(e.toString());
+		});
+	}
 }

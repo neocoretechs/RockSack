@@ -222,6 +222,17 @@ public class BufferedMap implements OrderedKVMapInterface {
 		}
 	}
 	/**
+	 * Find the entry nearest to given key
+	 * @param key
+	 * @return element nearest to given key or null if nothing
+	 * @throws IOException
+	 */
+	public Object nearest(Comparable key) throws IOException {
+		synchronized (getSession().getMutexObject()) {
+			return session.nearest(key);
+		}
+	}
+	/**
 	* @param tkey Strictly less than 'to' this element. {@link Session}
 	* @return Iterator of first to tkey
 	* @exception IOException If backing store retrieval failure
