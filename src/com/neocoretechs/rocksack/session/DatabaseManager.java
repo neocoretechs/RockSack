@@ -524,6 +524,7 @@ public class DatabaseManager {
 	 * @return
 	 * @throws IllegalAccessException
 	 * @throws IOException
+	 * @throws RocksDBException 
 	 */
 	public static synchronized TransactionalMap getTransactionalMap(Comparable clazz, String xid) throws IllegalAccessException, IOException {
 		return getTransactionalMap(clazz.getClass(), xid);
@@ -534,11 +535,49 @@ public class DatabaseManager {
 	 * @return
 	 * @throws IllegalAccessException
 	 * @throws IOException
+	 * @throws RocksDBException 
 	 */
 	public static synchronized TransactionalMap getTransactionalMap(Class clazz, String xid) throws IllegalAccessException, IOException {
 		String xClass = translateClass(clazz.getName());
 		Volume v = VolumeManager.get(tableSpaceDir);
-		return getTransactionalMap(xid, tableSpaceDir, xClass, v);
+		TransactionalMap ret = (TransactionalMap) v.classToIsoTransaction.get(xClass);
+		if(DEBUG)
+			System.out.println("DatabaseManager.getTransactionalMap About to return designator for dir:"+tableSpaceDir+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v+" map:"+ret);
+		if( ret == null ) {
+			//if(options == null)
+			//	options = getDefaultOptions();
+			try {
+				ret =  new TransactionalMap(SessionManager.ConnectTransaction(tableSpaceDir+xClass, options), xid);
+			} catch (RocksDBException e) {
+				throw new IOException(e);
+			}
+			if(DEBUG)
+				System.out.println("DatabaseManager.getTransactionalMap About to create new map:"+ret);
+			v.classToIsoTransaction.put(xClass, ret);
+			v.idToTransaction.put(xid, ret.getTransaction());
+		}
+		if(DEBUG)
+			System.out.println("DatabaseManager.getTransactionalMap About to return map:"+ret);
+		return ret;
+	}
+	
+	public static synchronized TransactionalMap getTransactionalMap(Volume v, String tDir, String clazz, String xid) throws IllegalAccessException, IOException, RocksDBException {
+		String xClass = translateClass(clazz);
+		TransactionalMap ret = (TransactionalMap) v.classToIsoTransaction.get(xClass);
+		if(DEBUG)
+			System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return designator for dir:"+tDir+" class:"+xClass+" for volume:"+v+" map:"+ret);
+		if( ret == null ) {
+			//if(options == null)
+			//	options = getDefaultOptions();
+			ret =  new TransactionalMap(SessionManager.ConnectTransaction(tDir+xClass, options), xid);
+			if(DEBUG)
+				System.out.println("DatabaseManager.getTransactionalMap About to create new map:"+ret);
+			v.classToIsoTransaction.put(xClass, ret);
+			v.idToTransaction.put(xid, ret.getTransaction());
+		}
+		if(DEBUG)
+			System.out.println("DatabaseManager.getTransactionalMap About to return map:"+ret);
+		return ret;
 	}
 	/**
 	 * Start a new transaction for the given class in the aliased database
@@ -548,6 +587,7 @@ public class DatabaseManager {
 	 * @throws IllegalAccessException
 	 * @throws NoSuchElementException if The alias cant be located
 	 * @throws IOException
+	 * @throws RocksDBException 
 	 */
 	public static synchronized TransactionalMap getTransactionalMap(String alias, Comparable clazz, String xid) throws IllegalAccessException, IOException, NoSuchElementException {
 		return getTransactionalMap(alias, clazz.getClass(), xid);
@@ -560,11 +600,15 @@ public class DatabaseManager {
 	 * @throws IllegalAccessException
 	 * @throws NoSuchElementException if The alias cant be located
 	 * @throws IOException
+	 * @throws RocksDBException 
 	 */
 	public static synchronized TransactionalMap getTransactionalMap(String alias, Class clazz, String xid) throws IllegalAccessException, IOException, NoSuchElementException {
-		String xClass = translateClass(clazz.getName());
 		Volume v = VolumeManager.getByAlias(alias);
-		return getTransactionalMap(xid, VolumeManager.getAliasToPath(alias), xClass, v);
+		try {
+			return getTransactionalMap(v, VolumeManager.getAliasToPath(alias), clazz.getName(), xid);
+		} catch (RocksDBException e) {
+			throw new IOException(e);
+		}
 	}
 	/**
 	 * Start a new transaction for the given class in the database absolute path
@@ -573,8 +617,10 @@ public class DatabaseManager {
 	 * @return the TransactionalMap for the alias/class/xid
 	 * @throws IllegalAccessException
 	 * @throws IOException
+	 * @throws RocksDBException 
+	 * @throws NoSuchElementException 
 	 */
-	public static synchronized TransactionalMap getTransactionalMapByPath(String path, Comparable clazz, String xid) throws IllegalAccessException, IOException {
+	public static synchronized TransactionalMap getTransactionalMapByPath(String path, Comparable clazz, String xid) throws IllegalAccessException, IOException, NoSuchElementException {
 		return getTransactionalMap(path, clazz.getClass(), xid);
 	}
 	/**
@@ -584,84 +630,16 @@ public class DatabaseManager {
 	 * @return the TransactionalMap for the alias/class/xid
 	 * @throws IllegalAccessException
 	 * @throws IOException
+	 * @throws RocksDBException 
 	 */
 	public static synchronized TransactionalMap getTransactionalMapByPath(String path, Class clazz, String xid) throws IllegalAccessException, IOException {
 		String xClass = translateClass(clazz.getName());
 		Volume v = VolumeManager.get(path);
-		return getTransactionalMap(xid, path, xClass, v);
-	}
-	/**
-	 * Main method to retrieve all permutations of {@link TransactionalMap} from 
-	 * transaction id, database tablespace name, translated class, and Volume from {@link VolumeManager}
-	 * @param xid The transaction id
-	 * @param dbname The database tablespace name
-	 * @param xClass the translated class name for tablespace inclusion
-	 * @param v the Volume
-	 * @return the TransactionalMap
-	 * @throws IllegalAccessException
-	 * @throws IOException
-	 */
-	private static synchronized TransactionalMap getTransactionalMap(String xid, String dbname, String xClass, Volume v) throws IllegalAccessException, IOException {
-		ConcurrentHashMap<String, SetInterface> xactions = v.classToIsoTransaction.get(xClass);
-		TransactionSession txn = null;
-		if(v.idToTransaction.containsKey(xid)) {
-			if(xactions != null) {
-				// transaction exists, transactions for this class exist, does this transaction exist for this class?
-				TransactionalMap tm  = (TransactionalMap) xactions.get(xid);
-				if(tm != null) {
-					if(DEBUG)
-						System.out.println(DatabaseManager.class.getName()+" About to return EXISTING map with EXISTING xid "+xid+" from: "+dbname+xClass+" TransactionalMap:"+tm.toString()+" total xactions this class:"+xactions.size()+" total classes:"+v.classToIsoTransaction.mappingCount());
-					return tm;
-				} else {
-					// transaction exists, but not for this class
-					// Get the database session, add the existing transaction
-					if(options == null)
-						options = getDefaultOptions();
-					txn = SessionManager.ConnectTransaction(dbname+xClass, options);
-					Transaction tx = v.idToTransaction.get(xid);
-					tm = new TransactionalMap(txn, tx);
-					xactions.put(tx.getName(), tm);
-					if(DEBUG)
-						System.out.println(DatabaseManager.class.getName()+" About to return NEW map with EXISTING xid "+tx.getName()+" from: "+dbname+xClass+" TransactionalMap:"+tm.toString()+" total xactions this class:"+xactions.size()+" total classes:"+v.classToIsoTransaction.mappingCount());
-					return tm;
-				}
-			}
-			// transaction exists, but xactions null, nothing for this class
-			xactions = new ConcurrentHashMap<String, SetInterface>();
-			v.classToIsoTransaction.put(xClass, xactions);
-			// add out new transaction id/transaction map to the collection keyed by class
-			Transaction tx = v.idToTransaction.get(xid);
-			if(options == null)
-				options = getDefaultOptions();
-			txn = SessionManager.ConnectTransaction(dbname+xClass, options);
-			TransactionalMap tm = new TransactionalMap(txn, tx);
-			xactions.put(tx.getName(), tm);
-			if(DEBUG)
-				System.out.println(DatabaseManager.class.getName()+" About to return NEW INITIAL map with EXISTING xid "+tx.getName()+" from: "+dbname+xClass+" TransactionalMap:"+tm.toString()+" total xactions this class:"+xactions.size()+" total classes:"+v.classToIsoTransaction.mappingCount());
-			return tm;
-		}
-		// Transaction Id was not present, construct new transaction
-		if(options == null)
-			options = getDefaultOptions();
-		txn = SessionManager.ConnectTransaction(dbname+xClass, options);
-		Transaction tx = txn.BeginTransaction();
 		try {
-			tx.setName(xid);
-		} catch (RocksDBException e) {
+			return getTransactionalMap(v, path, xClass, xid);
+		} catch ( RocksDBException e) {
 			throw new IOException(e);
 		}
-		v.idToTransaction.put(tx.getName(), tx);
-		TransactionalMap tm = new TransactionalMap(txn, tx);
-		// do any transactions exist for this class/db?
-		if(xactions == null) {
-			xactions = new ConcurrentHashMap<String, SetInterface>();
-			v.classToIsoTransaction.put(xClass, xactions);
-		}
-		// add out new transaction id/transaction map to the collection keyed by class
-		xactions.put(tx.getName(), tm);
-		if(DEBUG)
-			System.out.println(DatabaseManager.class.getName()+" About to return NEW map with NEW xid "+tx.getName()+" from: "+dbname+xClass+" TransactionalMap:"+tm.toString()+" total xactions this class:"+xactions.size()+" total classes:"+v.classToIsoTransaction.mappingCount());
-		return tm;
 	}
 	
 	/**
@@ -671,13 +649,13 @@ public class DatabaseManager {
 	public static synchronized void removeTransactionalMap(SetInterface tmap) {
 		Volume vm = VolumeManager.get(tableSpaceDir);
 		vm.classToIsoTransaction.forEach((k,v) -> {
-			if(v.contains(tmap)) {
-				TransactionalMap verify = (TransactionalMap) v.remove(((TransactionalMap)tmap).txn.getName());
+			if(v.equals(tmap)) {
 				try {
+					TransactionalMap verify = (TransactionalMap) v.remove(((TransactionalMap)tmap).txn.getName());
 					verify.session.Close(); // close RocksDB database
 				} catch (IOException e) {}
 				if(DEBUG)
-					System.out.println("DatabaseManager.removeRockSackTransactionalMap removing xaction "+((TransactionalMap)tmap).txn.getName()+" for DB "+k+" which should match "+verify.txn.getName());
+					System.out.println("DatabaseManager.removeRockSackTransactionalMap removing xaction "+((TransactionalMap)tmap).txn.getName()+" for DB "+k);
 				return;
 			}
 		});
@@ -728,13 +706,13 @@ public class DatabaseManager {
 	public static synchronized void removeTransactionalMap(String alias, SetInterface tmap) throws NoSuchElementException {
 		Volume vm = VolumeManager.getByAlias(alias);
 		vm.classToIsoTransaction.forEach((k,v) -> {
-			if(v.contains(tmap)) {
-				TransactionalMap verify = (TransactionalMap) v.remove(((TransactionalMap)tmap).txn.getName());
+			if(v.equals(tmap)) {
 				try {
+					TransactionalMap verify = (TransactionalMap) v.remove(((TransactionalMap)tmap).txn.getName());
 					verify.session.Close(); // close RocksDB database
 				} catch (IOException e) {}
 				if(DEBUG)
-					System.out.println("DatabaseManager.removeRockSackTransactionalMap removing xaction "+((TransactionalMap)tmap).txn.getName()+" for DB "+k+" which should match "+verify.txn.getName());
+					System.out.println("DatabaseManager.removeRockSackTransactionalMap removing xaction "+((TransactionalMap)tmap).txn.getName()+" for DB "+k);
 				return;
 			}
 		});
@@ -746,19 +724,16 @@ public class DatabaseManager {
 	 */
 	public static synchronized void removeTransactionalMap(String xid) {
 		Volume vm = VolumeManager.get(tableSpaceDir);
-		Collection<ConcurrentHashMap<String, SetInterface>> xactions = vm.classToIsoTransaction.values();
-		xactions.forEach(c -> {
-			c.forEach((k,v) -> {
-				if(k.equals(xid)) {
-					TransactionalMap verify = (TransactionalMap) c.remove(xid);
-					try {
-						verify.session.Close(); //close RocksDB database
-					} catch (IOException e) {}
-					if(DEBUG)
-						System.out.println("DatabaseManager.removeRockSackTransactionalMap removing xaction "+xid+" for DB "+k+" which should match "+verify.txn.getName());
-					return;
-				}
-			});
+		vm.classToIsoTransaction.forEach((k,c) -> {
+			if(k.equals(xid)) {
+				TransactionalMap verify = (TransactionalMap) vm.classToIsoTransaction.remove(xid);
+				try {
+					verify.session.Close(); //close RocksDB database
+				} catch (IOException e) {}
+				if(DEBUG)
+					System.out.println("DatabaseManager.removeRockSackTransactionalMap removing xaction "+xid+" for DB "+k+" which should match "+verify.txn.getName());
+				return;
+			}
 		});
 	}
 	
@@ -770,22 +745,19 @@ public class DatabaseManager {
 	 */
 	public static synchronized void removeTransactionalMap(String alias, String xid) throws NoSuchElementException {
 		Volume vm = VolumeManager.getByAlias(alias);
-		Collection<ConcurrentHashMap<String, SetInterface>> xactions = vm.classToIsoTransaction.values();
-		xactions.forEach(c -> {
-			c.forEach((k,v) -> {
-				if(k.equals(xid)) {
+		vm.classToIsoTransaction.forEach((k,c) -> {
+			if(k.equals(xid)) {
+				try {
 					TransactionalMap verify = (TransactionalMap) c.remove(xid);
-					try {
-						verify.session.Close(); // close RocksDB database
-					} catch (IOException e) {}
-					if(DEBUG)
-						System.out.println("DatabaseManager.removeRockSackTransactionalMap removing xaction "+xid+" for DB "+k+" which should match "+verify.txn.getName());
-					return;
-				}
-			});
+					verify.session.Close(); // close RocksDB database
+				} catch (IOException e) {}
+				if(DEBUG)
+					System.out.println("DatabaseManager.removeRockSackTransactionalMap removing xaction "+xid+" for DB "+k);
+				return;
+			}
 		});
 	}
-	
+
 	public static void endTransaction(String uid) throws IOException {
 		VolumeManager.removeTransaction(uid);
 	}

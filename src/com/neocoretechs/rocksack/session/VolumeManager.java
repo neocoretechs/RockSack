@@ -36,7 +36,7 @@ public class VolumeManager {
 	static class Volume {
 		public ConcurrentHashMap<String, SetInterface> classToIso = new ConcurrentHashMap<String,SetInterface>();
 		// these are active in a transaction context
-		public ConcurrentHashMap<String, ConcurrentHashMap<String,SetInterface>> classToIsoTransaction = new ConcurrentHashMap<String,ConcurrentHashMap<String,SetInterface>>();
+		public ConcurrentHashMap<String, SetInterface> classToIsoTransaction = new ConcurrentHashMap<String, SetInterface>();
 		public ConcurrentHashMap<String, Transaction> idToTransaction = new ConcurrentHashMap<String, Transaction>();
 	}
 	/**

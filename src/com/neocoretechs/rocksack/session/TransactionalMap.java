@@ -5,6 +5,7 @@ import java.util.stream.Stream;
 
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
 import org.rocksdb.Snapshot;
 import org.rocksdb.Transaction;
 import org.rocksdb.WriteOptions;
@@ -56,6 +57,14 @@ public class TransactionalMap implements OrderedKVMapInterface {
 		wo = new WriteOptions();
 		this.session = session;
 		this.txn = txn;
+	}
+	
+	public TransactionalMap(TransactionSession session, String xid) throws IOException, IllegalAccessException, RocksDBException {
+		ro = new ReadOptions();
+		wo = new WriteOptions();
+		this.session = session;
+		BeginTransaction();
+		txn.setName(xid);
 	}
 	
 	public TransactionSession getSession() throws IOException {
