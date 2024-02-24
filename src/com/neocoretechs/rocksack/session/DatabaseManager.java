@@ -31,6 +31,7 @@ import org.rocksdb.VectorMemTableConfig;
 import org.rocksdb.util.SizeUnit;
 
 import com.neocoretechs.rocksack.DBPhysicalConstants;
+import com.neocoretechs.rocksack.DerivedClass;
 import com.neocoretechs.rocksack.SerializedComparator;
 import com.neocoretechs.rocksack.session.VolumeManager.Volume;
 
@@ -295,7 +296,15 @@ public class DatabaseManager {
 	 * @throws IOException
 	 */
 	public static BufferedMap getMap(Class clazz) throws IllegalAccessException, IOException {
-		String xClass = translateClass(clazz.getName());
+		boolean isDerivedClass = false;
+		String xClass;
+		// are we working with marked derived class? if so open as column family in main class tablespace
+		if(DerivedClass.class.isAssignableFrom(clazz)) {
+			isDerivedClass = true;
+			xClass = translateClass(clazz.getSuperclass().getName());
+		} else {
+			xClass = translateClass(clazz.getName());
+		}
 		Volume v = VolumeManager.get(tableSpaceDir);
 		BufferedMap ret = (BufferedMap) v.classToIso.get(xClass);
 		if(DEBUG)

@@ -1,9 +1,14 @@
 package com.neocoretechs.rocksack.session;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.stream.Stream;
 
+import org.rocksdb.ColumnFamilyDescriptor;
+import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.Options;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
@@ -66,8 +71,11 @@ import com.neocoretechs.rocksack.stream.TailSetStream;
 public class Session {
 	private boolean DEBUG = false;
 	protected RocksDB kvStore;
-	private Options options;
+	protected Options options;
 	private boolean dbOpen = false;
+	//
+	List<ColumnFamilyDescriptor> columnFamilyDescriptor = null;
+	List<ColumnFamilyHandle> columnFamilyHandleList = new ArrayList<>();
 
 	/**
 	* Create a new session
