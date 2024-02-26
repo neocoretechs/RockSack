@@ -2,6 +2,7 @@ package com.neocoretechs.rocksack.iterator;
 import java.io.IOException;
 import java.util.NoSuchElementException;
 
+import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.Slice;
@@ -63,6 +64,7 @@ public class SubSetIterator extends AbstractIterator {
 		this.fromKey = fromKey;
 		this.toKey = toKey;
 	}
+	
 	public SubSetIterator(Comparable fromKey, Comparable toKey, Transaction db) throws IOException {
 		super(db.getIterator(new ReadOptions()));//.
 				//setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));//.
@@ -85,6 +87,54 @@ public class SubSetIterator extends AbstractIterator {
 		this.fromKey = fromKey;
 		this.toKey = toKey;
 	}
+	
+	public SubSetIterator(ColumnFamilyHandle cfh, Comparable fromKey, Comparable toKey, RocksDB db) throws IOException {
+		super(db.newIterator(cfh), fromKey);//new ReadOptions()));//.
+		//setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));//.
+		//setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
+		//
+		while(kvMain.isValid()) {
+			// set our lower bound
+			nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
+			if(nextKey.compareTo(fromKey) >= 0)
+				break;
+			if(nextKey.compareTo(toKey) >= 0)  {
+				nextKey = null;
+				break;
+			}
+			kvMain.next();
+		}
+		if(DEBUG) {
+			System.out.printf("%s fromKey=%s toKey=%s%n", this.getClass().getName(),fromKey,toKey);
+			System.out.printf("%s start key=%s value=%s%n", this.getClass().getName(),nextKey,SerializedComparator.deserializeObject(kvMain.value()));
+		}
+		this.fromKey = fromKey;
+		this.toKey = toKey;
+	}
+	
+	public SubSetIterator(ColumnFamilyHandle cfh, Comparable fromKey, Comparable toKey, Transaction db) throws IOException {
+		super(db.getIterator(new ReadOptions(), cfh));//.
+				//setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));//.
+				//setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
+		while(kvMain.isValid()) {
+			// set our lower bound
+			nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
+			if(nextKey.compareTo(fromKey) >= 0)
+				break;
+			if (nextKey.compareTo(toKey) >= 0)  {
+				nextKey = null;
+				break;
+			}
+			kvMain.next();
+		}
+		if(DEBUG) {
+			System.out.printf("%s fromKey=%s toKey=%s%n", this.getClass().getName(),fromKey,toKey);
+			System.out.printf("%s start key=%s value=%s%n", this.getClass().getName(),nextKey,SerializedComparator.deserializeObject(kvMain.value()));
+		}
+		this.fromKey = fromKey;
+		this.toKey = toKey;
+	}
+		
 	public boolean hasNext() {
 		return nextKey != null && kvMain.isValid();
 	}

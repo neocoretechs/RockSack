@@ -2,6 +2,7 @@ package com.neocoretechs.rocksack.iterator;
 import java.io.IOException;
 import java.util.NoSuchElementException;
 
+import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.Transaction;
@@ -40,12 +41,23 @@ public class KeySetIterator extends AbstractIterator  {
 	public KeySetIterator(RocksDB db) throws IOException {
 		super(db.newIterator());
 	}
+	
 	public KeySetIterator(Transaction db) throws IOException {
 		super(db.getIterator(new ReadOptions()));
 	}
+	
+	public KeySetIterator(RocksDB db, ColumnFamilyHandle cfh) throws IOException {
+		super(db.newIterator(cfh));
+	}
+	
+	public KeySetIterator(Transaction db, ColumnFamilyHandle cfh) throws IOException {
+		super(db.getIterator(new ReadOptions(),cfh));
+	}
+	
 	public boolean hasNext() {
 		return kvMain.isValid();
 	}
+	
 	public Object next() {
 				try {
 					// move nextelem to retelem, search nextelem, get nextelem

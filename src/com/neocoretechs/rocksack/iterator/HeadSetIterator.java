@@ -2,6 +2,7 @@ package com.neocoretechs.rocksack.iterator;
 import java.io.IOException;
 import java.util.NoSuchElementException;
 
+import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.Transaction;
@@ -45,6 +46,7 @@ public class HeadSetIterator extends AbstractIterator {
 		}
 		this.toKey = toKey;
 	}
+	
 	public HeadSetIterator(@SuppressWarnings("rawtypes") Comparable toKey, Transaction db) throws IOException {
 		super(db.getIterator(new ReadOptions()));//.setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));
 		if(kvMain.isValid() && nextKey.compareTo(toKey) >= 0) {
@@ -52,6 +54,23 @@ public class HeadSetIterator extends AbstractIterator {
 		}
 		this.toKey = toKey;
 	}
+	
+	public HeadSetIterator(Comparable toKey, RocksDB db, ColumnFamilyHandle cfh) throws IOException {
+		super(db.newIterator(cfh));//new ReadOptions().setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));
+		if(kvMain.isValid() && nextKey.compareTo(toKey) >= 0) {
+			nextKey = null;
+		}
+		this.toKey = toKey;
+	}
+	
+	public HeadSetIterator(@SuppressWarnings("rawtypes") Comparable toKey, Transaction db, ColumnFamilyHandle cfh) throws IOException {
+		super(db.getIterator(new ReadOptions(), cfh));//.setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));
+		if(kvMain.isValid() && nextKey.compareTo(toKey) >= 0) {
+			nextKey = null;
+		}
+		this.toKey = toKey;
+	}
+	
 	public boolean hasNext() {
 		return nextKey != null && kvMain.isValid();
 	}

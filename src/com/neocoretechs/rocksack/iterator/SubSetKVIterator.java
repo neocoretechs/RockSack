@@ -2,6 +2,7 @@ package com.neocoretechs.rocksack.iterator;
 import java.io.IOException;
 import java.util.NoSuchElementException;
 
+import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDB;
 import org.rocksdb.Transaction;
 
@@ -44,8 +45,23 @@ public class SubSetKVIterator extends SubSetIterator {
 			nextElem = SerializedComparator.deserializeObject(kvMain.value());
 		}
 	}
+	
 	public SubSetKVIterator(Comparable fromKey, Comparable toKey, Transaction db) throws IOException {
 		super(fromKey, toKey, db);
+		if(kvMain.isValid() && nextKey != null) {
+			nextElem = SerializedComparator.deserializeObject(kvMain.value());
+		}
+	}
+	
+	public SubSetKVIterator(ColumnFamilyHandle cfh, Comparable fromKey, Comparable toKey, RocksDB db) throws IOException {
+		super(cfh, fromKey, toKey, db);
+		if(kvMain.isValid() && nextKey != null) {
+			nextElem = SerializedComparator.deserializeObject(kvMain.value());
+		}
+	}
+	
+	public SubSetKVIterator(ColumnFamilyHandle cfh, Comparable fromKey, Comparable toKey, Transaction db) throws IOException {
+		super(cfh, fromKey, toKey, db);
 		if(kvMain.isValid() && nextKey != null) {
 			nextElem = SerializedComparator.deserializeObject(kvMain.value());
 		}

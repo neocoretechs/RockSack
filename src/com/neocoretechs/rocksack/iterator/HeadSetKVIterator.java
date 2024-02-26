@@ -2,6 +2,7 @@ package com.neocoretechs.rocksack.iterator;
 import java.io.IOException;
 import java.util.NoSuchElementException;
 
+import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDB;
 import org.rocksdb.Transaction;
 
@@ -42,7 +43,6 @@ public class HeadSetKVIterator extends HeadSetIterator {
 		if(kvMain.isValid() && nextKey != null) {
 			nextElem = SerializedComparator.deserializeObject(kvMain.value());
 		}
-
 	}
 	public HeadSetKVIterator(@SuppressWarnings("rawtypes") Comparable toKey, Transaction db) throws IOException {
 		super(toKey, db);
@@ -51,6 +51,20 @@ public class HeadSetKVIterator extends HeadSetIterator {
 		}
 	}
 
+	public HeadSetKVIterator(Comparable toKey, RocksDB db, ColumnFamilyHandle cfh) throws IOException {
+		super(toKey, db, cfh);
+		if(kvMain.isValid() && nextKey != null) {
+			nextElem = SerializedComparator.deserializeObject(kvMain.value());
+		}
+	}
+	
+	public HeadSetKVIterator(Comparable toKey, Transaction db, ColumnFamilyHandle cfh) throws IOException {
+		super(toKey, db, cfh);
+		if(kvMain.isValid() && nextKey != null) {
+			nextElem = SerializedComparator.deserializeObject(kvMain.value());
+		}
+	}
+	
 	@SuppressWarnings("unchecked")
 	public Object next() {
 		try {

@@ -2,6 +2,7 @@ package com.neocoretechs.rocksack.stream;
 
 import java.io.IOException;
 
+import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDB;
 import org.rocksdb.Transaction;
 
@@ -22,8 +23,16 @@ public class TailSetStream extends SackStream {
 	public TailSetStream(Comparable fkey, RocksDB kvMain) throws IOException {
 		this(new TailSetIterator(fkey, kvMain));
 	}
+	
 	public TailSetStream(Comparable fkey, Transaction kvMain) throws IOException {
 		this(new TailSetIterator(fkey, kvMain));
 	}
 
+	public TailSetStream(Comparable fkey, RocksDB kvMain, ColumnFamilyHandle cfh) throws IOException {
+		this(new TailSetIterator(cfh, fkey, kvMain));
+	}
+
+	public TailSetStream(Comparable fkey, Transaction kvMain, ColumnFamilyHandle cfh) throws IOException {
+		this(new TailSetIterator(cfh, fkey, kvMain));
+	}
 }

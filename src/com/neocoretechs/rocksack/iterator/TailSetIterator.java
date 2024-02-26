@@ -4,6 +4,7 @@ import java.util.ConcurrentModificationException;
 import java.util.NoSuchElementException;
 import java.util.Stack;
 
+import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.Slice;
@@ -57,6 +58,7 @@ public class TailSetIterator extends AbstractIterator {
 		}
 		this.fromKey = fromKey;
 	}
+	
 	public TailSetIterator(Comparable fromKey, Transaction db) throws IOException {
 		super(db.getIterator(new ReadOptions()));//.setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
 		while(kvMain.isValid()) {
@@ -68,9 +70,39 @@ public class TailSetIterator extends AbstractIterator {
 		}
 		this.fromKey = fromKey;
 	}
+	
+	public TailSetIterator(ColumnFamilyHandle cfh, Comparable fromKey, RocksDB db) throws IOException {
+		super(db.newIterator(cfh), fromKey);//new ReadOptions().setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
+	    //kvMain.seek(SerializedComparator.serializeObject(fromKey));
+		//if(kvMain.isValid()) {
+		//	nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
+		//}
+		while(kvMain.isValid()) {
+			// set our lower bound
+			nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
+			if(nextKey.compareTo(fromKey) >= 0)
+				break;
+			kvMain.next();
+		}
+		this.fromKey = fromKey;
+	}
+	
+	public TailSetIterator(ColumnFamilyHandle cfh, Comparable fromKey, Transaction db) throws IOException {
+		super(db.getIterator(new ReadOptions(), cfh));//.setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
+		while(kvMain.isValid()) {
+			// set our lower bound
+			nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
+			if(nextKey.compareTo(fromKey) >= 0)
+				break;
+			kvMain.next();
+		}
+		this.fromKey = fromKey;
+	}
+	
 	public boolean hasNext() {
 		return kvMain.isValid();
 	}
+	
 	public Object next() {
 			try {
 				// move nextelem to retelem, search nextelem, get nextelem
@@ -88,6 +120,7 @@ public class TailSetIterator extends AbstractIterator {
 				throw new RuntimeException(ioe.toString());
 			}
 	}
+	
 	public void remove() {
 		throw new UnsupportedOperationException("No provision to remove from Iterator");
 	}

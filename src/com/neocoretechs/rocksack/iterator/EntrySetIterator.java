@@ -2,6 +2,7 @@ package com.neocoretechs.rocksack.iterator;
 import java.io.IOException;
 import java.util.NoSuchElementException;
 
+import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.Transaction;
@@ -46,8 +47,8 @@ public class EntrySetIterator extends AbstractIterator {
 			nextElem = SerializedComparator.deserializeObject(kvMain.value());
 		}
 	}
-	public EntrySetIterator(Transaction db) throws IOException {
-		super(db.getIterator(new ReadOptions()));
+	public EntrySetIterator(Transaction db, ReadOptions ro) throws IOException {
+		super(db.getIterator(ro));
 		if(kvMain.isValid()) {
 			if(DEBUG) {
 				System.out.printf("%s initial transaction iterator valid%n", this.getClass().getName());
@@ -59,6 +60,19 @@ public class EntrySetIterator extends AbstractIterator {
 			}
 		}
 	}
+	public EntrySetIterator(RocksDB db, ColumnFamilyHandle cfh) throws IOException {
+		super(db.newIterator(cfh));
+		if(kvMain.isValid()) {
+			nextElem = SerializedComparator.deserializeObject(kvMain.value());
+		}
+	}
+	public EntrySetIterator(Transaction db, ReadOptions ro, ColumnFamilyHandle cfh) throws IOException {
+		super(db.getIterator(ro, cfh));
+		if(kvMain.isValid()) {
+			nextElem = SerializedComparator.deserializeObject(kvMain.value());
+		}
+	}
+
 	public boolean hasNext() {
 		return kvMain.isValid();
 	}

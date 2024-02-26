@@ -2,6 +2,8 @@ package com.neocoretechs.rocksack.stream;
 
 import java.io.IOException;
 
+import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.Transaction;
 
@@ -22,7 +24,15 @@ public class EntrySetStream extends SackStream {
 		this(new EntrySetIterator(kvMain));
 	}
 	public EntrySetStream(Transaction kvMain) throws IOException {
-		this(new EntrySetIterator(kvMain));
+		this(new EntrySetIterator(kvMain, new ReadOptions()));
+	}
+
+	public EntrySetStream(RocksDB kvMain, ColumnFamilyHandle cfh) throws IOException {
+		this(new EntrySetIterator(kvMain, cfh));
+	}
+
+	public EntrySetStream(Transaction kvMain, ColumnFamilyHandle cfh) throws IOException {
+		this(new EntrySetIterator(kvMain, new ReadOptions(), cfh));
 	}
 
 }

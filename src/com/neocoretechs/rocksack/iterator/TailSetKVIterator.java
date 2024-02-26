@@ -2,6 +2,7 @@ package com.neocoretechs.rocksack.iterator;
 import java.io.IOException;
 import java.util.NoSuchElementException;
 
+import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDB;
 import org.rocksdb.Transaction;
 
@@ -43,6 +44,7 @@ public class TailSetKVIterator extends TailSetIterator {
 			nextElem = SerializedComparator.deserializeObject(kvMain.value());
 		}
 	}
+	
 	public TailSetKVIterator(Comparable fromKey, Transaction db) throws IOException {
 		super(fromKey, db);
 		if(kvMain.isValid() && nextKey != null) {
@@ -50,6 +52,20 @@ public class TailSetKVIterator extends TailSetIterator {
 		}
 	}
 
+	public TailSetKVIterator(ColumnFamilyHandle cfh, Comparable fromKey, RocksDB db) throws IOException {
+		super(cfh, fromKey, db);
+		if(kvMain.isValid() && nextKey != null) {
+			nextElem = SerializedComparator.deserializeObject(kvMain.value());
+		}
+	}
+	
+	public TailSetKVIterator(ColumnFamilyHandle cfh, Comparable fromKey, Transaction db) throws IOException {
+		super(cfh, fromKey, db);
+		if(kvMain.isValid() && nextKey != null) {
+			nextElem = SerializedComparator.deserializeObject(kvMain.value());
+		}
+	}
+	
 	public Object next() {
 		try {
 			// move nextelem to retelem, search nextelem, get nextelem

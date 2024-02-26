@@ -2,6 +2,7 @@ package com.neocoretechs.rocksack.stream;
 
 import java.io.IOException;
 
+import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDB;
 import org.rocksdb.Transaction;
 
@@ -24,6 +25,12 @@ public class SubSetKVStream extends SackStream {
 	}
 	public SubSetKVStream(Comparable fkey, Comparable tkey, Transaction kvMain) throws IOException {
 		this(new SubSetKVIterator(fkey, tkey, kvMain));
+	}
+	public SubSetKVStream(ColumnFamilyHandle cfh, Comparable fkey, Comparable tkey, RocksDB kvMain) throws IOException {
+		this(new SubSetKVIterator(cfh, fkey, tkey, kvMain));
+	}
+	public SubSetKVStream(ColumnFamilyHandle cfh, Comparable fkey, Comparable tkey, Transaction kvMain) throws IOException {
+		this(new SubSetKVIterator(cfh, fkey, tkey, kvMain));
 	}
 
 }

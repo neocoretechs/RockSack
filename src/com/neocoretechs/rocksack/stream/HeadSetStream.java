@@ -2,6 +2,7 @@ package com.neocoretechs.rocksack.stream;
 
 import java.io.IOException;
 
+import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDB;
 import org.rocksdb.Transaction;
 
@@ -22,9 +23,17 @@ public class HeadSetStream extends SackStream {
 	public HeadSetStream(Comparable tkey, RocksDB kvMain) throws IOException {
 		this(new HeadSetIterator(tkey, kvMain));
 	}
+	
 	public HeadSetStream(Comparable tkey, Transaction kvMain) throws IOException {
 		this(new HeadSetIterator(tkey, kvMain));
 	}
 
+	public HeadSetStream(Comparable tkey, RocksDB kvMain, ColumnFamilyHandle cfh) throws IOException {
+		this(new HeadSetIterator(tkey, kvMain, cfh));
+	}
+	
+	public HeadSetStream(Comparable tkey, Transaction kvMain, ColumnFamilyHandle cfh) throws IOException {
+		this(new HeadSetIterator(tkey, kvMain, cfh));
+	}
 
 }
