@@ -310,10 +310,19 @@ public class DatabaseManager {
 		if(DEBUG)
 			System.out.println("DatabaseManager.getMap About to return designator for dir:"+tableSpaceDir+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
 		if( ret == null ) {
-			//SessionManager.ConnectColumnFamilies(tableSpaceDir+xClass, options, xClass);
-			//if(options == null)
-			//	options = getDefaultOptions();
-			ret =  new BufferedMap(SessionManager.Connect(tableSpaceDir+xClass, options));
+			try {
+				if(isDerivedClass) {
+					Session ts = SessionManager.ConnectColumnFamilies(tableSpaceDir+xClass, options, xClass);
+					ret = (BufferedMap)(new BufferedMapDerived(ts, xClass, ts.derivedClassFound));
+				} else {
+					//SessionManager.ConnectColumnFamilies(tableSpaceDir+xClass, options, xClass);
+					//if(options == null)
+					//	options = getDefaultOptions();
+					ret =  new BufferedMap(SessionManager.Connect(tableSpaceDir+xClass, options));
+				}
+			} catch (RocksDBException e) {
+				throw new IOException(e);
+			}
 			if(DEBUG)
 				System.out.println("DatabaseManager.getMap About to create new map:"+ret);
 			v.classToIso.put(xClass, ret);

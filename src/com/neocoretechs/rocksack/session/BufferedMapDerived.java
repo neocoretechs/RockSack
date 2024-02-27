@@ -42,8 +42,7 @@ import org.rocksdb.RocksDBException;
 * Thread safety is with the session object using session.getMutexObject().
 * @author Jonathan Groff (C) NeoCoreTechs 2003, 2017, 2021, 2024
 */
-public class BufferedMapDerived implements OrderedKVMapInterface {
-	private Session session = null;
+public class BufferedMapDerived extends BufferedMap {
 	ColumnFamilyHandle columnFamilyHandle = null;
 	ColumnFamilyOptions columnFamilyOptions = null;
 	ColumnFamilyDescriptor columnFamilyDescriptor = null;
@@ -58,7 +57,7 @@ public class BufferedMapDerived implements OrderedKVMapInterface {
 	 * @throws RocksDBException 
 	*/
 	public BufferedMapDerived(Session session, String derivedClassName, boolean found) throws IllegalAccessException, IOException, RocksDBException {
-		this.session = session;
+		super(session);
 		processColumnFamily(found, derivedClassName);
 	}
 	

@@ -131,6 +131,24 @@ public final class SessionManager {
 		return hps;
 	}
 	
+	public static synchronized Session ConnectColumnFamilies(String dbname, Options options, String derivedClassName) throws IOException, IllegalAccessException {
+		if( DEBUG ) {
+			System.out.printf("Connecting to column family database:%s with options:%s derived class:%s%n", dbname, options, derivedClassName);
+		}
+		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
+		if (OfflineDBs.contains(dbname))
+			throw new IllegalAccessException("Database is offline, try later");
+		Session hps = (Session) (SessionTable.get(dbname));
+		if (hps == null) {
+			// did'nt find it, create anew
+			hps = OpenDBColumnFamily(dbname,options,derivedClassName);
+			SessionTable.put(dbname, hps);
+			if( DEBUG )
+				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+		}
+		return hps;
+	}
+	
 	/**
 	* Connect and return Session instance that is the transaction session.
 	* @param dbname The database name as full path
@@ -221,6 +239,49 @@ public final class SessionManager {
 		} 
 		//
 		return hps;
+	}
+	
+	private static Session OpenDBColumnFamily(String dbPath, Options options, String derivedClassName) {
+		List<byte[]> allColumnFamilies;
+		try {
+			allColumnFamilies = RocksDB.listColumnFamilies(options, dbPath);
+		} catch (RocksDBException e) {
+			throw new RuntimeException(e);
+		}
+		boolean found = false;
+		boolean foundDefault = false;
+		String defcn = new String(RocksDB.DEFAULT_COLUMN_FAMILY); //is this necessary?
+		if(columnFamilyDescriptor == null)
+			columnFamilyDescriptor = new ArrayList<ColumnFamilyDescriptor>();
+		//this.session.columnFamilyDescriptor = Arrays.asList(
+		//	new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions), this.columnFamilyDescriptor);
+		for(byte[] e : allColumnFamilies) {
+			String cn = new String(e);
+			if(cn.equals(derivedClassName)) {
+					found = true;
+			}
+			if(cn.equals(defcn)) {
+				foundDefault = true;
+			}
+			ColumnFamilyOptions  cfo = new ColumnFamilyOptions();//.optimizeUniversalStyleCompaction();
+			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(e, cfo);
+			columnFamilyDescriptor.add(cfd);
+			cfo.close();
+		}
+		if(!foundDefault) {
+			// options from main DB open?
+			ColumnFamilyOptions  cfo = new ColumnFamilyOptions();//.optimizeUniversalStyleCompaction();
+			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, cfo);
+			columnFamilyDescriptor.add(cfd);
+			cfo.close();
+		}
+	    RocksDB db;
+		try {
+			db = RocksDB.open(dbPath, columnFamilyDescriptor, columnFamilyHandles);
+		} catch (RocksDBException e) {
+			throw new RuntimeException(e);
+		}
+	    return new Session(db, options, found);
 	}
 	
 	private static TransactionSession OpenDBColumnFamilyTransaction(String dbPath, Options options, String derivedClassName) {

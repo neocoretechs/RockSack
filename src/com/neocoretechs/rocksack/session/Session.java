@@ -73,6 +73,7 @@ public class Session {
 	protected RocksDB kvStore;
 	protected Options options;
 	private boolean dbOpen = false;
+	public boolean derivedClassFound = false;
 	//
 	List<ColumnFamilyDescriptor> columnFamilyDescriptor = null;
 	List<ColumnFamilyHandle> columnFamilyHandleList = new ArrayList<>();
@@ -91,6 +92,14 @@ public class Session {
 			System.out.println("RockSackSession constructed with db:"+getDBname());
 	}
 	
+	public Session(RocksDB kvStore, Options options, boolean found) {
+		this.kvStore = kvStore;
+		this.options = options;
+		this.derivedClassFound = found;
+		if( DEBUG )
+			System.out.println("RockSackSession constructed with db:"+getDBname());
+	}
+
 	protected String getDBname() {
 		return kvStore.getName();
 	}

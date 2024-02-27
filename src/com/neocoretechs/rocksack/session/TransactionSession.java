@@ -18,8 +18,9 @@ public class TransactionSession extends Session implements TransactionInterface 
 		super(kvStore, options);
 	}
 	
-	protected TransactionSession(TransactionDB kvStore, Options options, boolean derivedClassFound) {
+	protected TransactionSession(TransactionDB kvStore, Options options, boolean found) {
 		super(kvStore, options);
+		this.derivedClassFound = found;
 	}
 	
 	@Override

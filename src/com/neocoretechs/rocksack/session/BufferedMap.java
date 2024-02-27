@@ -34,7 +34,7 @@ import org.rocksdb.RocksDB;
 * @author Jonathan Groff (C) NeoCoreTechs 2003, 2017, 2021
 */
 public class BufferedMap implements OrderedKVMapInterface {
-	private Session session = null;
+	protected Session session = null;
 	//String dbName;
 
 	/**
