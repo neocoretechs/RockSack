@@ -57,40 +57,47 @@ public class BufferedMapDerived implements OrderedKVMapInterface {
 	* @exception IllegalAccessException if the database has been put offline
 	 * @throws RocksDBException 
 	*/
-	public BufferedMapDerived(Session session, String derivedClassName, String dbPath) throws IllegalAccessException, IOException, RocksDBException {
+	public BufferedMapDerived(Session session, String derivedClassName, boolean found) throws IllegalAccessException, IOException, RocksDBException {
 		this.session = session;
-		this.columnFamilyOptions = new ColumnFamilyOptions();//.optimizeUniversalStyleCompaction();
-		this.columnFamilyDescriptor = new ColumnFamilyDescriptor(derivedClassName.getBytes(), columnFamilyOptions);
-		List<byte[]> allColumnFamilies = RocksDB.listColumnFamilies(this.session.options, dbPath);// passed in from openDB process, contains column family names as list of byte arrays
-		if(this.session.columnFamilyDescriptor == null)
-			this.session.columnFamilyDescriptor = Arrays.asList(
-				new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions), this.columnFamilyDescriptor);
-		this.session.columnFamilyDescriptor.add(this.columnFamilyDescriptor);
-		boolean found = false;
-		for(byte[] e : allColumnFamilies) { 
-			if(new String(e).equals(derivedClassName)) {
-					found = true;
-					break;
-			}
-		}
-		if(!found)
-			columnFamilyHandle = this.session.kvStore.createColumnFamily(this.columnFamilyDescriptor);
-	    this.session.kvStore = RocksDB.open(dbPath, this.session.columnFamilyDescriptor, this.session.columnFamilyHandleList);
+		processColumnFamily(found, derivedClassName);
+	}
+	
+	/**
+	 * Generates columnFamilyHandle and columnFamilydescriptor
+	 * calls createColumnFamily for database if found is false
+	 * @param found
+	 * @param derivedClassName
+	 * @throws RocksDBException
+	 */
+	private void processColumnFamily(boolean found, String derivedClassName) throws RocksDBException {
 	    if(found) {
 	    	int index = 0;
 	    	for(ColumnFamilyHandle cfh: this.session.columnFamilyHandleList) {
-	    		columnFamilyHandle = this.session.columnFamilyHandleList.get(index++);
+	    		this.columnFamilyHandle = this.session.columnFamilyHandleList.get(index++);
 	    		if(new String(cfh.getName()).equals(derivedClassName)) {
 	    			break;
 	    		}
 	    	}
+	    	index = 0;
+	    	for(ColumnFamilyDescriptor cfd: this.session.columnFamilyDescriptor) {
+	    		this.columnFamilyDescriptor = this.session.columnFamilyDescriptor.get(index++);
+	    		if(new String(cfd.getName()).equals(derivedClassName)) {
+	    			break;
+	    		}
+	    	}
+	    } else {
+	    	// TODO: comparator?
+			this.columnFamilyOptions = new ColumnFamilyOptions();//.optimizeUniversalStyleCompaction();
+			this.columnFamilyDescriptor = new ColumnFamilyDescriptor(derivedClassName.getBytes(), columnFamilyOptions);
+			this.session.columnFamilyDescriptor.add(this.columnFamilyDescriptor);
+	    	this.columnFamilyHandle = this.session.kvStore.createColumnFamily(this.columnFamilyDescriptor);
+	    	this.columnFamilyOptions.close();
 	    }
 	    // make sure it's legit
-	    if(!new String(columnFamilyHandle.getName()).equals(derivedClassName))
-	    	throw new RocksDBException("columnFamilyHandle name "+(new String(columnFamilyHandle.getName()))+" does not match target:"+derivedClassName);
-		columnFamilyOptions.close();
+	    if(!new String(this.columnFamilyHandle.getName()).equals(derivedClassName))
+	    	throw new RocksDBException("columnFamilyHandle name "+(new String(this.columnFamilyHandle.getName()))+" does not match target:"+derivedClassName);
 	}
-		
+	
 	public Session getSession() throws IOException {
 		session.waitOpen();
 		return session;

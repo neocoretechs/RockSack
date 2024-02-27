@@ -310,6 +310,7 @@ public class DatabaseManager {
 		if(DEBUG)
 			System.out.println("DatabaseManager.getMap About to return designator for dir:"+tableSpaceDir+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
 		if( ret == null ) {
+			//SessionManager.ConnectColumnFamilies(tableSpaceDir+xClass, options, xClass);
 			//if(options == null)
 			//	options = getDefaultOptions();
 			ret =  new BufferedMap(SessionManager.Connect(tableSpaceDir+xClass, options));
@@ -547,19 +548,32 @@ public class DatabaseManager {
 	 * @throws RocksDBException 
 	 */
 	public static synchronized TransactionalMap getTransactionalMap(Class clazz, String xid) throws IllegalAccessException, IOException {
-		String xClass = translateClass(clazz.getName());
+		boolean isDerivedClass = false;
+		String xClass;
+		if(DerivedClass.class.isAssignableFrom(clazz)) {
+			isDerivedClass = true;
+			xClass = translateClass(clazz.getSuperclass().getName());
+		} else {
+			xClass = translateClass(clazz.getName());
+		}
 		Volume v = VolumeManager.get(tableSpaceDir);
 		TransactionalMap ret = (TransactionalMap) v.classToIsoTransaction.get(xClass);
 		if(DEBUG)
 			System.out.println("DatabaseManager.getTransactionalMap About to return designator for dir:"+tableSpaceDir+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v+" map:"+ret);
 		if( ret == null ) {
-			//if(options == null)
-			//	options = getDefaultOptions();
 			try {
-				ret =  new TransactionalMap(SessionManager.ConnectTransaction(tableSpaceDir+xClass, options), xid);
+				if(isDerivedClass) {
+					TransactionSession ts = SessionManager.ConnectTransactionColumnFamilies(tableSpaceDir+xClass, options, xClass);
+					ret = (TransactionalMap)(new TransactionalMapDerived(ts, ts.BeginTransaction(), xClass, ts.derivedClassFound));
+				} else {
+					//if(options == null)
+					//	options = getDefaultOptions();
+					ret =  new TransactionalMap(SessionManager.ConnectTransaction(tableSpaceDir+xClass, options), xid);
+				}
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
+		
 			if(DEBUG)
 				System.out.println("DatabaseManager.getTransactionalMap About to create new map:"+ret);
 			v.classToIsoTransaction.put(xClass, ret);

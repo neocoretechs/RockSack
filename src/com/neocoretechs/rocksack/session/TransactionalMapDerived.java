@@ -47,9 +47,7 @@ import org.rocksdb.WriteOptions;
 * The assumption is that the new TransactionalMap is stored in an additional session container outside of the adapter.
 * @author Jonathan Groff (C) NeoCoreTechs 2003,2014,2017,2021,2022
 */
-public class TransactionalMapDerived implements OrderedKVMapInterface {
-	protected TransactionSession session;
-	Transaction txn;
+public class TransactionalMapDerived extends TransactionalMap {
 	ReadOptions ro;
 	WriteOptions wo;
 	ColumnFamilyHandle columnFamilyHandle = null;
@@ -62,81 +60,57 @@ public class TransactionalMapDerived implements OrderedKVMapInterface {
 	 * @throws IllegalAccessException
 	 * @throws RocksDBException 
 	 */
-	public TransactionalMapDerived(TransactionSession session, Transaction txn, String derivedClassName, String dbPath) throws IOException, IllegalAccessException, RocksDBException {
+	public TransactionalMapDerived(TransactionSession session, Transaction txn, String derivedClassName, boolean found) throws IOException, IllegalAccessException, RocksDBException {
+		super(session, txn);
 		ro = new ReadOptions();
 		wo = new WriteOptions();
 		this.session = session;
 		this.txn = txn;
-
-		this.columnFamilyOptions = new ColumnFamilyOptions();//.optimizeUniversalStyleCompaction();
-		this.columnFamilyDescriptor = new ColumnFamilyDescriptor(derivedClassName.getBytes(), columnFamilyOptions);
-		List<byte[]> allColumnFamilies = TransactionDB.listColumnFamilies(this.session.options, dbPath);// passed in from openDB process, contains column family names as list of byte arrays
-		if(this.session.columnFamilyDescriptor == null)
-			this.session.columnFamilyDescriptor = Arrays.asList(
-				new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions), this.columnFamilyDescriptor);
-		this.session.columnFamilyDescriptor.add(this.columnFamilyDescriptor);
-		boolean found = false;
-		for(byte[] e : allColumnFamilies) { 
-			if(new String(e).equals(derivedClassName)) {
-					found = true;
-					break;
-			}
-		}
-		if(!found)
-			columnFamilyHandle = this.session.kvStore.createColumnFamily(this.columnFamilyDescriptor);
-	    this.session.kvStore = TransactionDB.open(dbPath, this.session.columnFamilyDescriptor, this.session.columnFamilyHandleList);
-	    if(found) {
-	    	int index = 0;
-	    	for(ColumnFamilyHandle cfh: this.session.columnFamilyHandleList) {
-	    		columnFamilyHandle = this.session.columnFamilyHandleList.get(index++);
-	    		if(new String(cfh.getName()).equals(derivedClassName)) {
-	    			break;
-	    		}
-	    	}
-	    }
-	    // make sure it's legit
-	    if(!new String(columnFamilyHandle.getName()).equals(derivedClassName))
-	    	throw new RocksDBException("columnFamilyHandle name "+(new String(columnFamilyHandle.getName()))+" does not match target:"+derivedClassName);
-		columnFamilyOptions.close();	
+	    processColumnFamily(found, derivedClassName);
 	}
 	
-	public TransactionalMapDerived(TransactionSession session, String xid, String derivedClassName, String dbPath) throws IOException, IllegalAccessException, RocksDBException {
+	public TransactionalMapDerived(TransactionSession session, String xid, String derivedClassName, boolean found) throws IOException, IllegalAccessException, RocksDBException {
+		super(session, xid);
 		ro = new ReadOptions();
 		wo = new WriteOptions();
 		this.session = session;
 		BeginTransaction();
 		txn.setName(xid);
-		
-		this.columnFamilyOptions = new ColumnFamilyOptions();//.optimizeUniversalStyleCompaction();
-		this.columnFamilyDescriptor = new ColumnFamilyDescriptor(derivedClassName.getBytes(), columnFamilyOptions);
-		List<byte[]> allColumnFamilies = TransactionDB.listColumnFamilies(this.session.options, dbPath);// passed in from openDB process, contains column family names as list of byte arrays
-		if(this.session.columnFamilyDescriptor == null)
-			this.session.columnFamilyDescriptor = Arrays.asList(
-				new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions), this.columnFamilyDescriptor);
-		this.session.columnFamilyDescriptor.add(this.columnFamilyDescriptor);
-		boolean found = false;
-		for(byte[] e : allColumnFamilies) { 
-			if(new String(e).equals(derivedClassName)) {
-					found = true;
-					break;
-			}
-		}
-		if(!found)
-			columnFamilyHandle = this.session.kvStore.createColumnFamily(this.columnFamilyDescriptor);
-	    this.session.kvStore = TransactionDB.open(dbPath, this.session.columnFamilyDescriptor, this.session.columnFamilyHandleList);
+		processColumnFamily(found, derivedClassName);
+	}
+	/**
+	 * Generates columnFamilyHandle and columnFamilydescriptor
+	 * calls createColumnFamily for database if found is false
+	 * @param found
+	 * @param derivedClassName
+	 * @throws RocksDBException
+	 */
+	private void processColumnFamily(boolean found, String derivedClassName) throws RocksDBException {
 	    if(found) {
 	    	int index = 0;
 	    	for(ColumnFamilyHandle cfh: this.session.columnFamilyHandleList) {
-	    		columnFamilyHandle = this.session.columnFamilyHandleList.get(index++);
+	    		this.columnFamilyHandle = this.session.columnFamilyHandleList.get(index++);
 	    		if(new String(cfh.getName()).equals(derivedClassName)) {
 	    			break;
 	    		}
 	    	}
+	    	index = 0;
+	    	for(ColumnFamilyDescriptor cfd: this.session.columnFamilyDescriptor) {
+	    		this.columnFamilyDescriptor = this.session.columnFamilyDescriptor.get(index++);
+	    		if(new String(cfd.getName()).equals(derivedClassName)) {
+	    			break;
+	    		}
+	    	}
+	    } else {
+			this.columnFamilyOptions = new ColumnFamilyOptions();//.optimizeUniversalStyleCompaction();
+			this.columnFamilyDescriptor = new ColumnFamilyDescriptor(derivedClassName.getBytes(), columnFamilyOptions);
+			this.session.columnFamilyDescriptor.add(this.columnFamilyDescriptor);
+	    	this.columnFamilyHandle = this.session.kvStore.createColumnFamily(this.columnFamilyDescriptor);
+	    	this.columnFamilyOptions.close();
 	    }
 	    // make sure it's legit
-	    if(!new String(columnFamilyHandle.getName()).equals(derivedClassName))
-	    	throw new RocksDBException("columnFamilyHandle name "+(new String(columnFamilyHandle.getName()))+" does not match target:"+derivedClassName);
-		columnFamilyOptions.close();	
+	    if(!new String(this.columnFamilyHandle.getName()).equals(derivedClassName))
+	    	throw new RocksDBException("columnFamilyHandle name "+(new String(this.columnFamilyHandle.getName()))+" does not match target:"+derivedClassName);
 	}
 	
 	public TransactionSession getSession() throws IOException {

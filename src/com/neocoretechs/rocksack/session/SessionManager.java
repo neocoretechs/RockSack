@@ -1,9 +1,14 @@
 package com.neocoretechs.rocksack.session;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.rocksdb.ColumnFamilyDescriptor;
+import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -48,6 +53,8 @@ public final class SessionManager {
 	@SuppressWarnings("rawtypes")
 	private static ConcurrentHashMap<?, ?> AdminSessionTable = new ConcurrentHashMap();
 	private static Vector<String> OfflineDBs = new Vector<String>();
+	private static final List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
+	private static ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor = new ArrayList<ColumnFamilyDescriptor>();
 	//
 	// Sets the maximum number users
 	@SuppressWarnings("unused")
@@ -150,7 +157,24 @@ public final class SessionManager {
 		}
 		return hps;
 	}
-
+	public static synchronized TransactionSession ConnectTransactionColumnFamilies(String dbname, Options options, String derivedClassName) throws IOException, IllegalAccessException {
+		if( DEBUG ) {
+			System.out.printf("Connecting to transaction database:%s with options:%s%n", dbname, options);
+		}
+		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
+		if (OfflineDBs.contains(dbname))
+			throw new IllegalAccessException("Database is offline, try later");
+		TransactionSession hps = (TransactionSession) (SessionTable.get(dbname));
+		if (hps == null) {
+			// did'nt find it, create anew
+			hps = OpenDBColumnFamilyTransaction(dbname,options,derivedClassName);
+			SessionTable.put(dbname, hps);
+			if( DEBUG )
+				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+		}
+		return hps;
+	}
+	
 	private static RocksDB OpenDB(String dbPath, Options options) {
 		RocksDB db = null;
 		  try {	  
@@ -199,6 +223,48 @@ public final class SessionManager {
 		return hps;
 	}
 	
+	private static TransactionSession OpenDBColumnFamilyTransaction(String dbPath, Options options, String derivedClassName) {
+		List<byte[]> allColumnFamilies;
+		try {
+			allColumnFamilies = TransactionDB.listColumnFamilies(options, dbPath);
+		} catch (RocksDBException e) {
+			throw new RuntimeException(e);
+		}
+		boolean found = false;
+		boolean foundDefault = false;
+		String defcn = new String(TransactionDB.DEFAULT_COLUMN_FAMILY); //is this necessary?
+		if(columnFamilyDescriptor == null)
+			columnFamilyDescriptor = new ArrayList<ColumnFamilyDescriptor>();
+		//this.session.columnFamilyDescriptor = Arrays.asList(
+		//	new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions), this.columnFamilyDescriptor);
+		for(byte[] e : allColumnFamilies) {
+			String cn = new String(e);
+			if(cn.equals(derivedClassName)) {
+					found = true;
+			}
+			if(cn.equals(defcn)) {
+				foundDefault = true;
+			}
+			ColumnFamilyOptions  cfo = new ColumnFamilyOptions();//.optimizeUniversalStyleCompaction();
+			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(e, cfo);
+			columnFamilyDescriptor.add(cfd);
+			cfo.close();
+		}
+		if(!foundDefault) {
+			// options from main DB open?
+			ColumnFamilyOptions  cfo = new ColumnFamilyOptions();//.optimizeUniversalStyleCompaction();
+			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, cfo);
+			columnFamilyDescriptor.add(cfd);
+			cfo.close();
+		}
+	    TransactionDB db;
+		try {
+			db = (TransactionDB) TransactionDB.open(dbPath, columnFamilyDescriptor, columnFamilyHandles);
+		} catch (RocksDBException e) {
+			throw new RuntimeException(e);
+		}
+	    return new TransactionSession(db, options, found);
+	}
 	/**
 	* Set the database offline, kill all sessions using it
 	* @param dbname The database to offline
