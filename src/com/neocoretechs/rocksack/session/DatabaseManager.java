@@ -313,7 +313,7 @@ public class DatabaseManager {
 			try {
 				if(isDerivedClass) {
 					Session ts = SessionManager.ConnectColumnFamilies(tableSpaceDir+xClass, options, xClass);
-					ret = (BufferedMap)(new BufferedMapDerived(ts, xClass, ts.derivedClassFound));
+					ret = (BufferedMap)(new BufferedMapDerived(ts, xClass));
 				} else {
 					//SessionManager.ConnectColumnFamilies(tableSpaceDir+xClass, options, xClass);
 					//if(options == null)
@@ -370,7 +370,7 @@ public class DatabaseManager {
 			try {
 				if(isDerivedClass) {
 					Session ts = SessionManager.ConnectColumnFamilies(VolumeManager.getAliasToPath(alias)+xClass, options, xClass);
-					ret = (BufferedMap)(new BufferedMapDerived(ts, xClass, ts.derivedClassFound));
+					ret = (BufferedMap)(new BufferedMapDerived(ts, xClass));
 				} else {
 					ret =  new BufferedMap(SessionManager.Connect(VolumeManager.getAliasToPath(alias)+xClass, options));
 				}
@@ -424,7 +424,7 @@ public class DatabaseManager {
 			try {
 				if(isDerivedClass) {
 					Session ts = SessionManager.ConnectColumnFamilies(path+xClass, options, xClass);
-					ret = (BufferedMap)(new BufferedMapDerived(ts, xClass, ts.derivedClassFound));
+					ret = (BufferedMap)(new BufferedMapDerived(ts, xClass));
 				} else {
 					ret =  new BufferedMap(SessionManager.Connect(path+xClass, options));
 				}
@@ -484,7 +484,7 @@ public class DatabaseManager {
 			try {
 				if(isDerivedClass) {
 					TransactionSession ts = SessionManager.ConnectTransactionColumnFamilies(tableSpaceDir+xClass, options, xClass);
-					ret = (TransactionalMap)(new TransactionalMapDerived(ts, ts.BeginTransaction(), xClass, ts.derivedClassFound));
+					ret = (TransactionalMap)(new TransactionalMapDerived(ts, ts.BeginTransaction(), xClass));
 				} else {
 					//if(options == null)
 					//	options = getDefaultOptions();
@@ -519,7 +519,7 @@ public class DatabaseManager {
 			try {
 				if(isDerivedClass) {
 					TransactionSession ts = SessionManager.ConnectTransactionColumnFamilies(tDir+xClass, options, xClass);
-					ret = (TransactionalMap)(new TransactionalMapDerived(ts, ts.BeginTransaction(), xClass, ts.derivedClassFound));
+					ret = (TransactionalMap)(new TransactionalMapDerived(ts, ts.BeginTransaction(), xClass));
 				} else {
 					//if(options == null)
 					//	options = getDefaultOptions();

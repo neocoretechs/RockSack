@@ -49,28 +49,39 @@ public class TransactionalMapDerived extends TransactionalMap {
 	ColumnFamilyDescriptor columnFamilyDescriptor = null;
 	
 	/**
-	 * @param session Existing transactional database previously opened and ready for new transaction context
+	 * Calls processColumnFamily with session.derivedClassFound and derivedClassName
+	 * @param session
+	 * @param txn
+	 * @param derivedClassName
 	 * @throws IOException
 	 * @throws IllegalAccessException
-	 * @throws RocksDBException 
+	 * @throws RocksDBException
 	 */
-	public TransactionalMapDerived(TransactionSession session, Transaction txn, String derivedClassName, boolean found) throws IOException, IllegalAccessException, RocksDBException {
+	public TransactionalMapDerived(TransactionSession session, Transaction txn, String derivedClassName) throws IOException, IllegalAccessException, RocksDBException {
 		super(session, txn);
 		ro = new ReadOptions();
 		wo = new WriteOptions();
 		this.session = session;
 		this.txn = txn;
-	    processColumnFamily(found, derivedClassName);
+	    processColumnFamily(this.session.derivedClassFound, derivedClassName);
 	}
-	
-	public TransactionalMapDerived(TransactionSession session, String xid, String derivedClassName, boolean found) throws IOException, IllegalAccessException, RocksDBException {
+	/**
+	 * Calls processColumnFamily with session.derivedClassFound and derivedClassName
+	 * @param session
+	 * @param xid
+	 * @param derivedClassName
+	 * @throws IOException
+	 * @throws IllegalAccessException
+	 * @throws RocksDBException
+	 */
+	public TransactionalMapDerived(TransactionSession session, String xid, String derivedClassName) throws IOException, IllegalAccessException, RocksDBException {
 		super(session, xid);
 		ro = new ReadOptions();
 		wo = new WriteOptions();
 		this.session = session;
 		BeginTransaction();
 		txn.setName(xid);
-		processColumnFamily(found, derivedClassName);
+		processColumnFamily(this.session.derivedClassFound, derivedClassName);
 	}
 	/**
 	 * Generates columnFamilyHandle and columnFamilydescriptor

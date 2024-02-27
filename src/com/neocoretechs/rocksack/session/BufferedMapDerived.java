@@ -52,13 +52,14 @@ public class BufferedMapDerived extends BufferedMap {
 	* Get instance of RockSack session.
 	* TODO: specify new Comparator per column family?
 	* @param session the {@link Session} instance
+	* @param derivedClassName the derived class for the ColumnFamily denoting subclasses stored in this database
 	* @exception IOException if global IO problem
 	* @exception IllegalAccessException if the database has been put offline
 	* @throws RocksDBException 
 	*/
-	public BufferedMapDerived(Session session, String derivedClassName, boolean found) throws IllegalAccessException, IOException, RocksDBException {
+	public BufferedMapDerived(Session session, String derivedClassName) throws IllegalAccessException, IOException, RocksDBException {
 		super(session);
-		processColumnFamily(found, derivedClassName);
+		processColumnFamily(this.session.derivedClassFound, derivedClassName);
 	}
 	
 	/**
