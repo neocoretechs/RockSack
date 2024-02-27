@@ -45,10 +45,10 @@ import org.rocksdb.TransactionDBOptions;
 * desired transaction level or none, and the map then issues a call here to establish a session.<p/>
 * The session opens the database or passes an already opened database to a new transaction map which
 * creates a new transaction context for that map.
-* @author Jonathan Groff (c) NeoCoreTechs 2003, 2017, 2021
+* @author Jonathan Groff (c) NeoCoreTechs 2003, 2017, 2021, 2024
 */
 public final class SessionManager {
-	private static boolean DEBUG = false;
+	private static boolean DEBUG = true;
 	private static ConcurrentHashMap<String, Session> SessionTable = new ConcurrentHashMap<String, Session>();
 	@SuppressWarnings("rawtypes")
 	private static ConcurrentHashMap<?, ?> AdminSessionTable = new ConcurrentHashMap();
@@ -130,7 +130,15 @@ public final class SessionManager {
 		}
 		return hps;
 	}
-	
+	/**
+	 * Open the database and extract the ColumnFamily that represents the derivedClassName
+	 * @param dbname
+	 * @param options
+	 * @param derivedClassName
+	 * @return The {@link Session} that contains the methods to be invoked with ColumnFamilyHandle once we extract it from DB params
+	 * @throws IOException
+	 * @throws IllegalAccessException
+	 */
 	public static synchronized Session ConnectColumnFamilies(String dbname, Options options, String derivedClassName) throws IOException, IllegalAccessException {
 		if( DEBUG ) {
 			System.out.printf("Connecting to column family database:%s with options:%s derived class:%s%n", dbname, options, derivedClassName);
@@ -150,10 +158,10 @@ public final class SessionManager {
 	}
 	
 	/**
-	* Connect and return Session instance that is the transaction session.
+	* Connect and return Session instance that is the {@link TransactionSession}.
 	* @param dbname The database name as full path
-	 * @param options "RocksDB", "BTree" etc.
-	* @return RockSackSession The session we use to control access
+	* @param options RocksDB Options
+	* @return {@link TransactionSession} The session we use to control access
 	* @exception IOException If low level IO problem
 	* @exception IllegalAccessException If access to database is denied
 	*/
@@ -175,6 +183,15 @@ public final class SessionManager {
 		}
 		return hps;
 	}
+	/**
+	 * Connect to a transaction database column family for a derived class being stored in that database.
+	 * @param dbname the path to the database
+	 * @param options the RocksDb options
+	 * @param derivedClassName the derived class that will contain the ColumnFamily of the same name
+	 * @return the {@link TransactionSession} that contains methods we call using ColumnFamilyHandle
+	 * @throws IOException
+	 * @throws IllegalAccessException
+	 */
 	public static synchronized TransactionSession ConnectTransactionColumnFamilies(String dbname, Options options, String derivedClassName) throws IOException, IllegalAccessException {
 		if( DEBUG ) {
 			System.out.printf("Connecting to transaction database:%s with options:%s%n", dbname, options);
@@ -191,21 +208,6 @@ public final class SessionManager {
 				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
 		}
 		return hps;
-	}
-	
-	private static RocksDB OpenDB(String dbPath, Options options) {
-		RocksDB db = null;
-		  try {	  
-			  db = RocksDB.open(options, dbPath);
-			  if(DEBUG) {
-				  final String str = db.getProperty("rocksdb.stats");
-				  System.out.println(str);
-			  }
-		  } catch (final RocksDBException e) {
-			    System.out.format("[ERROR] caught the unexpected exception -- %s\n", e);
-			    assert (false);
-		  }
-		  return db;
 	}
 	/**
 	 * Start the DB with no logging for debugging purposes
@@ -240,7 +242,33 @@ public final class SessionManager {
 		//
 		return hps;
 	}
-	
+	/**
+	 * Call the RocksDB open for the given path and options
+	 * @param dbPath
+	 * @param options
+	 * @return
+	 */
+	private static RocksDB OpenDB(String dbPath, Options options) {
+		RocksDB db = null;
+		  try {	  
+			  db = RocksDB.open(options, dbPath);
+			  if(DEBUG) {
+				  final String str = db.getProperty("rocksdb.stats");
+				  System.out.println(str);
+			  }
+		  } catch (final RocksDBException e) {
+			    System.out.format("[ERROR] caught the unexpected exception -- %s\n", e);
+			    assert (false);
+		  }
+		  return db;
+	}
+	/**
+	 * Open the database for a given path and options and extract the ColumnFamily of the derived classes stored there
+	 * @param dbPath
+	 * @param options
+	 * @param derivedClassName
+	 * @return the {@link Session} that contains the method calls to RocksDb
+	 */
 	private static Session OpenDBColumnFamily(String dbPath, Options options, String derivedClassName) {
 		List<byte[]> allColumnFamilies;
 		try {
@@ -257,6 +285,8 @@ public final class SessionManager {
 		//	new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions), this.columnFamilyDescriptor);
 		for(byte[] e : allColumnFamilies) {
 			String cn = new String(e);
+			if(DEBUG)
+				System.out.printf("SessionManager.OpenDBColumnFamily reading column family %s for db:%s derivedClass:%s%n",cn,dbPath,derivedClassName);
 			if(cn.equals(derivedClassName)) {
 					found = true;
 			}
@@ -269,6 +299,8 @@ public final class SessionManager {
 			cfo.close();
 		}
 		if(!foundDefault) {
+			if(DEBUG)
+				System.out.printf("SessionManager.OpenDBColumnFamily did NOT find %s for db:%s derivedClass:%s%n",RocksDB.DEFAULT_COLUMN_FAMILY,dbPath,derivedClassName);
 			// options from main DB open?
 			ColumnFamilyOptions  cfo = new ColumnFamilyOptions();//.optimizeUniversalStyleCompaction();
 			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, cfo);
@@ -281,9 +313,17 @@ public final class SessionManager {
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}
+		if(DEBUG)
+			System.out.printf("SessionManager.OpenDBColumnFamily Session return with derived found:%b for db:%s derivedClass:%s%n",found,dbPath,derivedClassName);
 	    return new Session(db, options, found);
 	}
-	
+	/**
+	 * Open the transaction database for a given path and options and extract the ColumnFamily of the derived classes stored there
+	 * @param dbPath
+	 * @param options
+	 * @param derivedClassName
+	 * @return the {@link TransactionSession} that contains the method calls to TransactionDb
+	 */
 	private static TransactionSession OpenDBColumnFamilyTransaction(String dbPath, Options options, String derivedClassName) {
 		List<byte[]> allColumnFamilies;
 		try {
@@ -300,6 +340,8 @@ public final class SessionManager {
 		//	new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions), this.columnFamilyDescriptor);
 		for(byte[] e : allColumnFamilies) {
 			String cn = new String(e);
+			if(DEBUG)
+				System.out.printf("SessionManager.OpenDBColumnFamilyTransaction reading column family %s for db:%s derivedClass:%s%n",cn,dbPath,derivedClassName);
 			if(cn.equals(derivedClassName)) {
 					found = true;
 			}
@@ -312,6 +354,8 @@ public final class SessionManager {
 			cfo.close();
 		}
 		if(!foundDefault) {
+			if(DEBUG)
+				System.out.printf("SessionManager.OpenDBColumnFamilyTransaction did NOT find %s for db:%s derivedClass:%s%n",TransactionDB.DEFAULT_COLUMN_FAMILY,dbPath,derivedClassName);
 			// options from main DB open?
 			ColumnFamilyOptions  cfo = new ColumnFamilyOptions();//.optimizeUniversalStyleCompaction();
 			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, cfo);
@@ -324,6 +368,8 @@ public final class SessionManager {
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}
+		if(DEBUG)
+			System.out.printf("SessionManager.OpenDBColumnFamilyTransaction Session return with derived found:%b for db:%s derivedClass:%s%n",found,dbPath,derivedClassName);
 	    return new TransactionSession(db, options, found);
 	}
 	/**
@@ -360,7 +406,12 @@ public final class SessionManager {
 	protected static ConcurrentHashMap<?, ?> getAdminSessionTable() {
 		return AdminSessionTable;
 	}
-
+	/**
+	 * Open the Rocks TransactionDB
+	 * @param dbPath
+	 * @param options
+	 * @return
+	 */
 	private static TransactionDB OpenTransactionDB(String dbPath, Options options) {
 	    final TransactionDBOptions txnDbOptions = new TransactionDBOptions();
 	    TransactionDB txnDb = null;

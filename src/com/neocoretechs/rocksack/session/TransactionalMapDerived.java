@@ -1,8 +1,6 @@
 package com.neocoretechs.rocksack.session;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Iterator;
-import java.util.List;
 import java.util.stream.Stream;
 
 import org.rocksdb.ColumnFamilyDescriptor;
@@ -11,13 +9,11 @@ import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
-import org.rocksdb.Snapshot;
 import org.rocksdb.Transaction;
-import org.rocksdb.TransactionDB;
 import org.rocksdb.WriteOptions;
 
 /*
-* Copyright (c) 2003, NeoCoreTechs
+* Copyright (c) 2024, NeoCoreTechs
 * All rights reserved.
 * Redistribution and use in source and binary forms, with or without modification, 
 * are permitted provided that the following conditions are met:
@@ -40,16 +36,14 @@ import org.rocksdb.WriteOptions;
 *
 */
 /**
-* TransactionalMap. The same underlying session objects are used here but the user has access to the transactional
+* TransactionalMapDerived. The same underlying session objects are used here but the user has access to the transactional
 * Semantics underlying the recovery protocol. Thread safety is enforced on the session at this level.
-* We add an additional constructor to use a previously created session and instantiate an new Transaction instance.
-* In the adapter, we retrieve an existing map, extract the session, and instantiate a new TransactionalMap.
-* The assumption is that the new TransactionalMap is stored in an additional session container outside of the adapter.
-* @author Jonathan Groff (C) NeoCoreTechs 2003,2014,2017,2021,2022
+* We add an additional constructor to use a previously created {@link TransactionSession} and instantiate an new Transaction instance.
+* In the adapter, we retrieve an existing map, extract the session, and instantiate a new {@link TransactionalMap}
+* or {@link TransactionalMapDerived}.
+* @author Jonathan Groff (C) NeoCoreTechs 2024
 */
 public class TransactionalMapDerived extends TransactionalMap {
-	ReadOptions ro;
-	WriteOptions wo;
 	ColumnFamilyHandle columnFamilyHandle = null;
 	ColumnFamilyOptions columnFamilyOptions = null;
 	ColumnFamilyDescriptor columnFamilyDescriptor = null;

@@ -36,11 +36,11 @@ import org.rocksdb.RocksDBException;
 *
 */
 /**
-*TODO: Close existing DB? use DBOptions, then specify new Comparator per column family?
+*TODO: specify new Comparator per column family, DEFAULT?
 * BufferedMapDerived for subclasses of objects stored in a tablespace we use
-* a separate column family . Functions as a wrapper around {@link Session}
+* a separate column family . Functions as a wrapper around {@link Session} and we call methods there using ColumnFamilyHandle.
 * Thread safety is with the session object using session.getMutexObject().
-* @author Jonathan Groff (C) NeoCoreTechs 2003, 2017, 2021, 2024
+* @author Jonathan Groff (C) NeoCoreTechs 2024
 */
 public class BufferedMapDerived extends BufferedMap {
 	ColumnFamilyHandle columnFamilyHandle = null;
@@ -50,11 +50,11 @@ public class BufferedMapDerived extends BufferedMap {
 
 	/**
 	* Get instance of RockSack session.
-	* TODO: Close existing DB? use DBOptions, then specify new Comparator per column family?
+	* TODO: specify new Comparator per column family?
 	* @param session the {@link Session} instance
 	* @exception IOException if global IO problem
 	* @exception IllegalAccessException if the database has been put offline
-	 * @throws RocksDBException 
+	* @throws RocksDBException 
 	*/
 	public BufferedMapDerived(Session session, String derivedClassName, boolean found) throws IllegalAccessException, IOException, RocksDBException {
 		super(session);
