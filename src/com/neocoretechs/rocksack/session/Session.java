@@ -261,7 +261,7 @@ public class Session {
 	 * @return true
 	 * @throws IOException
 	 */
-	protected boolean putViaBytes(ColumnFamilyHandle cfh, Transaction txn, byte[] key, Object o) throws IOException {
+	protected boolean putViaBytes(Transaction txn, ColumnFamilyHandle cfh, byte[] key, Object o) throws IOException {
 		try {
 			txn.put(cfh,key,SerializedComparator.serializeObject(o));
 		} catch (RocksDBException | IOException e) {
@@ -642,7 +642,7 @@ public class Session {
 	 * @return the stream from which the lambda expression can be utilized
 	 * @throws IOException
 	 */
-	protected Stream<?> subSetStream(ColumnFamilyHandle cfh, Transaction txn, Comparable fkey, Comparable tkey) throws IOException {
+	protected Stream<?> subSetStream(Transaction txn, ColumnFamilyHandle cfh, Comparable fkey, Comparable tkey) throws IOException {
 		return new SubSetStream(new SubSetIterator(cfh, fkey, tkey, txn));
 	}
 	/**
