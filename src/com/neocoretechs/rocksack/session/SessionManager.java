@@ -363,19 +363,15 @@ public final class SessionManager {
 			if(cn.equals(defcn)) {
 				foundDefault = true;
 			}
-			ColumnFamilyOptions  cfo = DatabaseManager.getDefaultColumnFamilyOptions();
-			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(e, cfo);
+			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(e, DatabaseManager.getDefaultColumnFamilyOptions());
 			columnFamilyDescriptor.add(cfd);
-			cfo.close();
 		}
 		if(!foundDefault) {
 			if(DEBUG)
 				System.out.printf("SessionManager.OpenDBColumnFamily did NOT find %s for db:%s derivedClass:%s%n",RocksDB.DEFAULT_COLUMN_FAMILY,dbPath,derivedClassName);
 			// options from main DB open?
-			ColumnFamilyOptions  cfo = DatabaseManager.getDefaultColumnFamilyOptions();
-			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, cfo);
+			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, DatabaseManager.getDefaultColumnFamilyOptions());
 			columnFamilyDescriptor.add(cfd);
-			cfo.close();
 		}
 	    RocksDB db;
 		try {
@@ -385,7 +381,7 @@ public final class SessionManager {
 		}
 		if(DEBUG)
 			System.out.printf("SessionManager.OpenDBColumnFamily Session return with derived found:%b for db:%s derivedClass:%s%n",found,dbPath,derivedClassName);
-	    return new Session(db, options, columnFamilyDescriptor, columnFamilyHandles, found);
+	    return new Session(db, options, columnFamilyDescriptor, columnFamilyHandles);
 	}
 	/**
 	 * Open the transaction database for a given path and options and extract the ColumnFamily of the derived classes stored there
@@ -418,19 +414,15 @@ public final class SessionManager {
 			if(cn.equals(defcn)) {
 				foundDefault = true;
 			}
-			ColumnFamilyOptions  cfo = DatabaseManager.getDefaultColumnFamilyOptions();
-			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(e, cfo);
+			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(e,  DatabaseManager.getDefaultColumnFamilyOptions());
 			columnFamilyDescriptor.add(cfd);
-			cfo.close();
 		}
 		if(!foundDefault) {
 			if(DEBUG)
 				System.out.printf("SessionManager.OpenDBColumnFamilyTransaction did NOT find %s for db:%s derivedClass:%s%n",TransactionDB.DEFAULT_COLUMN_FAMILY,dbPath,derivedClassName);
 			// options from main DB open?
-			ColumnFamilyOptions  cfo = DatabaseManager.getDefaultColumnFamilyOptions();
-			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, cfo);
+			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, DatabaseManager.getDefaultColumnFamilyOptions());
 			columnFamilyDescriptor.add(cfd);
-			cfo.close();
 		}
 	    TransactionDB db;
 		try {
@@ -440,7 +432,7 @@ public final class SessionManager {
 		}
 		if(DEBUG)
 			System.out.printf("SessionManager.OpenDBColumnFamilyTransaction Session return with derived found:%b for db:%s derivedClass:%s%n",found,dbPath,derivedClassName);
-	    return new TransactionSession(db, options, columnFamilyDescriptor, columnFamilyHandles, found);
+	    return new TransactionSession(db, options, columnFamilyDescriptor, columnFamilyHandles);
 	}
 	/**
 	* Set the database offline, kill all sessions using it

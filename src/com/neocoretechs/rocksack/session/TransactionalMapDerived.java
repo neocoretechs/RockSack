@@ -10,6 +10,7 @@ import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.Transaction;
+import org.rocksdb.TransactionDB;
 import org.rocksdb.WriteOptions;
 
 /*
@@ -44,10 +45,44 @@ import org.rocksdb.WriteOptions;
 * @author Jonathan Groff (C) NeoCoreTechs 2024
 */
 public class TransactionalMapDerived extends TransactionalMap {
+	private static boolean DEBUG = false;
 	ColumnFamilyHandle columnFamilyHandle = null;
-	ColumnFamilyOptions columnFamilyOptions = null;
 	ColumnFamilyDescriptor columnFamilyDescriptor = null;
-	
+	/**
+	 * Calls processColumnFamily with session.derivedClassFound and derivedClassName
+	 * @param session
+	 * @param txn
+	 * @param derivedClassName
+	 * @throws IOException
+	 * @throws IllegalAccessException
+	 * @throws RocksDBException
+	 */
+	public TransactionalMapDerived(TransactionSession session, Transaction txn) throws IOException, IllegalAccessException, RocksDBException {
+		super(session, txn);
+		ro = new ReadOptions();
+		wo = new WriteOptions();
+		this.session = session;
+		this.txn = txn;
+	    processColumnFamily();
+	}
+	/**
+	 * Calls processColumnFamily with session.derivedClassFound and derivedClassName
+	 * @param session
+	 * @param xid
+	 * @param derivedClassName
+	 * @throws IOException
+	 * @throws IllegalAccessException
+	 * @throws RocksDBException
+	 */
+	public TransactionalMapDerived(TransactionSession session, String xid) throws IOException, IllegalAccessException, RocksDBException {
+		super(session, xid);
+		ro = new ReadOptions();
+		wo = new WriteOptions();
+		this.session = session;
+		BeginTransaction();
+		txn.setName(xid);
+		processColumnFamily();
+	}
 	/**
 	 * Calls processColumnFamily with session.derivedClassFound and derivedClassName
 	 * @param session
@@ -63,7 +98,7 @@ public class TransactionalMapDerived extends TransactionalMap {
 		wo = new WriteOptions();
 		this.session = session;
 		this.txn = txn;
-	    processColumnFamily(this.session.derivedClassFound, derivedClassName);
+	    processColumnFamily(derivedClassName);
 	}
 	/**
 	 * Calls processColumnFamily with session.derivedClassFound and derivedClassName
@@ -81,7 +116,7 @@ public class TransactionalMapDerived extends TransactionalMap {
 		this.session = session;
 		BeginTransaction();
 		txn.setName(xid);
-		processColumnFamily(this.session.derivedClassFound, derivedClassName);
+		processColumnFamily(derivedClassName);
 	}
 	/**
 	 * Generates columnFamilyHandle and columnFamilydescriptor
@@ -90,33 +125,66 @@ public class TransactionalMapDerived extends TransactionalMap {
 	 * @param derivedClassName
 	 * @throws RocksDBException
 	 */
-	private void processColumnFamily(boolean found, String derivedClassName) throws RocksDBException {
-	    if(found) {
-	    	int index = 0;
-	    	for(ColumnFamilyHandle cfh: this.session.columnFamilyHandles) {
-	    		this.columnFamilyHandle = this.session.columnFamilyHandles.get(index++);
-	    		if(new String(cfh.getName()).equals(derivedClassName)) {
-	    			break;
-	    		}
-	    	}
-	    	index = 0;
-	    	for(ColumnFamilyDescriptor cfd: this.session.columnFamilyDescriptor) {
-	    		this.columnFamilyDescriptor = this.session.columnFamilyDescriptor.get(index++);
-	    		if(new String(cfd.getName()).equals(derivedClassName)) {
-	    			break;
-	    		}
-	    	}
-	    } else {
-			this.columnFamilyOptions = new ColumnFamilyOptions();//.optimizeUniversalStyleCompaction();
-			this.columnFamilyDescriptor = new ColumnFamilyDescriptor(derivedClassName.getBytes(), columnFamilyOptions);
-			this.session.columnFamilyDescriptor.add(this.columnFamilyDescriptor);
-	    	this.columnFamilyHandle = this.session.kvStore.createColumnFamily(this.columnFamilyDescriptor);
-	    	this.columnFamilyOptions.close();
-	    }
-	    // make sure it's legit
-	    if(!new String(this.columnFamilyHandle.getName()).equals(derivedClassName))
-	    	throw new RocksDBException("columnFamilyHandle name "+(new String(this.columnFamilyHandle.getName()))+" does not match target:"+derivedClassName);
+	private void processColumnFamily() throws RocksDBException {
+		boolean found = false;
+		int index = 0;
+		for(ColumnFamilyHandle cfh: this.session.columnFamilyHandles) {
+			this.columnFamilyHandle = this.session.columnFamilyHandles.get(index++);
+			if(new String(cfh.getName()).equals(new String(TransactionDB.DEFAULT_COLUMN_FAMILY))) {
+				found = true;
+				break;
+			}
+		}
+		index = 0;
+		for(ColumnFamilyDescriptor cfd: this.session.columnFamilyDescriptor) {
+			this.columnFamilyDescriptor = this.session.columnFamilyDescriptor.get(index++);
+			if(new String(cfd.getName()).equals(new String(TransactionDB.DEFAULT_COLUMN_FAMILY))) {
+				break;
+			}
+		}
+		// make sure it's legit
+		if(!found)
+			throw new RocksDBException("columnFamilyHandle name default not found");
 	}
+	
+	/**
+	 * Generates columnFamilyHandle and columnFamilydescriptor
+	 * calls createColumnFamily for database if found is false
+	 * @param found
+	 * @param derivedClassName
+	 * @throws RocksDBException
+	 */
+	private void processColumnFamily(String derivedClassName) throws RocksDBException {
+		if(DEBUG)
+			System.out.printf("%s.processColumnFamily derived:%s%n",this.getClass().getName(),derivedClassName);
+		boolean found = false;
+		int index = 0;
+		for(ColumnFamilyHandle cfh: this.session.columnFamilyHandles) {
+			this.columnFamilyHandle = this.session.columnFamilyHandles.get(index++);
+			if(new String(cfh.getName()).equals(derivedClassName)) {
+				found = true;
+				break;
+			}
+		}
+		if(found) {
+			index = 0;
+			for(ColumnFamilyDescriptor cfd: this.session.columnFamilyDescriptor) {
+				this.columnFamilyDescriptor = this.session.columnFamilyDescriptor.get(index++);
+				if(new String(cfd.getName()).equals(derivedClassName)) {
+					break;
+				}
+			}
+		} else {
+			this.columnFamilyDescriptor = new ColumnFamilyDescriptor(derivedClassName.getBytes(), DatabaseManager.getDefaultColumnFamilyOptions());
+			this.session.columnFamilyDescriptor.add(this.columnFamilyDescriptor);
+			this.columnFamilyHandle = this.session.kvStore.createColumnFamily(this.columnFamilyDescriptor);
+		}
+		// make sure it's legit
+		if(!new String(this.columnFamilyHandle.getName()).equals(derivedClassName) ||
+				!new String(this.columnFamilyDescriptor.getName()).equals(derivedClassName))
+			throw new RocksDBException("columnFamilyHandle name "+(new String(this.columnFamilyHandle.getName()))+" or descriptor does not match target:"+derivedClassName);
+	}
+	
 	
 	public TransactionSession getSession() throws IOException {
 		session.waitOpen();

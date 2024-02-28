@@ -1,14 +1,13 @@
 package com.neocoretechs.rocksack.session;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.stream.Stream;
 
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.Options;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
@@ -73,7 +72,6 @@ public class Session {
 	protected RocksDB kvStore;
 	protected Options options;
 	private boolean dbOpen = false;
-	public boolean derivedClassFound = false;
 	//
 	List<ColumnFamilyDescriptor> columnFamilyDescriptor = null;
 	List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
@@ -92,21 +90,13 @@ public class Session {
 			System.out.println("RockSackSession constructed with db:"+getDBname());
 	}
 	
-	public Session(RocksDB kvStore, Options options, ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor, List<ColumnFamilyHandle> columnFamilyHandles, boolean found) {
-		this.kvStore = kvStore;
-		this.options = options;
-		this.columnFamilyDescriptor = columnFamilyDescriptor;
-		this.columnFamilyHandles = columnFamilyHandles;
-		this.derivedClassFound = found;
-		if( DEBUG )
-			System.out.println("RockSackSession constructed with db:"+getDBname());
-	}
-
 	public Session(RocksDB kvStore, Options options, ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor, List<ColumnFamilyHandle> columnFamilyHandles) {
 		this.kvStore = kvStore;
 		this.options = options;
 		this.columnFamilyDescriptor = columnFamilyDescriptor;
 		this.columnFamilyHandles = columnFamilyHandles;
+		if( DEBUG )
+			System.out.println("RockSackSession constructed with db:"+getDBname()+" desc:"+Arrays.toString(columnFamilyDescriptor.toArray())+" handle:"+Arrays.toString(columnFamilyHandles.toArray()));
 	}
 
 	protected String getDBname() {

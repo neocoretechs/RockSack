@@ -1,14 +1,11 @@
 package com.neocoretechs.rocksack.session;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
+
 import java.util.Iterator;
-import java.util.List;
 import java.util.stream.Stream;
 
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
@@ -36,21 +33,18 @@ import org.rocksdb.RocksDBException;
 *
 */
 /**
-*TODO: specify new Comparator per column family, DEFAULT?
 * BufferedMapDerived for subclasses of objects stored in a tablespace we use
 * a separate column family . Functions as a wrapper around {@link Session} and we call methods there using ColumnFamilyHandle.
 * Thread safety is with the session object using session.getMutexObject().
 * @author Jonathan Groff (C) NeoCoreTechs 2024
 */
 public class BufferedMapDerived extends BufferedMap {
+	private static boolean DEBUG = true;
 	ColumnFamilyHandle columnFamilyHandle = null;
-	ColumnFamilyOptions columnFamilyOptions = null;
 	ColumnFamilyDescriptor columnFamilyDescriptor = null;
-	//String dbName;
 
 	/**
 	* Get instance of RockSack session.
-	* TODO: specify new Comparator per column family?
 	* @param session the {@link Session} instance
 	* @param derivedClassName the derived class for the ColumnFamily denoting subclasses stored in this database
 	* @exception IOException if global IO problem
@@ -59,11 +53,10 @@ public class BufferedMapDerived extends BufferedMap {
 	*/
 	public BufferedMapDerived(Session session, String derivedClassName) throws IllegalAccessException, IOException, RocksDBException {
 		super(session);
-		processColumnFamily(this.session.derivedClassFound, derivedClassName);
+		processColumnFamily(derivedClassName);
 	}
 	/**
 	* Get instance of RockSack session.
-	* TODO: specify new Comparator per column family?
 	* @param session the {@link Session} instance
 	* @param derivedClassName the derived class for the ColumnFamily denoting subclasses stored in this database
 	* @exception IOException if global IO problem
@@ -82,6 +75,8 @@ public class BufferedMapDerived extends BufferedMap {
 	 * @throws RocksDBException
 	 */
 	private void processColumnFamily() throws RocksDBException {
+		if(DEBUG)
+			System.out.printf("%s.processColumnFamily ",this.getClass().getName());
 		boolean found = false;
 		int index = 0;
 		for(ColumnFamilyHandle cfh: this.session.columnFamilyHandles) {
@@ -99,7 +94,7 @@ public class BufferedMapDerived extends BufferedMap {
 			}
 		}
 		if(!found) {
-			throw new RocksDBException("columnFamilyHandle name defult not found");
+			throw new RocksDBException("columnFamilyHandle name default not found");
 		}
 	}
 	
@@ -110,33 +105,35 @@ public class BufferedMapDerived extends BufferedMap {
 	 * @param derivedClassName
 	 * @throws RocksDBException
 	 */
-	private void processColumnFamily(boolean found, String derivedClassName) throws RocksDBException {
-	    if(found) {
+	private void processColumnFamily(String derivedClassName) throws RocksDBException {
+		if(DEBUG)
+			System.out.printf("%s.processColumnFamily derived:%s%n",this.getClass().getName(),derivedClassName);
+		boolean found = false;
 	    	int index = 0;
 	    	for(ColumnFamilyHandle cfh: this.session.columnFamilyHandles) {
 	    		this.columnFamilyHandle = this.session.columnFamilyHandles.get(index++);
 	    		if(new String(cfh.getName()).equals(derivedClassName)) {
+	    			found = true;
 	    			break;
 	    		}
 	    	}
-	    	index = 0;
-	    	for(ColumnFamilyDescriptor cfd: this.session.columnFamilyDescriptor) {
-	    		this.columnFamilyDescriptor = this.session.columnFamilyDescriptor.get(index++);
-	    		if(new String(cfd.getName()).equals(derivedClassName)) {
-	    			break;
+	    	if(found) {
+	    		index = 0;
+	    		for(ColumnFamilyDescriptor cfd: this.session.columnFamilyDescriptor) {
+	    			this.columnFamilyDescriptor = this.session.columnFamilyDescriptor.get(index++);
+	    			if(new String(cfd.getName()).equals(derivedClassName)) {
+	    				break;
+	    			}
 	    		}
+	    	} else {
+	    		this.columnFamilyDescriptor = new ColumnFamilyDescriptor(derivedClassName.getBytes(), DatabaseManager.getDefaultColumnFamilyOptions());
+	    		this.session.columnFamilyDescriptor.add(this.columnFamilyDescriptor);
+	    		this.columnFamilyHandle = this.session.kvStore.createColumnFamily(this.columnFamilyDescriptor);
 	    	}
-	    } else {
-	    	// TODO: comparator?
-			this.columnFamilyOptions = DatabaseManager.getDefaultColumnFamilyOptions();
-			this.columnFamilyDescriptor = new ColumnFamilyDescriptor(derivedClassName.getBytes(), this.columnFamilyOptions);
-			this.session.columnFamilyDescriptor.add(this.columnFamilyDescriptor);
-	    	this.columnFamilyHandle = this.session.kvStore.createColumnFamily(this.columnFamilyDescriptor);
-	    	this.columnFamilyOptions.close();
-	    }
 	    // make sure it's legit
-	    if(!new String(this.columnFamilyHandle.getName()).equals(derivedClassName))
-	    	throw new RocksDBException("columnFamilyHandle name "+(new String(this.columnFamilyHandle.getName()))+" does not match target:"+derivedClassName);
+	    if(!new String(this.columnFamilyHandle.getName()).equals(derivedClassName) ||
+	    	!new String(this.columnFamilyDescriptor.getName()).equals(derivedClassName))
+	    	throw new RocksDBException("columnFamilyHandle name "+(new String(this.columnFamilyHandle.getName()))+" or descriptor does not match target:"+derivedClassName);
 	}
 	
 	public Session getSession() throws IOException {

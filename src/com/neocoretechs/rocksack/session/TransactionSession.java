@@ -17,15 +17,13 @@ import org.rocksdb.WriteOptions;
  */
 public class TransactionSession extends Session implements TransactionInterface {
 	private static boolean DEBUG = false;
-	public boolean derivedClassFound = false;
 	
 	protected TransactionSession(TransactionDB kvStore, Options options) {
 		super(kvStore, options);
 	}
 	
-	protected TransactionSession(TransactionDB kvStore, Options options, ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor, List<ColumnFamilyHandle> columnFamilyHandles, boolean found) {
-		super(kvStore, options, columnFamilyDescriptor, columnFamilyHandles, found);
-		this.derivedClassFound = found;
+	protected TransactionSession(TransactionDB kvStore, Options options, ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor, List<ColumnFamilyHandle> columnFamilyHandles) {
+		super(kvStore, options, columnFamilyDescriptor, columnFamilyHandles);
 	}
 	
 	@Override
@@ -37,7 +35,6 @@ public class TransactionSession extends Session implements TransactionInterface 
 	public Transaction BeginTransaction() {
 		return getKVStore().beginTransaction(new WriteOptions());
 	}
-	
 	
 	@Override
 	public String toString() {
