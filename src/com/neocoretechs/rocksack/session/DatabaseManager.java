@@ -59,7 +59,7 @@ import com.neocoretechs.rocksack.session.VolumeManager.Volume;
  *
  */
 public class DatabaseManager {
-	private static boolean DEBUG = true;
+	private static boolean DEBUG = false;
 	private static String tableSpaceDir = "/";
 	private static final char[] ILLEGAL_CHARS = { '[', ']', '!', '+', '=', '|', ';', '?', '*', '\\', '<', '>', '|', '\"', ':' };
 	private static final char[] OK_CHARS = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E' };
@@ -346,9 +346,6 @@ public class DatabaseManager {
 					if(DEBUG)
 						System.out.println("DatabaseManager.getMap About to return DERIVED map:"+ret+" for dir:"+tableSpaceDir+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
 				} else {
-					//SessionManager.ConnectColumnFamilies(tableSpaceDir+xClass, options, xClass);
-					//if(options == null)
-					//	options = getDefaultOptions();
 					ret =  new BufferedMapDerived(SessionManager.ConnectColumnFamilies(tableSpaceDir+xClass, options));
 					v.classToIso.put(xClass, ret);
 					if(DEBUG)
@@ -387,35 +384,51 @@ public class DatabaseManager {
 	 */
 	public static BufferedMap getMap(String alias, Class clazz) throws IllegalAccessException, IOException, NoSuchElementException {
 		boolean isDerivedClass = false;
-		String xClass;
+		String xClass,dClass = null;
+		BufferedMap ret = null;
+		//
+		Volume v = VolumeManager.getByAlias(alias);
 		// are we working with marked derived class? if so open as column family in main class tablespace
 		if(DerivedClass.class.isAssignableFrom(clazz)) {
 			isDerivedClass = true;
 			xClass = translateClass(clazz.getSuperclass().getName());
+			dClass = translateClass(clazz.getName());
+			ret = (BufferedMap) v.classToIso.get(dClass);
 		} else {
 			xClass = translateClass(clazz.getName());
+			ret = (BufferedMap) v.classToIso.get(xClass);
 		}
-		Volume v = VolumeManager.getByAlias(alias);
-		BufferedMap ret = (BufferedMap) v.classToIso.get(xClass);
-		if(DEBUG)
-			System.out.println("DatabaseManager.getMap About to return designator for alias:"+alias+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
 		if( ret == null ) {
 			try {
 				if(isDerivedClass) {
-					Session ts = SessionManager.ConnectColumnFamilies(VolumeManager.getAliasToPath(alias)+xClass, options, xClass);
-					ret = (BufferedMap)(new BufferedMapDerived(ts, xClass));
+					BufferedMap def = (BufferedMap) v.classToIso.get(xClass);
+					// have we already opened the main database?
+					if(def == null) {
+						Session ts = SessionManager.ConnectColumnFamilies(VolumeManager.getAliasToPath(alias)+xClass, options, dClass);
+						// put the main class default ColumnFamily, its not there
+						v.classToIso.put(xClass, (BufferedMap)(new BufferedMapDerived(ts)));
+						ret = (BufferedMap)(new BufferedMapDerived(ts, dClass));
+					} else {
+						// create derived with session of main, previously instantiated default ColumnFamily
+						ret = (BufferedMap)(new BufferedMapDerived(def.getSession(), dClass));
+					}
+					v.classToIso.put(dClass, ret);
+					if(DEBUG)
+						System.out.println("DatabaseManager.getMap About to return DERIVED map:"+ret+" for alias:"+alias+" path:"+(VolumeManager.getAliasToPath(alias)+xClass)+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
 				} else {
-					ret =  new BufferedMap(SessionManager.Connect(VolumeManager.getAliasToPath(alias)+xClass, options));
+					ret =  new BufferedMapDerived(SessionManager.ConnectColumnFamilies(VolumeManager.getAliasToPath(alias)+xClass, options));
+					v.classToIso.put(xClass, ret);
+					if(DEBUG)
+						System.out.println("DatabaseManager.getMap About to return BASE map:"+ret+" alias:"+alias+" for dir:"+(VolumeManager.getAliasToPath(alias)+xClass)+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
 				}
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
 			if(DEBUG)
-				System.out.println("DatabaseManager.getMap About to create new map:"+ret);
-			v.classToIso.put(xClass, ret);
+				System.out.println("DatabaseManager.getMap About to create new map:"+ret+" for alias:"+alias);
 		}
 		if(DEBUG)
-			System.out.println("DatabaseManager.getMap About to return map:"+ret);
+			System.out.println("DatabaseManager.getMap About to return map:"+ret+" for class:"+xClass+" isDerivedClass:"+isDerivedClass+" alias:"+alias);
 		return ret;
 	}	
 	/**
@@ -439,37 +452,51 @@ public class DatabaseManager {
 	 */
 	public static BufferedMap getMapByPath(String path, Class clazz) throws IllegalAccessException, IOException {
 		boolean isDerivedClass = false;
-		String xClass;
+		String xClass,dClass = null;
+		BufferedMap ret = null;
+		//
+		Volume v = VolumeManager.get(path);
 		// are we working with marked derived class? if so open as column family in main class tablespace
 		if(DerivedClass.class.isAssignableFrom(clazz)) {
 			isDerivedClass = true;
 			xClass = translateClass(clazz.getSuperclass().getName());
+			dClass = translateClass(clazz.getName());
+			ret = (BufferedMap) v.classToIso.get(dClass);
 		} else {
 			xClass = translateClass(clazz.getName());
+			ret = (BufferedMap) v.classToIso.get(xClass);
 		}
-		Volume v = VolumeManager.get(path);
-		BufferedMap ret = (BufferedMap) v.classToIso.get(xClass);
-		if(DEBUG)
-			System.out.println("DatabaseManager.getMapByPath About to return designator for path:"+path+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
 		if( ret == null ) {
-			//if(options == null)
-			//	options = getDefaultOptions();
 			try {
 				if(isDerivedClass) {
-					Session ts = SessionManager.ConnectColumnFamilies(path+xClass, options, xClass);
-					ret = (BufferedMap)(new BufferedMapDerived(ts, xClass));
+					BufferedMap def = (BufferedMap) v.classToIso.get(xClass);
+					// have we already opened the main database?
+					if(def == null) {
+						Session ts = SessionManager.ConnectColumnFamilies(path+xClass, options, dClass);
+						// put the main class default ColumnFamily, its not there
+						v.classToIso.put(xClass, (BufferedMap)(new BufferedMapDerived(ts)));
+						ret = (BufferedMap)(new BufferedMapDerived(ts, dClass));
+					} else {
+						// create derived with session of main, previously instantiated default ColumnFamily
+						ret = (BufferedMap)(new BufferedMapDerived(def.getSession(), dClass));
+					}
+					v.classToIso.put(dClass, ret);
+					if(DEBUG)
+						System.out.println("DatabaseManager.getMapByPath About to return DERIVED map:"+ret+" for path:"+path+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
 				} else {
-					ret =  new BufferedMap(SessionManager.Connect(path+xClass, options));
+					ret =  new BufferedMapDerived(SessionManager.ConnectColumnFamilies(path+xClass, options));
+					v.classToIso.put(xClass, ret);
+					if(DEBUG)
+						System.out.println("DatabaseManager.getMapByPath About to return BASE map:"+ret+" for path:"+path+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
 				}
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
 			if(DEBUG)
-				System.out.println("DatabaseManager.getMapByPath About to create new map:"+ret);
-			v.classToIso.put(xClass, ret);
+				System.out.println("DatabaseManager.getMapByPath path:"+path+" About to create new map:"+ret);
 		}
 		if(DEBUG)
-			System.out.println("DatabaseManager.getMap About to return map:"+ret);
+			System.out.println("DatabaseManager.getMapByPath path:"+path+" About to return map:"+ret+" for class:"+xClass+" isDerivedClass:"+isDerivedClass);
 		return ret;
 	}
 	
@@ -502,73 +529,105 @@ public class DatabaseManager {
 	 */
 	public static synchronized TransactionalMap getTransactionalMap(Class clazz, String xid) throws IllegalAccessException, IOException {
 		boolean isDerivedClass = false;
-		String xClass;
+		String xClass,dClass = null;
+		TransactionalMap ret = null;
+		//
+		Volume v = VolumeManager.get(tableSpaceDir);
+		// are we working with marked derived class? if so open as column family in main class tablespace
 		if(DerivedClass.class.isAssignableFrom(clazz)) {
 			isDerivedClass = true;
 			xClass = translateClass(clazz.getSuperclass().getName());
+			dClass = translateClass(clazz.getName());
+			ret = (TransactionalMap) v.classToIsoTransaction.get(dClass);
 		} else {
 			xClass = translateClass(clazz.getName());
+			ret = (TransactionalMap) v.classToIsoTransaction.get(xClass);
 		}
-		Volume v = VolumeManager.get(tableSpaceDir);
-		TransactionalMap ret = (TransactionalMap) v.classToIsoTransaction.get(xClass);
-		if(DEBUG)
-			System.out.println("DatabaseManager.getTransactionalMap About to return designator for dir:"+tableSpaceDir+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v+" map:"+ret);
 		if( ret == null ) {
 			try {
 				if(isDerivedClass) {
-					TransactionSession ts = SessionManager.ConnectTransactionColumnFamilies(tableSpaceDir+xClass, options, xClass);
-					ret = (TransactionalMap)(new TransactionalMapDerived(ts, ts.BeginTransaction(), xClass));
+					TransactionalMap def = (TransactionalMap) v.classToIsoTransaction.get(xClass);
+					// have we already opened the main database?
+					if(def == null) {
+						TransactionSession ts = SessionManager.ConnectTransactionColumnFamilies(tableSpaceDir+xClass, options, dClass);
+						// put the main class default ColumnFamily, its not there
+						v.classToIsoTransaction.put(xClass, (TransactionalMap)(new TransactionalMapDerived(ts, xid)));
+						ret = (TransactionalMap)(new TransactionalMapDerived(ts, xid, dClass));
+					} else {
+						// create derived with session of main, previously instantiated default ColumnFamily
+						ret = (TransactionalMap)(new TransactionalMapDerived(def.getSession(), dClass));
+					}
+					v.classToIsoTransaction.put(dClass, ret);
+					v.idToTransaction.put(xid, ret.getTransaction());
+					if(DEBUG)
+						System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return DERIVED map:"+ret+" for dir:"+tableSpaceDir+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
 				} else {
-					//if(options == null)
-					//	options = getDefaultOptions();
-					ret =  new TransactionalMap(SessionManager.ConnectTransaction(tableSpaceDir+xClass, options), xid);
+					ret =  new TransactionalMapDerived(SessionManager.ConnectTransactionColumnFamilies(tableSpaceDir+xClass, options), xid);
+					v.classToIsoTransaction.put(xClass, ret);
+					v.idToTransaction.put(xid, ret.getTransaction());
+					if(DEBUG)
+						System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return BASE map:"+ret+" for dir:"+tableSpaceDir+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
 				}
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
 			if(DEBUG)
-				System.out.println("DatabaseManager.getTransactionalMap About to create new map:"+ret);
-			v.classToIsoTransaction.put(xClass, ret);
-			v.idToTransaction.put(xid, ret.getTransaction());
+				System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to create new map:"+ret);
 		}
 		if(DEBUG)
-			System.out.println("DatabaseManager.getTransactionalMap About to return map:"+ret);
-		return ret;
+			System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return map:"+ret+" for class:"+xClass+" isDerivedClass:"+isDerivedClass);
+		return ret;		
 	}
 	
 	public static synchronized TransactionalMap getTransactionalMap(Volume v, String tDir, Class clazz, String xid) throws IllegalAccessException, IOException, RocksDBException {
 		boolean isDerivedClass = false;
-		String xClass;
+		String xClass,dClass = null;
+		TransactionalMap ret = null;
+		//
+		// are we working with marked derived class? if so open as column family in main class tablespace
 		if(DerivedClass.class.isAssignableFrom(clazz)) {
 			isDerivedClass = true;
 			xClass = translateClass(clazz.getSuperclass().getName());
+			dClass = translateClass(clazz.getName());
+			ret = (TransactionalMap) v.classToIsoTransaction.get(dClass);
 		} else {
 			xClass = translateClass(clazz.getName());
+			ret = (TransactionalMap) v.classToIsoTransaction.get(xClass);
 		}
-		TransactionalMap ret = (TransactionalMap) v.classToIsoTransaction.get(xClass);
-		if(DEBUG)
-			System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return designator for dir:"+tDir+" class:"+xClass+" for volume:"+v+" map:"+ret);
 		if( ret == null ) {
 			try {
 				if(isDerivedClass) {
-					TransactionSession ts = SessionManager.ConnectTransactionColumnFamilies(tDir+xClass, options, xClass);
-					ret = (TransactionalMap)(new TransactionalMapDerived(ts, ts.BeginTransaction(), xClass));
+					TransactionalMap def = (TransactionalMap) v.classToIsoTransaction.get(xClass);
+					// have we already opened the main database?
+					if(def == null) {
+						TransactionSession ts = SessionManager.ConnectTransactionColumnFamilies(tDir+xClass, options, dClass);
+						// put the main class default ColumnFamily, its not there
+						v.classToIsoTransaction.put(xClass, (TransactionalMap)(new TransactionalMapDerived(ts, xid)));
+						ret = (TransactionalMap)(new TransactionalMapDerived(ts, xid, dClass));
+					} else {
+						// create derived with session of main, previously instantiated default ColumnFamily
+						ret = (TransactionalMap)(new TransactionalMapDerived(def.getSession(), dClass));
+					}
+					v.classToIsoTransaction.put(dClass, ret);
+					v.idToTransaction.put(xid, ret.getTransaction());
+					if(DEBUG)
+						System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return DERIVED map:"+ret+" for dir:"+(tDir+xClass)+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
 				} else {
-					//if(options == null)
-					//	options = getDefaultOptions();
-					ret =  new TransactionalMap(SessionManager.ConnectTransaction(tDir+xClass, options), xid);
+					ret =  new TransactionalMapDerived(SessionManager.ConnectTransactionColumnFamilies(tDir+xClass, options), xid);
+					v.classToIsoTransaction.put(xClass, ret);
+					v.idToTransaction.put(xid, ret.getTransaction());
+					if(DEBUG)
+						System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return BASE map:"+ret+" for dir:"+(tDir+xClass)+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
 				}
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
 			if(DEBUG)
-				System.out.println("DatabaseManager.getTransactionalMap About to create new map:"+ret);
-			v.classToIsoTransaction.put(xClass, ret);
-			v.idToTransaction.put(xid, ret.getTransaction());
+				System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to create new map:"+ret);
 		}
 		if(DEBUG)
-			System.out.println("DatabaseManager.getTransactionalMap About to return map:"+ret);
-		return ret;
+			System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return map:"+ret+" for class:"+xClass+" isDerivedClass:"+isDerivedClass);
+		return ret;	
 	}
 	/**
 	 * Start a new transaction for the given class in the aliased database
@@ -776,7 +835,6 @@ public class DatabaseManager {
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
-
 	/**
 	 * Remove the given Map from active DB/transaction collection
 	 * @param alias The alias for the tablespace

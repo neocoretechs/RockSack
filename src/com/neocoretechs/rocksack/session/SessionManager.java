@@ -207,6 +207,31 @@ public final class SessionManager {
 		return hps;
 	}
 	/**
+	 * Connect to a transaction database column family for a default ColumnFamily class being stored in that database.
+	 * @param dbname the path to the database
+	 * @param options the RocksDb options
+	 * @return the {@link TransactionSession} that contains methods we call using ColumnFamilyHandle
+	 * @throws IOException
+	 * @throws IllegalAccessException
+	 */
+	public static synchronized TransactionSession ConnectTransactionColumnFamilies(String dbname, Options options) throws IOException, IllegalAccessException {
+		if( DEBUG ) {
+			System.out.printf("Connecting to transaction database:%s with options:%s%n", dbname, options);
+		}
+		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
+		if (OfflineDBs.contains(dbname))
+			throw new IllegalAccessException("Database is offline, try later");
+		TransactionSession hps = (TransactionSession) (SessionTable.get(dbname));
+		if (hps == null) {
+			// did'nt find it, create anew
+			hps = OpenDBColumnFamilyTransaction(dbname,options);
+			SessionTable.put(dbname, hps);
+			if( DEBUG )
+				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+		}
+		return hps;
+	}
+	/**
 	 * Connect to a transaction database column family for a derived class being stored in that database.
 	 * @param dbname the path to the database
 	 * @param options the RocksDb options
@@ -382,6 +407,52 @@ public final class SessionManager {
 		if(DEBUG)
 			System.out.printf("SessionManager.OpenDBColumnFamily Session return with derived found:%b for db:%s derivedClass:%s%n",found,dbPath,derivedClassName);
 	    return new Session(db, options, columnFamilyDescriptor, columnFamilyHandles);
+	}
+	/**
+	 * Open the transaction database for a given path and options and extract the default ColumnFamily of the classes stored there
+	 * @param dbPath
+	 * @param options
+	 * @return the {@link TransactionSession} that contains the method calls to TransactionDb
+	 */
+	private static TransactionSession OpenDBColumnFamilyTransaction(String dbPath, Options options) {
+		List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
+		ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor = new ArrayList<ColumnFamilyDescriptor>();
+		List<byte[]> allColumnFamilies;
+		try {
+			allColumnFamilies = TransactionDB.listColumnFamilies(options, dbPath);
+		} catch (RocksDBException e) {
+			throw new RuntimeException(e);
+		}
+		boolean foundDefault = false;
+		String defcn = new String(TransactionDB.DEFAULT_COLUMN_FAMILY); 
+		//this.session.columnFamilyDescriptor = Arrays.asList(
+		//	new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions), this.columnFamilyDescriptor);
+		for(byte[] e : allColumnFamilies) {
+			String cn = new String(e);
+			if(DEBUG)
+				System.out.printf("SessionManager.OpenDBColumnFamilyTransaction reading column family %s for db:%s%n",cn,dbPath);
+			if(cn.equals(defcn)) {
+				foundDefault = true;
+			}
+			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(e, DatabaseManager.getDefaultColumnFamilyOptions());
+			columnFamilyDescriptor.add(cfd);
+		}
+		if(!foundDefault) {
+			if(DEBUG)
+				System.out.printf("SessionManager.OpenDBColumnFamilyTransaction did NOT find %s for db:%s%n",TransactionDB.DEFAULT_COLUMN_FAMILY,dbPath);
+			// options from main DB open?
+			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, DatabaseManager.getDefaultColumnFamilyOptions());
+			columnFamilyDescriptor.add(cfd);
+		}
+	    TransactionDB db;
+		try {
+			db = (TransactionDB) TransactionDB.open(DatabaseManager.getDefaultDBOptions(), dbPath, columnFamilyDescriptor, columnFamilyHandles);
+		} catch (RocksDBException e) {
+			throw new RuntimeException(e);
+		}
+		if(DEBUG)
+			System.out.printf("SessionManager.OpenDBColumnFamilyTransaction Session return with derived found:%b for db:%s%n",foundDefault,dbPath);
+	    return new TransactionSession(db, options, columnFamilyDescriptor, columnFamilyHandles);
 	}
 	/**
 	 * Open the transaction database for a given path and options and extract the ColumnFamily of the derived classes stored there

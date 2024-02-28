@@ -39,7 +39,7 @@ import org.rocksdb.RocksDBException;
 * @author Jonathan Groff (C) NeoCoreTechs 2024
 */
 public class BufferedMapDerived extends BufferedMap {
-	private static boolean DEBUG = true;
+	private static boolean DEBUG = false;
 	ColumnFamilyHandle columnFamilyHandle = null;
 	ColumnFamilyDescriptor columnFamilyDescriptor = null;
 
