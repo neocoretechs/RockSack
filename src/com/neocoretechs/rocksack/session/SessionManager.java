@@ -103,32 +103,7 @@ public final class SessionManager {
 		//
 		return lastCommitTime;
 	}
-	/**
-	* Connect and return Session instance that is the session.
-	* @param dbname The database name as full path
-	* @param options RocksDB options
-	* @return RockSackSession The session we use to control access
-	* @exception IOException If low level IO problem
-	* @exception IllegalAccessException If access to database is denied
-	*/
-	public static synchronized Session Connect(String dbname, Options options) throws IOException, IllegalAccessException {
-		if( DEBUG ) {
-			System.out.printf("Connecting to database:%s with options:%s%n", dbname, options);
-		}
-		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
-		if (OfflineDBs.contains(dbname))
-			throw new IllegalAccessException("Database is offline, try later");
-		Session hps = (SessionTable.get(dbname));
-		if (hps == null) {
-			// did'nt find it, create anew
-			RocksDB db = OpenDB(dbname, options);
-			hps = new Session(db, options);
-			SessionTable.put(dbname, hps);
-			if( DEBUG )
-				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,db);
-		}
-		return hps;
-	}
+
 	/**
 	 * Open the database and extract the ColumnFamily that represents the derivedClassName
 	 * @param dbname
@@ -138,7 +113,7 @@ public final class SessionManager {
 	 * @throws IOException
 	 * @throws IllegalAccessException
 	 */
-	public static synchronized Session ConnectColumnFamilies(String dbname, Options options, String derivedClassName) throws IOException, IllegalAccessException {
+	public static synchronized Session Connect(String dbname, Options options, String derivedClassName) throws IOException, IllegalAccessException {
 		if( DEBUG ) {
 			System.out.printf("Connecting to column family database:%s with options:%s derived class:%s%n", dbname, options, derivedClassName);
 		}
@@ -163,7 +138,7 @@ public final class SessionManager {
 	 * @throws IOException
 	 * @throws IllegalAccessException
 	 */
-	public static synchronized Session ConnectColumnFamilies(String dbname, Options options) throws IOException, IllegalAccessException {
+	public static synchronized Session Connect(String dbname, Options options) throws IOException, IllegalAccessException {
 		if( DEBUG ) {
 			System.out.printf("Connecting to column family database:%s with options:%s%n", dbname, options);
 		}
@@ -180,32 +155,7 @@ public final class SessionManager {
 		}
 		return hps;
 	}
-	/**
-	* Connect and return Session instance that is the {@link TransactionSession}.
-	* @param dbname The database name as full path
-	* @param options RocksDB Options
-	* @return {@link TransactionSession} The session we use to control access
-	* @exception IOException If low level IO problem
-	* @exception IllegalAccessException If access to database is denied
-	*/
-	public static synchronized TransactionSession ConnectTransaction(String dbname, Options options) throws IOException, IllegalAccessException {
-		if( DEBUG ) {
-			System.out.printf("Connecting to transaction database:%s with options:%s%n", dbname, options);
-		}
-		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
-		if (OfflineDBs.contains(dbname))
-			throw new IllegalAccessException("Database is offline, try later");
-		TransactionSession hps = (TransactionSession) (SessionTable.get(dbname));
-		if (hps == null) {
-			// did'nt find it, create anew
-			TransactionDB db = OpenTransactionDB(dbname,options);
-			hps = new TransactionSession(db, options);
-			SessionTable.put(dbname, hps);
-			if( DEBUG )
-				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,db);
-		}
-		return hps;
-	}
+
 	/**
 	 * Connect to a transaction database column family for a default ColumnFamily class being stored in that database.
 	 * @param dbname the path to the database
@@ -214,7 +164,7 @@ public final class SessionManager {
 	 * @throws IOException
 	 * @throws IllegalAccessException
 	 */
-	public static synchronized TransactionSession ConnectTransactionColumnFamilies(String dbname, Options options) throws IOException, IllegalAccessException {
+	public static synchronized TransactionSession ConnectTransaction(String dbname, Options options) throws IOException, IllegalAccessException {
 		if( DEBUG ) {
 			System.out.printf("Connecting to transaction database:%s with options:%s%n", dbname, options);
 		}
@@ -240,7 +190,7 @@ public final class SessionManager {
 	 * @throws IOException
 	 * @throws IllegalAccessException
 	 */
-	public static synchronized TransactionSession ConnectTransactionColumnFamilies(String dbname, Options options, String derivedClassName) throws IOException, IllegalAccessException {
+	public static synchronized TransactionSession ConnectTransaction(String dbname, Options options, String derivedClassName) throws IOException, IllegalAccessException {
 		if( DEBUG ) {
 			System.out.printf("Connecting to transaction database:%s with options:%s%n", dbname, options);
 		}
@@ -279,8 +229,7 @@ public final class SessionManager {
 			// Global IO and main KeyValue implementation
 			if( DEBUG )
 				System.out.println("SessionManager.ConectNoRecovery bringing up IO");
-			RocksDB db = OpenDB(dbname, options);
-			hps = new Session(db, options);
+			hps = OpenDBColumnFamily(dbname, options);
 			if( DEBUG )
 				System.out.println("SessionManager.ConectNoRecovery bringing up session");
 			if( DEBUG )

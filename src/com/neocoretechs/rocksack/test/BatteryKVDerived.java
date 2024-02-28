@@ -8,7 +8,7 @@ import com.neocoretechs.rocksack.DerivedClass;
 import com.neocoretechs.rocksack.KeyValue;
 import com.neocoretechs.rocksack.iterator.Entry;
 import com.neocoretechs.rocksack.session.BufferedMap;
-import com.neocoretechs.rocksack.session.BufferedMapDerived;
+import com.neocoretechs.rocksack.session.BufferedMap;
 import com.neocoretechs.rocksack.session.DatabaseManager;
 
 
@@ -30,14 +30,14 @@ public class BatteryKVDerived {
 	static int max = 100000;
 	static int numDelete = 100; // for delete test
 	static BufferedMap bmap;
-	static BufferedMapDerived bmapd;
+	static BufferedMap bmapd;
 	/**
 	* Main test fixture driver
 	*/
 	public static void main(String[] argv) throws Exception {
 		DatabaseManager.setTableSpaceDir(argv[0]);
 		bmap = DatabaseManager.getMap(Based.class);
-		bmapd = (BufferedMapDerived) DatabaseManager.getMap(Derived.class);
+		bmapd = (BufferedMap) DatabaseManager.getMap(Derived.class);
 		battery1AR17(argv);	
 		battery1(argv);
 		battery11(argv);

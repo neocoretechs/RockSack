@@ -18,10 +18,6 @@ import org.rocksdb.WriteOptions;
 public class TransactionSession extends Session implements TransactionInterface {
 	private static boolean DEBUG = false;
 	
-	protected TransactionSession(TransactionDB kvStore, Options options) {
-		super(kvStore, options);
-	}
-	
 	protected TransactionSession(TransactionDB kvStore, Options options, ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor, List<ColumnFamilyHandle> columnFamilyHandles) {
 		super(kvStore, options, columnFamilyDescriptor, columnFamilyHandles);
 	}
