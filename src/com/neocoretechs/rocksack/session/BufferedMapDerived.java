@@ -61,6 +61,47 @@ public class BufferedMapDerived extends BufferedMap {
 		super(session);
 		processColumnFamily(this.session.derivedClassFound, derivedClassName);
 	}
+	/**
+	* Get instance of RockSack session.
+	* TODO: specify new Comparator per column family?
+	* @param session the {@link Session} instance
+	* @param derivedClassName the derived class for the ColumnFamily denoting subclasses stored in this database
+	* @exception IOException if global IO problem
+	* @exception IllegalAccessException if the database has been put offline
+	* @throws RocksDBException 
+	*/
+	public BufferedMapDerived(Session session) throws IllegalAccessException, IOException, RocksDBException {
+		super(session);
+		processColumnFamily();
+	}
+	/**
+	 * Generates columnFamilyHandle and columnFamilydescriptor for default column family
+	 * calls createColumnFamily for database if found is false
+	 * @param found
+	 * @param derivedClassName
+	 * @throws RocksDBException
+	 */
+	private void processColumnFamily() throws RocksDBException {
+		boolean found = false;
+		int index = 0;
+		for(ColumnFamilyHandle cfh: this.session.columnFamilyHandles) {
+			this.columnFamilyHandle = this.session.columnFamilyHandles.get(index++);
+			if(new String(cfh.getName()).equals(new String(RocksDB.DEFAULT_COLUMN_FAMILY))) {
+				found = true;
+				break;
+			}
+		}
+		index = 0;
+		for(ColumnFamilyDescriptor cfd: this.session.columnFamilyDescriptor) {
+			this.columnFamilyDescriptor = this.session.columnFamilyDescriptor.get(index++);
+			if(new String(cfd.getName()).equals(new String(RocksDB.DEFAULT_COLUMN_FAMILY))) {
+				break;
+			}
+		}
+		if(!found) {
+			throw new RocksDBException("columnFamilyHandle name defult not found");
+		}
+	}
 	
 	/**
 	 * Generates columnFamilyHandle and columnFamilydescriptor
@@ -72,8 +113,8 @@ public class BufferedMapDerived extends BufferedMap {
 	private void processColumnFamily(boolean found, String derivedClassName) throws RocksDBException {
 	    if(found) {
 	    	int index = 0;
-	    	for(ColumnFamilyHandle cfh: this.session.columnFamilyHandleList) {
-	    		this.columnFamilyHandle = this.session.columnFamilyHandleList.get(index++);
+	    	for(ColumnFamilyHandle cfh: this.session.columnFamilyHandles) {
+	    		this.columnFamilyHandle = this.session.columnFamilyHandles.get(index++);
 	    		if(new String(cfh.getName()).equals(derivedClassName)) {
 	    			break;
 	    		}
@@ -87,8 +128,8 @@ public class BufferedMapDerived extends BufferedMap {
 	    	}
 	    } else {
 	    	// TODO: comparator?
-			this.columnFamilyOptions = new ColumnFamilyOptions();//.optimizeUniversalStyleCompaction();
-			this.columnFamilyDescriptor = new ColumnFamilyDescriptor(derivedClassName.getBytes(), columnFamilyOptions);
+			this.columnFamilyOptions = DatabaseManager.getDefaultColumnFamilyOptions();
+			this.columnFamilyDescriptor = new ColumnFamilyDescriptor(derivedClassName.getBytes(), this.columnFamilyOptions);
 			this.session.columnFamilyDescriptor.add(this.columnFamilyDescriptor);
 	    	this.columnFamilyHandle = this.session.kvStore.createColumnFamily(this.columnFamilyDescriptor);
 	    	this.columnFamilyOptions.close();

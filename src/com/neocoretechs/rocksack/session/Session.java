@@ -76,7 +76,7 @@ public class Session {
 	public boolean derivedClassFound = false;
 	//
 	List<ColumnFamilyDescriptor> columnFamilyDescriptor = null;
-	List<ColumnFamilyHandle> columnFamilyHandleList = new ArrayList<>();
+	List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
 
 	/**
 	* Create a new session
@@ -92,12 +92,21 @@ public class Session {
 			System.out.println("RockSackSession constructed with db:"+getDBname());
 	}
 	
-	public Session(RocksDB kvStore, Options options, boolean found) {
+	public Session(RocksDB kvStore, Options options, ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor, List<ColumnFamilyHandle> columnFamilyHandles, boolean found) {
 		this.kvStore = kvStore;
 		this.options = options;
+		this.columnFamilyDescriptor = columnFamilyDescriptor;
+		this.columnFamilyHandles = columnFamilyHandles;
 		this.derivedClassFound = found;
 		if( DEBUG )
 			System.out.println("RockSackSession constructed with db:"+getDBname());
+	}
+
+	public Session(RocksDB kvStore, Options options, ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor, List<ColumnFamilyHandle> columnFamilyHandles) {
+		this.kvStore = kvStore;
+		this.options = options;
+		this.columnFamilyDescriptor = columnFamilyDescriptor;
+		this.columnFamilyHandles = columnFamilyHandles;
 	}
 
 	protected String getDBname() {

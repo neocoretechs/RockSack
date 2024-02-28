@@ -93,8 +93,8 @@ public class TransactionalMapDerived extends TransactionalMap {
 	private void processColumnFamily(boolean found, String derivedClassName) throws RocksDBException {
 	    if(found) {
 	    	int index = 0;
-	    	for(ColumnFamilyHandle cfh: this.session.columnFamilyHandleList) {
-	    		this.columnFamilyHandle = this.session.columnFamilyHandleList.get(index++);
+	    	for(ColumnFamilyHandle cfh: this.session.columnFamilyHandles) {
+	    		this.columnFamilyHandle = this.session.columnFamilyHandles.get(index++);
 	    		if(new String(cfh.getName()).equals(derivedClassName)) {
 	    			break;
 	    		}

@@ -1,5 +1,10 @@
 package com.neocoretechs.rocksack.session;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.rocksdb.ColumnFamilyDescriptor;
+import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.Options;
 import org.rocksdb.Transaction;
 import org.rocksdb.TransactionDB;
@@ -18,8 +23,8 @@ public class TransactionSession extends Session implements TransactionInterface 
 		super(kvStore, options);
 	}
 	
-	protected TransactionSession(TransactionDB kvStore, Options options, boolean found) {
-		super(kvStore, options);
+	protected TransactionSession(TransactionDB kvStore, Options options, ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor, List<ColumnFamilyHandle> columnFamilyHandles, boolean found) {
+		super(kvStore, options, columnFamilyDescriptor, columnFamilyHandles, found);
 		this.derivedClassFound = found;
 	}
 	

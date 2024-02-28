@@ -13,8 +13,10 @@ import org.rocksdb.AbstractComparator;
 import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.BloomFilter;
 import org.rocksdb.Cache;
+import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.CompactionStyle;
 import org.rocksdb.CompressionType;
+import org.rocksdb.DBOptions;
 import org.rocksdb.Filter;
 import org.rocksdb.HashLinkedListMemTableConfig;
 import org.rocksdb.HashSkipListMemTableConfig;
@@ -57,7 +59,7 @@ import com.neocoretechs.rocksack.session.VolumeManager.Volume;
  *
  */
 public class DatabaseManager {
-	private static boolean DEBUG = false;
+	private static boolean DEBUG = true;
 	private static String tableSpaceDir = "/";
 	private static final char[] ILLEGAL_CHARS = { '[', ']', '!', '+', '=', '|', ';', '?', '*', '\\', '<', '>', '|', '\"', ':' };
 	private static final char[] OK_CHARS = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E' };
@@ -277,7 +279,22 @@ public class DatabaseManager {
 		  assert (options.tableFactoryName().equals("BlockBasedTable"));
 		  return options;
 	}
-	
+	/**
+	 * Get the default options using default options.
+	 * @return the populated DBOptions from default getDefaultOptions method
+	 */
+	public static DBOptions getDefaultDBOptions() {
+		DBOptions options = new DBOptions(getDefaultOptions());
+		return options;
+	}	
+	/**
+	 * Get the default ColumnFamily options using default options.
+	 * @return the populated ColumnFamilyOptions from default getDefaultOptions method
+	 */	
+	public static ColumnFamilyOptions getDefaultColumnFamilyOptions() {
+		ColumnFamilyOptions options = new ColumnFamilyOptions(getDefaultOptions());
+		return options;
+	}
 	/**
 	 * Get a Map via Comparable instance.
 	 * @param clazz The Comparable object that the java class name is extracted from
@@ -297,38 +314,54 @@ public class DatabaseManager {
 	 */
 	public static BufferedMap getMap(Class clazz) throws IllegalAccessException, IOException {
 		boolean isDerivedClass = false;
-		String xClass;
+		String xClass,dClass = null;
+		BufferedMap ret = null;
+		//
+		Volume v = VolumeManager.get(tableSpaceDir);
 		// are we working with marked derived class? if so open as column family in main class tablespace
 		if(DerivedClass.class.isAssignableFrom(clazz)) {
 			isDerivedClass = true;
 			xClass = translateClass(clazz.getSuperclass().getName());
+			dClass = translateClass(clazz.getName());
+			ret = (BufferedMap) v.classToIso.get(dClass);
 		} else {
 			xClass = translateClass(clazz.getName());
+			ret = (BufferedMap) v.classToIso.get(xClass);
 		}
-		Volume v = VolumeManager.get(tableSpaceDir);
-		BufferedMap ret = (BufferedMap) v.classToIso.get(xClass);
-		if(DEBUG)
-			System.out.println("DatabaseManager.getMap About to return designator for dir:"+tableSpaceDir+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
 		if( ret == null ) {
 			try {
 				if(isDerivedClass) {
-					Session ts = SessionManager.ConnectColumnFamilies(tableSpaceDir+xClass, options, xClass);
-					ret = (BufferedMap)(new BufferedMapDerived(ts, xClass));
+					BufferedMap def = (BufferedMap) v.classToIso.get(xClass);
+					// have we already opened the main database?
+					if(def == null) {
+						Session ts = SessionManager.ConnectColumnFamilies(tableSpaceDir+xClass, options, dClass);
+						// put the main class default ColumnFamily, its not there
+						v.classToIso.put(xClass, (BufferedMap)(new BufferedMapDerived(ts)));
+						ret = (BufferedMap)(new BufferedMapDerived(ts, dClass));
+					} else {
+						// create derived with session of main, previously instantiated default ColumnFamily
+						ret = (BufferedMap)(new BufferedMapDerived(def.getSession(), dClass));
+					}
+					v.classToIso.put(dClass, ret);
+					if(DEBUG)
+						System.out.println("DatabaseManager.getMap About to return DERIVED map:"+ret+" for dir:"+tableSpaceDir+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
 				} else {
 					//SessionManager.ConnectColumnFamilies(tableSpaceDir+xClass, options, xClass);
 					//if(options == null)
 					//	options = getDefaultOptions();
-					ret =  new BufferedMap(SessionManager.Connect(tableSpaceDir+xClass, options));
+					ret =  new BufferedMapDerived(SessionManager.ConnectColumnFamilies(tableSpaceDir+xClass, options));
+					v.classToIso.put(xClass, ret);
+					if(DEBUG)
+						System.out.println("DatabaseManager.getMap About to return BASE map:"+ret+" for dir:"+tableSpaceDir+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
 				}
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
 			if(DEBUG)
 				System.out.println("DatabaseManager.getMap About to create new map:"+ret);
-			v.classToIso.put(xClass, ret);
 		}
 		if(DEBUG)
-			System.out.println("DatabaseManager.getMap About to return map:"+ret);
+			System.out.println("DatabaseManager.getMap About to return map:"+ret+" for class:"+xClass+" isDerivedClass:"+isDerivedClass);
 		return ret;
 	}
 	/**
