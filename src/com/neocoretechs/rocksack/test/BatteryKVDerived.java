@@ -27,7 +27,7 @@ public class BatteryKVDerived {
 	static String val = "Of a RockSack element!"; // holds base random value string
 	static String uniqKeyFmt = "%0100d"; // base + counter formatted with this gives equal length strings for canonical ordering
 	static int min = 0;
-	static int max = 10000;
+	static int max = 100000;
 	static int numDelete = 100; // for delete test
 	static BufferedMap bmap;
 	static BufferedMapDerived bmapd;

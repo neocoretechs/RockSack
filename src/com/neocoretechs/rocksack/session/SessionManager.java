@@ -48,7 +48,7 @@ import org.rocksdb.TransactionDBOptions;
 * @author Jonathan Groff (c) NeoCoreTechs 2003, 2017, 2021, 2024
 */
 public final class SessionManager {
-	private static boolean DEBUG = true;
+	private static boolean DEBUG = false;
 	private static ConcurrentHashMap<String, Session> SessionTable = new ConcurrentHashMap<String, Session>();
 	@SuppressWarnings("rawtypes")
 	private static ConcurrentHashMap<?, ?> AdminSessionTable = new ConcurrentHashMap();
