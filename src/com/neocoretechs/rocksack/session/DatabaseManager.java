@@ -33,7 +33,7 @@ import org.rocksdb.VectorMemTableConfig;
 import org.rocksdb.util.SizeUnit;
 
 import com.neocoretechs.rocksack.DBPhysicalConstants;
-import com.neocoretechs.rocksack.DerivedClass;
+import com.neocoretechs.rocksack.DatabaseClass;
 import com.neocoretechs.rocksack.SerializedComparator;
 import com.neocoretechs.rocksack.session.VolumeManager.Volume;
 
@@ -59,7 +59,7 @@ import com.neocoretechs.rocksack.session.VolumeManager.Volume;
  *
  */
 public class DatabaseManager {
-	private static boolean DEBUG = false;
+	private static boolean DEBUG = true;
 	private static String tableSpaceDir = "/";
 	private static final char[] ILLEGAL_CHARS = { '[', ']', '!', '+', '=', '|', ';', '?', '*', '\\', '<', '>', '|', '\"', ':' };
 	private static final char[] OK_CHARS = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E' };
@@ -319,9 +319,12 @@ public class DatabaseManager {
 		//
 		Volume v = VolumeManager.get(tableSpaceDir);
 		// are we working with marked derived class? if so open as column family in main class tablespace
-		if(DerivedClass.class.isAssignableFrom(clazz)) {
+		if(clazz.isAnnotationPresent(DatabaseClass.class)) {
 			isDerivedClass = true;
-			xClass = translateClass(clazz.getSuperclass().getName());
+			String ts = ((DatabaseClass)clazz.getAnnotation(DatabaseClass.class)).tablespace();
+			if(ts.equals(""))
+				ts = clazz.getSuperclass().getName();
+			xClass = translateClass(ts);
 			dClass = translateClass(clazz.getName());
 			ret = (BufferedMap) v.classToIso.get(dClass);
 		} else {
@@ -389,9 +392,12 @@ public class DatabaseManager {
 		//
 		Volume v = VolumeManager.getByAlias(alias);
 		// are we working with marked derived class? if so open as column family in main class tablespace
-		if(DerivedClass.class.isAssignableFrom(clazz)) {
+		if(clazz.isAnnotationPresent(DatabaseClass.class)) {
 			isDerivedClass = true;
-			xClass = translateClass(clazz.getSuperclass().getName());
+			String ts = ((DatabaseClass)clazz.getAnnotation(DatabaseClass.class)).tablespace();
+			if(ts.equals(""))
+				ts = clazz.getSuperclass().getName();
+			xClass = translateClass(ts);
 			dClass = translateClass(clazz.getName());
 			ret = (BufferedMap) v.classToIso.get(dClass);
 		} else {
@@ -457,9 +463,12 @@ public class DatabaseManager {
 		//
 		Volume v = VolumeManager.get(path);
 		// are we working with marked derived class? if so open as column family in main class tablespace
-		if(DerivedClass.class.isAssignableFrom(clazz)) {
+		if(clazz.isAnnotationPresent(DatabaseClass.class)) {
 			isDerivedClass = true;
-			xClass = translateClass(clazz.getSuperclass().getName());
+			String ts = ((DatabaseClass)clazz.getAnnotation(DatabaseClass.class)).tablespace();
+			if(ts.equals(""))
+				ts = clazz.getSuperclass().getName();
+			xClass = translateClass(ts);
 			dClass = translateClass(clazz.getName());
 			ret = (BufferedMap) v.classToIso.get(dClass);
 		} else {
@@ -534,9 +543,12 @@ public class DatabaseManager {
 		//
 		Volume v = VolumeManager.get(tableSpaceDir);
 		// are we working with marked derived class? if so open as column family in main class tablespace
-		if(DerivedClass.class.isAssignableFrom(clazz)) {
+		if(clazz.isAnnotationPresent(DatabaseClass.class)) {
 			isDerivedClass = true;
-			xClass = translateClass(clazz.getSuperclass().getName());
+			String ts = ((DatabaseClass)clazz.getAnnotation(DatabaseClass.class)).tablespace();
+			if(ts.equals(""))
+				ts = clazz.getSuperclass().getName();
+			xClass = translateClass(ts);			
 			dClass = translateClass(clazz.getName());
 			ret = (TransactionalMap) v.classToIsoTransaction.get(dClass);
 		} else {
@@ -585,9 +597,12 @@ public class DatabaseManager {
 		TransactionalMap ret = null;
 		//
 		// are we working with marked derived class? if so open as column family in main class tablespace
-		if(DerivedClass.class.isAssignableFrom(clazz)) {
+		if(clazz.isAnnotationPresent(DatabaseClass.class)) {
 			isDerivedClass = true;
-			xClass = translateClass(clazz.getSuperclass().getName());
+			String ts = ((DatabaseClass)clazz.getAnnotation(DatabaseClass.class)).tablespace();
+			if(ts.equals(""))
+				ts = clazz.getSuperclass().getName();
+			xClass = translateClass(ts);
 			dClass = translateClass(clazz.getName());
 			ret = (TransactionalMap) v.classToIsoTransaction.get(dClass);
 		} else {

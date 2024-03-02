@@ -729,7 +729,7 @@ public class Session {
 
 	/**
 	* Remove the key and value of the parameter.
-	* @return null or previous object
+	* @return null or previous value object
 	*/
 	@SuppressWarnings("rawtypes")
 	protected Object remove(ColumnFamilyHandle cfh, Comparable o) throws IOException {

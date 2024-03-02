@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.util.Iterator;
 import java.util.Map;
 
-import com.neocoretechs.rocksack.DerivedClass;
+import com.neocoretechs.rocksack.DatabaseClass;
 import com.neocoretechs.rocksack.KeyValue;
 import com.neocoretechs.rocksack.iterator.Entry;
 import com.neocoretechs.rocksack.session.BufferedMap;
@@ -678,7 +678,8 @@ public class BatteryKVDerived {
 		}
 	}
 	
-	public static class Derived extends Based implements Serializable,Comparable,DerivedClass {
+	@DatabaseClass
+	public static class Derived extends Based implements Serializable,Comparable {
 		public Derived() {}
 		public Derived(String key) {
 			super(key);
