@@ -42,7 +42,7 @@ import com.neocoretechs.rocksack.session.VolumeManager.Volume;
  * class name of the class stored there.<p/>
  * In almost all cases, this is the main entry point to obtain a BufferedMap or a TransactionalMap.<p/>
  * To override options call setDatabaseOptions(Options). If options are not set in this manner the default options will be used.
- * 
+ * <p/>
  * The main function of this adapter is to ensure that the appropriate map is instantiated.<br/>
  * A map can be obtained by instance of Comparable to impart ordering.<br/>
  * A Buffered map has atomic transactions bounded automatically with each insert/delete.<br/>
@@ -54,7 +54,25 @@ import com.neocoretechs.rocksack.session.VolumeManager.Volume;
  * The class name is translated into the appropriate file name via a simple translation table to give us a
  * database/class/tablespace identifier for each file used.
  * BufferedMap returns one instance of the class for each call to get the map. Transactional maps create a new instance with a new
- * transaction context using the originally opened database, and so must be maintained in another context for each transaction.
+ * transaction context using the originally opened database, and so must be maintained in another context for each transaction.<p>
+ * 
+ * Full control over placement of instances can be achieved with the {@link DatabaseClass} annotation on a class to be stored in the RockSack.
+ * This annotation controls storage in a particular tablespace, and column. RocksDB uses the 'ColumnFamily' concept to represent 'columns' or collections
+ * of data than can be grouped together under a common set of attributes defined in the options upon opening.<p/>
+ * It is analogous to separate databases stored under a unified set of files and directories.  
+ * It can be considered separate columns or tablespaces or other
+ * logical divisions in other systems. Here, we can store different class instances such as subclasses.<p/>
+ * As described above, the database is stored under the tablespace directory which has the database name concatenated with the class name 
+ * and is used to obtain the Map. This tablespace directory will then contain the RocksDB files and logs etc.</>
+ * Using one of the methods in the class below, such as 'getMap', and transparent to
+ * the user, this annotation then controls whether instances are stored in a different tablspace and internal column of that tablespace.<p/>
+ * Looking at the example in {@link com.neocoretechs.rocksack.test.BatteryKVDerived} we see that if we want to store subclass
+ * instances with a superclass, we have just the 'column' attribute with the fully qualified name of the superclass. This will
+ * ensure that sets retrieved include both subclasses and superclasses. If we want to store the subclass in a different column within the same
+ * tablespace, we could have a different column name or omit the column attribute, which would then store the instances under the derived
+ * class name in the tablespace of the direct superclass. So, omitting both tablespace and column attributes stores the instances in the direct
+ * superclass under the column name of the subclass. So using this annotations and combinations of the attributes gives the user full
+ * control over placement of the instances. 
  * @author Jonathan Groff Copyright (C) NeoCoreTechs 2014,2015,2021,2022
  *
  */
@@ -321,11 +339,15 @@ public class DatabaseManager {
 		// are we working with marked derived class? if so open as column family in main class tablespace
 		if(clazz.isAnnotationPresent(DatabaseClass.class)) {
 			isDerivedClass = true;
-			String ts = ((DatabaseClass)clazz.getAnnotation(DatabaseClass.class)).tablespace();
+			DatabaseClass dc = (DatabaseClass)clazz.getAnnotation(DatabaseClass.class);
+			String ts = dc.tablespace();
 			if(ts.equals(""))
 				ts = clazz.getSuperclass().getName();
 			xClass = translateClass(ts);
-			dClass = translateClass(clazz.getName());
+			String ds = dc.column();
+			if(ds.equals(""))
+				ds = clazz.getName();
+			dClass = translateClass(ds);
 			ret = (BufferedMap) v.classToIso.get(dClass);
 		} else {
 			xClass = translateClass(clazz.getName());
@@ -394,11 +416,15 @@ public class DatabaseManager {
 		// are we working with marked derived class? if so open as column family in main class tablespace
 		if(clazz.isAnnotationPresent(DatabaseClass.class)) {
 			isDerivedClass = true;
-			String ts = ((DatabaseClass)clazz.getAnnotation(DatabaseClass.class)).tablespace();
+			DatabaseClass dc = (DatabaseClass)clazz.getAnnotation(DatabaseClass.class);
+			String ts = dc.tablespace();
 			if(ts.equals(""))
 				ts = clazz.getSuperclass().getName();
 			xClass = translateClass(ts);
-			dClass = translateClass(clazz.getName());
+			String ds = dc.column();
+			if(ds.equals(""))
+				ds = clazz.getName();
+			dClass = translateClass(ds);
 			ret = (BufferedMap) v.classToIso.get(dClass);
 		} else {
 			xClass = translateClass(clazz.getName());
@@ -465,11 +491,15 @@ public class DatabaseManager {
 		// are we working with marked derived class? if so open as column family in main class tablespace
 		if(clazz.isAnnotationPresent(DatabaseClass.class)) {
 			isDerivedClass = true;
-			String ts = ((DatabaseClass)clazz.getAnnotation(DatabaseClass.class)).tablespace();
+			DatabaseClass dc = (DatabaseClass)clazz.getAnnotation(DatabaseClass.class);
+			String ts = dc.tablespace();
 			if(ts.equals(""))
 				ts = clazz.getSuperclass().getName();
 			xClass = translateClass(ts);
-			dClass = translateClass(clazz.getName());
+			String ds = dc.column();
+			if(ds.equals(""))
+				ds = clazz.getName();
+			dClass = translateClass(ds);
 			ret = (BufferedMap) v.classToIso.get(dClass);
 		} else {
 			xClass = translateClass(clazz.getName());
@@ -545,11 +575,15 @@ public class DatabaseManager {
 		// are we working with marked derived class? if so open as column family in main class tablespace
 		if(clazz.isAnnotationPresent(DatabaseClass.class)) {
 			isDerivedClass = true;
-			String ts = ((DatabaseClass)clazz.getAnnotation(DatabaseClass.class)).tablespace();
+			DatabaseClass dc = (DatabaseClass)clazz.getAnnotation(DatabaseClass.class);
+			String ts = dc.tablespace();
 			if(ts.equals(""))
 				ts = clazz.getSuperclass().getName();
-			xClass = translateClass(ts);			
-			dClass = translateClass(clazz.getName());
+			xClass = translateClass(ts);
+			String ds = dc.column();
+			if(ds.equals(""))
+				ds = clazz.getName();
+			dClass = translateClass(ds);
 			ret = (TransactionalMap) v.classToIsoTransaction.get(dClass);
 		} else {
 			xClass = translateClass(clazz.getName());
@@ -599,11 +633,15 @@ public class DatabaseManager {
 		// are we working with marked derived class? if so open as column family in main class tablespace
 		if(clazz.isAnnotationPresent(DatabaseClass.class)) {
 			isDerivedClass = true;
-			String ts = ((DatabaseClass)clazz.getAnnotation(DatabaseClass.class)).tablespace();
+			DatabaseClass dc = (DatabaseClass)clazz.getAnnotation(DatabaseClass.class);
+			String ts = dc.tablespace();
 			if(ts.equals(""))
 				ts = clazz.getSuperclass().getName();
 			xClass = translateClass(ts);
-			dClass = translateClass(clazz.getName());
+			String ds = dc.column();
+			if(ds.equals(""))
+				ds = clazz.getName();
+			dClass = translateClass(ds);
 			ret = (TransactionalMap) v.classToIsoTransaction.get(dClass);
 		} else {
 			xClass = translateClass(clazz.getName());

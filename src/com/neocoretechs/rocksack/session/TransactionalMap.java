@@ -53,7 +53,7 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	ColumnFamilyHandle columnFamilyHandle = null;
 	ColumnFamilyDescriptor columnFamilyDescriptor = null;
 	/**
-	 * Calls processColumnFamily with session.derivedClassFound and derivedClassName
+	 * Calls processColumnFamily 
 	 * @param session
 	 * @param txn
 	 * @param derivedClassName
@@ -69,7 +69,7 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	    processColumnFamily();
 	}
 	/**
-	 * Calls processColumnFamily with session.derivedClassFound and derivedClassName
+	 * Calls processColumnFamily
 	 * @param session
 	 * @param xid
 	 * @param derivedClassName
@@ -86,7 +86,7 @@ public class TransactionalMap implements OrderedKVMapInterface {
 		processColumnFamily();
 	}
 	/**
-	 * Calls processColumnFamily with session.derivedClassFound and derivedClassName
+	 * Calls processColumnFamily with derivedClassName
 	 * @param session
 	 * @param txn
 	 * @param derivedClassName
@@ -102,7 +102,7 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	    processColumnFamily(derivedClassName);
 	}
 	/**
-	 * Calls processColumnFamily with session.derivedClassFound and derivedClassName
+	 * Calls processColumnFamily with derivedClassName
 	 * @param session
 	 * @param xid
 	 * @param derivedClassName
