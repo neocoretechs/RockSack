@@ -210,10 +210,10 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public boolean put(Comparable tkey, Object tvalue) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			// now put new
 			return session.put(txn, columnFamilyHandle, tkey, tvalue);
-		}
+		//}
 	}
 	/**
 	* Put a  key/value pair to main cache and pool. 
@@ -224,10 +224,10 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public boolean putViaBytes(byte[] tkey, Object tvalue) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			// now put new
 			return session.putViaBytes(txn, columnFamilyHandle, tkey, tvalue);
-		}
+		//}
 	}
 	/**
 	* Get a value from backing store if not in cache.
@@ -261,9 +261,9 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Object getValue(Object tkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.getValue(txn, columnFamilyHandle, ro, tkey);
-		}
+		//}
 	}	
 
 	/**
@@ -272,9 +272,9 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	* @exception IOException If backing store retrieval failure
 	*/
 	public long size() throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.size(txn, columnFamilyHandle);
-		}
+		//}
 	}
 
 	/**
@@ -283,15 +283,15 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	* @exception IOException if get from backing store fails
 	*/
 	public Iterator<?> entrySet() throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.entrySet(txn, columnFamilyHandle);
-		}
+		//}
 	}
 	
 	public Stream<?> entrySetStream() throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.entrySetStream(txn, columnFamilyHandle);
-		}
+		//}
 	}
 	/**
 	* Get a keySet iterator. Get from backing store if not in cache.
@@ -299,15 +299,15 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	* @exception IOException if get from backing store fails
 	*/
 	public Iterator<?> keySet() throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.keySet(txn, columnFamilyHandle);
-		}
+		//}
 	}
 	
 	public Stream<?> keySetStream() throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.keySetStream(txn, columnFamilyHandle);
-		}
+		//}
 	}
 	/**
 	* Returns true if the collection contains the given key
@@ -317,9 +317,9 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public boolean containsKey(Comparable tkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return  session.contains(txn, columnFamilyHandle, ro, tkey);
-		}
+		//}
 	}
 	/**
 	* Returns true if the collection contains the given value object
@@ -329,9 +329,9 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public boolean containsValue(Object value) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return  session.containsValue(txn, columnFamilyHandle, ro, value);
-		}
+		//}
 	}
 	/**
 	* Remove object from cache and backing store.
@@ -341,27 +341,27 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Object remove(Comparable tkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.remove(txn, columnFamilyHandle, ro, tkey);
-		}
+		//}
 	}
 	/**
 	* @return First key in set
 	* @exception IOException If backing store retrieval failure
 	*/
 	public Comparable firstKey() throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.firstKey(txn, columnFamilyHandle);
-		}
+		//}
 	}
 	/**
 	* @return Last key in set
 	* @exception IOException If backing store retrieval failure
 	*/
 	public Comparable lastKey() throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.lastKey(txn, columnFamilyHandle);
-		}
+		//}
 	}
 	/**
 	* Return the last value in the set
@@ -369,9 +369,9 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	* @exception IOException If backing store retrieval failure
 	*/
 	public Object last() throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.last(txn, columnFamilyHandle);
-		}
+		//}
 	}
 	/**
 	* Return the first element
@@ -379,9 +379,9 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	* @exception IOException If backing store retrieval failure
 	*/
 	public Object first() throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.first(txn, columnFamilyHandle);
-		}
+		//}
 	}
 	/**
 	 * Return the element nearest to given key
@@ -390,9 +390,9 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	 * @throws IOException
 	 */
 	public Object nearest(Comparable tkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.nearest(txn, columnFamilyHandle, tkey);
-		}
+		//}
 	}
 	/**
 	* @param tkey Strictly less than 'to' this element
@@ -401,16 +401,16 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Iterator<?> headMap(Comparable tkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.headSet(txn, columnFamilyHandle, tkey);
-		}
+		//}
 	}
 	
 	@SuppressWarnings("rawtypes")
 	public Stream<?> headMapStream(Comparable tkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.headSetStream(txn, columnFamilyHandle, tkey);
-		}
+		//}
 	}
 	/**
 	* @param tkey Strictly less than 'to' this element
@@ -419,16 +419,16 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Iterator<?> headMapKV(Comparable tkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.headSetKV(txn, columnFamilyHandle, tkey);
-		}
+		//}
 	}
 	
 	@SuppressWarnings("rawtypes")
 	public Stream<?> headMapKVStream(Comparable tkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.headSetKVStream(txn, columnFamilyHandle, tkey);
-		}
+		//}
 	}
 	/**
 	* @param fkey Greater or equal to 'from' element
@@ -437,16 +437,16 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Iterator<?> tailMap(Comparable fkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.tailSet(txn, columnFamilyHandle, fkey);
-		}
+		//}
 	}
 	
 	@SuppressWarnings("rawtypes")
 	public Stream<?> tailMapStream(Comparable fkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.tailSetStream(txn, columnFamilyHandle, fkey);
-		}
+		//}
 	}
 	/**
 	* @param fkey Greater or equal to 'from' element
@@ -455,16 +455,16 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Iterator<?> tailMapKV(Comparable fkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.tailSetKV(txn, columnFamilyHandle, fkey);
-		}
+		//}
 	}
 	
 	@SuppressWarnings("rawtypes")
 	public Stream<?> tailMapKVStream(Comparable fkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.tailSetKVStream(txn, columnFamilyHandle, fkey);
-		}
+		//}
 	}
 	/**
 	* @param fkey 'from' element inclusive 
@@ -474,16 +474,16 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Iterator<?> subMap(Comparable fkey, Comparable tkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.subSet(txn, columnFamilyHandle, fkey, tkey);
-		}
+		//}
 	}
 	
 	@SuppressWarnings("rawtypes")
 	public Stream<?> subMapStream(Comparable fkey, Comparable tkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.subSetStream(txn, columnFamilyHandle, fkey, tkey);
-		}
+		//}
 	}
 	/**
 	* @param fkey 'from' element inclusive 
@@ -493,17 +493,16 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Iterator<?> subMapKV(Comparable fkey, Comparable tkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.subSetKV(txn, columnFamilyHandle, fkey, tkey);
-		}
+		//}
 	}
 	
 	@SuppressWarnings("rawtypes")
-	public Stream<?> subMapKVStream(Comparable fkey, Comparable tkey)
-		throws IOException {
-		synchronized (getSession().getMutexObject()) {
+	public Stream<?> subMapKVStream(Comparable fkey, Comparable tkey) throws IOException {
+		//synchronized (getSession().getMutexObject()) {
 			return session.subSetKVStream(txn, columnFamilyHandle, fkey, tkey);
-		}
+		//}
 	}
 	
 	/**
@@ -512,15 +511,15 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	* @exception IOException If backing store retrieval failure
 	*/
 	public boolean isEmpty() throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 				return session.isEmpty(txn, columnFamilyHandle);
-		}
+		//}
 	}
 	
 	public String getTransactionId() throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return txn.getName();
-		}
+		//}
 	}
 
 	@Override
@@ -536,121 +535,121 @@ public class TransactionalMap implements OrderedKVMapInterface {
 
 	@Override
 	public Iterator<?> iterator() throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.keySet(txn, columnFamilyHandle);
-		}
+		//}
 	}
 
 	@Override
 	public boolean contains(Comparable o) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.contains(txn, columnFamilyHandle, ro, o);
-		}
+		//}
 	}
 
 	@Override
 	public void Open() throws IOException {
-		synchronized (session.getMutexObject()) {
+		//synchronized (session.getMutexObject()) {
 			
-		}
+		//}
 	}
 
 	@Override
 	public void Close() throws IOException {		
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			session.getKVStore().close();
-		}		
+		//}		
 	}
 	
 	@Override
 	public RocksDB getKVStore() {
-		synchronized (session.getMutexObject()) {
+		//synchronized (session.getMutexObject()) {
 			return session.getKVStore();
-		}
+		//}
 	}
 
 	@Override
 	public Iterator<?> subSet(Comparable fkey, Comparable tkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.subSet(txn, columnFamilyHandle, fkey, tkey);
-		}
+		//}
 	}
 
 	@Override
 	public Stream<?> subSetStream(Comparable fkey, Comparable tkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.subSetStream(txn, columnFamilyHandle, fkey, tkey);
-		}
+		//}
 	}
 
 	@Override
 	public Iterator<?> headSet(Comparable tkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.headSet(txn, columnFamilyHandle, tkey);
-		}
+		//}
 	}
 
 	@Override
 	public Stream<?> headSetStream(Comparable tkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.headSetStream(txn, columnFamilyHandle, tkey);
-		}
+		//}
 	}
 
 	@Override
 	public Iterator<?> tailSet(Comparable fkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.tailSet(txn, columnFamilyHandle, fkey);
-		}
+		//}
 	}
 
 	@Override
 	public Stream<?> tailSetStream(Comparable fkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.tailSetStream(txn, columnFamilyHandle, fkey);
-		}
+		//}
 	}
 
 	@Override
 	public Iterator<?> subSetKV(Comparable fkey, Comparable tkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.subSetKV(txn, columnFamilyHandle, fkey, tkey);
-		}
+		//}
 	}
 
 	@Override
 	public Stream<?> subSetKVStream(Comparable fkey, Comparable tkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.subSetKVStream(txn, columnFamilyHandle, fkey, tkey);
-		}
+		//}
 	}
 
 	@Override
 	public Iterator<?> headSetKV(Comparable tkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.headSetKV(txn, columnFamilyHandle, tkey);
-		}
+		//}
 	}
 
 	@Override
 	public Stream<?> headSetKVStream(Comparable tkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.headSetKVStream(txn, columnFamilyHandle, tkey);
-		}
+		//}
 	}
 
 	@Override
 	public Iterator<?> tailSetKV(Comparable fkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.tailSetKV(txn, columnFamilyHandle, fkey);
-		}
+		//}
 	}
 
 	@Override
 	public Stream<?> tailSetKVStream(Comparable fkey) throws IOException {
-		synchronized (getSession().getMutexObject()) {
+		//synchronized (getSession().getMutexObject()) {
 			return session.tailSetKVStream(txn, columnFamilyHandle, fkey);
-		}
+		//}
 	}
 
 	public void BeginTransaction() throws IOException {
