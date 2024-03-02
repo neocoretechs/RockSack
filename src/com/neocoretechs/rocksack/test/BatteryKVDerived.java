@@ -14,10 +14,15 @@ import com.neocoretechs.rocksack.session.DatabaseManager;
 
 /**
  * Test the derived class storage in main database via ColumnFamily.
+ * 50/50 split of based and derived classes. We will always refer to base class because
+ * downcast will fail. Base and derived classes will be 2 maps effectively referring to same column
+ * due to annotation attributes. See classes at bottom. There are a few caveats with total order
+ * and serialization adding extra info. Externalization may be in order for completely predictable behavior in all
+ * cases.
  * NOTES:
  * A database unique to this test module should be used.
- * program argument is database i.e. C:/users/you/RockSack/TestDB2 
- * C:/users/you/RockSack should be valid path. C:/users/you/RockSack/TestDB2java.lang.String will be created.
+ * program argument is database i.e. /users/you/RockSack/TestDB2 
+ * /users/you/RockSack should be valid path. /usrs/you/TestDB2RockSackcom.neocoretechs.rocksack.test.BatteryKVDerived$Based will be created.
  * @author Jonathan Groff (C) NeoCoreTechs 2022
  *
  */
@@ -39,7 +44,7 @@ public class BatteryKVDerived {
 		bmap = DatabaseManager.getMap(Based.class);
 		bmapd = (BufferedMap) DatabaseManager.getMap(Derived.class);
 		battery1AR17(argv);	
-		battery1(argv);
+		battery18(argv);
 		battery11(argv);
 		battery1AR6(argv);
 		battery1AR7(argv);
@@ -58,44 +63,10 @@ public class BatteryKVDerived {
 		 System.out.println("BatteryKV TEST BATTERY COMPLETE.");
 		
 	}
-	/**
-	 * Loads up on keys, should be 0 to max-1, or min, to max -1
-	 * Ensure that we start with known baseline number of keys
-	 * @param argv
-	 * @throws Exception
-	 */
-	public static void battery1(String[] argv) throws Exception {
-		System.out.println("KV Battery1 ");
-		long tims = System.currentTimeMillis();
-		int recs = 0;
-		Based fkey = null;
-		int j = min;
-
-		for(int i = min; i < max; i++) {
-			fkey = new Based(String.format(uniqKeyFmt, i));
-			bmap.put(fkey, new Long(i));
-			++recs;
-		}
-		System.out.println("KV BATTERY1 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms. Stored "+recs+" records.");
-		tims = System.currentTimeMillis();
-		recs = 0;
-		Derived dkey = null;
-		j = min;
-		j = (int) bmapd.size();
-		if(j > 0) {
-			System.out.println("Cleaning derived DB of "+j+" elements.");
-			battery1AR17(argv);		
-		}
-		for(int i = min; i < max; i++) {
-			fkey = new Derived(String.format(uniqKeyFmt, i));
-			bmapd.put(fkey, new Long(i));
-			++recs;
-		}
-		System.out.println("KV BATTERY1 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms. Stored "+recs+" records.");
-	}
 	
 	/**
-	 * Tries to store partial key that should match existing keys, should reject all
+	 * 50/50 split on base and derived. We have to take care because serialization will add extra info
+	 * that will effect total order, yet our overriden compare method will not recognize it.
 	 * @param argv
 	 * @throws Exception
 	 */
@@ -104,7 +75,7 @@ public class BatteryKVDerived {
 		long tims = System.currentTimeMillis();
 		int recs = 0;
 		Based fkey = null;
-		for(int i = min; i < max; i++) {
+		for(int i = min; i < max/2; i++) {
 			fkey = new Based(String.format(uniqKeyFmt, i));
 				Object o = bmap.get(fkey);
 				KeyValue kv = (KeyValue)o;
@@ -114,23 +85,23 @@ public class BatteryKVDerived {
 				}
 		}
 		if( recs > 0) {
-			System.out.println("KV BATTERY11 FAIL, failed to get "+recs);
+			System.out.println("KV BATTERY11 FAIL, base keys mismatched: "+recs);
 		} else {
 			System.out.println("KV BATTERY11 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 		}
 		tims = System.currentTimeMillis();
 		recs = 0;
-		for(int i = min; i < max; i++) {
+		for(int i = max/2; i < max; i++) {
 			Derived dkey = new Derived(String.format(uniqKeyFmt, i));
 				Object o = bmapd.get(dkey);
 				KeyValue kv = (KeyValue)o;
 				if(i != ((Long)kv.getmValue()).intValue()) {
-					System.out.println("RANGE KEY MISMATCH derived for 'get':"+i+" - "+o);
+					System.out.println("KV BATTERY11 FAIL, derived key mismatched: "+i+" key:"+o);
 					++recs;
 				}
 		}
 		if( recs > 0) {
-			System.out.println("KV BATTERY11 FAIL, derived failed to get "+recs);
+			System.out.println("KV BATTERY11 FAIL, derived keys mismatched: "+recs);
 		} else {
 			System.out.println("KV BATTERY11 SUCCESS derived in "+(System.currentTimeMillis()-tims)+" ms.");
 		}
@@ -211,7 +182,7 @@ public class BatteryKVDerived {
 		its = bmapd.keySet();
 		System.out.println("KV Battery1AR7 derived");
 		while(its.hasNext()) {
-			Derived nex = (Derived) its.next();
+			Based nex = (Based) its.next();
 			// Map.Entry
 			if(Integer.parseInt(nex.basedKey) != i)
 				System.out.println("KV RANGE KEY MISMATCH derived:"+i+" - "+nex);
@@ -246,8 +217,8 @@ public class BatteryKVDerived {
 			System.out.println("KV BATTERY1AR8 unexpected cant find contains key "+i);
 			throw new Exception("KV BATTERY1AR8 unexpected number cant find contains of value "+i);
 		}
-		Derived dkey = new Derived(String.format(uniqKeyFmt, i));
-		bits = bmapd.contains(dkey);
+		fkey = new Derived(String.format(uniqKeyFmt, i));
+		bits = bmapd.contains(fkey);
 		System.out.println("KV Battery1AR8 derived");
 		if( !bits ) {
 			System.out.println("KV BATTERY1A8 derived cant find contains key "+i);
@@ -284,7 +255,7 @@ public class BatteryKVDerived {
 		}
 		k = bmapd.firstKey(); // first key
 		System.out.println("KV Battery1AR9 derived");
-		if( Integer.parseInt(((Derived)k).basedKey) != i ) {
+		if( Integer.parseInt(((Based)k).basedKey) != i ) {
 			System.out.println("KV BATTERY1A9 derived cant find contains key "+i);
 			throw new Exception("KV BATTERY1AR9 derived unexpected cant find contains of key "+i);
 		}
@@ -317,7 +288,7 @@ public class BatteryKVDerived {
 		}
 		k = bmapd.lastKey(); // key
 		System.out.println("KV Battery1AR10 derived");
-		if( Long.parseLong(((Derived)k).basedKey) != (long)i ) {
+		if( Long.parseLong(((Based)k).basedKey) != (long)i ) {
 			System.out.println("KV BATTERY1AR10 derived cant find last key "+i);
 			throw new Exception("KV BATTERY1AR10 derived unexpected cant find last of key "+i);
 		}
@@ -358,7 +329,7 @@ public class BatteryKVDerived {
 	public static void battery1AR11(String[] argv) throws Exception {
 		long tims = System.currentTimeMillis();
 		int i = min;
-		String fkey = String.format(uniqKeyFmt, i);
+		Based fkey = new Based(String.format(uniqKeyFmt, i));
 		Iterator<?> its = bmap.tailMap(fkey);
 		System.out.println("KV Battery1AR11");
 		while(its.hasNext()) {
@@ -370,11 +341,12 @@ public class BatteryKVDerived {
 			}
 			++i;
 		}
-		i = min;
+		i = max/2;
+		fkey = new Based(String.format(uniqKeyFmt, i));
 		its = bmapd.tailMap(fkey);
 		System.out.println("KV Battery1AR11 derived");
 		while(its.hasNext()) {
-			Derived nex = (Derived) its.next();
+			Based nex = (Based) its.next();
 			// Map.Entry
 			if(Integer.parseInt(nex.basedKey) != i) {
 				System.out.println("KV RANGE KEY MISMATCH derived:"+i+" - "+nex);
@@ -383,6 +355,7 @@ public class BatteryKVDerived {
 			++i;
 		}
 		 System.out.println("BATTERY1AR11 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
+		 
 	}
 	/**
 	 * tailmapKV
@@ -392,7 +365,7 @@ public class BatteryKVDerived {
 	public static void battery1AR12(String[] argv) throws Exception {
 		long tims = System.currentTimeMillis();
 		int i = min;
-		String fkey = String.format(uniqKeyFmt, i);
+		Based fkey = new Based(String.format(uniqKeyFmt, i));
 		Iterator<?> its = bmap.tailMapKV(fkey);
 		System.out.println("KV Battery1AR12");
 		while(its.hasNext()) {
@@ -405,12 +378,13 @@ public class BatteryKVDerived {
 			}
 			++i;
 		}
-		i = min;
+		i = max/2;
+		fkey = new Based(String.format(uniqKeyFmt, i));
 		its = bmapd.tailMapKV(fkey);
 		System.out.println("KV Battery1AR12 derived");
 		while(its.hasNext()) {
 			Comparable nex = (Comparable) its.next();
-			Map.Entry<Derived, Long> nexe = (Map.Entry<Derived,Long>)nex;
+			Map.Entry<Based, Long> nexe = (Map.Entry<Based,Long>)nex;
 			if(Integer.parseInt(nexe.getKey().basedKey) != i) {
 			// Map.Entry
 				System.out.println("KV RANGE KEY MISMATCH derived:"+i+" - "+nex);
@@ -429,7 +403,7 @@ public class BatteryKVDerived {
 	public static void battery1AR13(String[] argv) throws Exception {
 		long tims = System.currentTimeMillis();
 		int i = max;
-		String fkey = String.format(uniqKeyFmt, i);
+		Based fkey = new Based(String.format(uniqKeyFmt, i));
 		Iterator<?> its = bmap.headMap(fkey);
 		System.out.println("KV Battery1AR13");
 		// with i at max, should catch them all
@@ -443,13 +417,13 @@ public class BatteryKVDerived {
 			}
 			++i;
 		}
-		i = min;
+		i = max/2;
+		fkey = new Based(String.format(uniqKeyFmt, i));
 		its = bmapd.headMap(fkey);
 		System.out.println("KV Battery1AR13 derived");
-		// with i at max, should catch them all
 		i = min;
 		while(its.hasNext()) {
-			Derived nex = (Derived) its.next();
+			Based nex = (Based) its.next();
 			if(Integer.parseInt(nex.basedKey) != i) {
 			// Map.Entry
 				System.out.println("KV RANGE 1AR13 KEY MISMATCH derived:"+i+" - "+nex);
@@ -457,6 +431,8 @@ public class BatteryKVDerived {
 			}
 			++i;
 		}
+		if(i > max/2)
+			throw new Exception("KV RANGE 1AR13 KEY MISMATCH derived index:"+i+" exceeded:"+(max/2));
 		 System.out.println("BATTERY1AR13 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
 	
@@ -468,7 +444,7 @@ public class BatteryKVDerived {
 	public static void battery1AR14(String[] argv) throws Exception {
 		long tims = System.currentTimeMillis();
 		int i = max;
-		String fkey = String.format(uniqKeyFmt, i);
+		Based fkey = new Based(String.format(uniqKeyFmt, i));
 		Iterator<?> its = bmap.headMapKV(fkey);
 		System.out.println("KV Battery1AR14");
 		i = min;
@@ -482,12 +458,14 @@ public class BatteryKVDerived {
 			}
 			++i;
 		}
+		i = max/2;
+		fkey = new Based(String.format(uniqKeyFmt, i));
 		its = bmapd.headMapKV(fkey);
 		System.out.println("KV Battery1AR14 derived");
 		i = min;
 		while(its.hasNext()) {
 			Comparable nex = (Comparable) its.next();
-			Map.Entry<Derived, Long> nexe = (Map.Entry<Derived,Long>)nex;
+			Map.Entry<Based, Long> nexe = (Map.Entry<Based,Long>)nex;
 			if(Integer.parseInt(nexe.getKey().basedKey) != i) {
 			// Map.Entry
 				System.out.println("KV RANGE KEY MISMATCH derived:"+i+" - "+nex);
@@ -495,6 +473,8 @@ public class BatteryKVDerived {
 			}
 			++i;
 		}
+		if(i > max/2)
+			throw new Exception("KV RANGE 1AR14 KEY MISMATCH derived index:"+i+" exceeded:"+(max/2));
 		 System.out.println("BATTERY1AR14 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
 	
@@ -528,7 +508,7 @@ public class BatteryKVDerived {
 		System.out.println("KV Battery1AR15 derived");
 		// with i at max, should catch them all
 		while(its.hasNext()) {
-			Derived nex = (Derived) its.next();
+			Based nex = (Based) its.next();
 			if(Integer.parseInt(nex.basedKey) != i) {
 			// Map.Entry
 				System.out.println("KV RANGE 1AR15 KEY MISMATCH derived:"+i+" - "+nex);
@@ -571,7 +551,7 @@ public class BatteryKVDerived {
 		// with i at max, should catch them all
 		while(its.hasNext()) {
 			Comparable nex = (Comparable) its.next();
-			Map.Entry<Derived, Long> nexe = (Map.Entry<Derived,Long>)nex;
+			Map.Entry<Based, Long> nexe = (Map.Entry<Based,Long>)nex;
 			if(Integer.parseInt(nexe.getKey().basedKey) != i) {
 			// Map.Entry
 				System.out.println("KV RANGE 1AR16 derived KEY MISMATCH derived:"+i+" - "+nexe);
@@ -651,15 +631,13 @@ public class BatteryKVDerived {
 		for(int i = min; i < max1; i++) {
 			fkey = new Based(String.format(uniqKeyFmt, i));
 			bmap.put(fkey, new Long(i));
-			bmapd.put(fkey, new Long(i)); // store based in derived
 			++recs;
 		}
 		long s = bmap.size();
 		if(s != max1)
 			System.out.println("Size at halway point of restore incorrect:"+s+" should be "+max1);
 		for(int i = max1; i < max; i++) {
-			fkey = new Based(String.format(uniqKeyFmt, i));
-			bmap.put(fkey, new Long(i));
+			fkey = new Derived(String.format(uniqKeyFmt, i));
 			bmapd.put(fkey, new Long(i));
 			++recs;
 		}
