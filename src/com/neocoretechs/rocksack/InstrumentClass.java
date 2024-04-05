@@ -1,6 +1,7 @@
 package com.neocoretechs.rocksack;
 
 import java.io.IOException;
+import java.io.ObjectInput;
 import java.io.ObjectStreamClass;
 
 import java.lang.reflect.AccessibleObject;
@@ -43,6 +44,8 @@ public class InstrumentClass {
         getMethodOrder(clazz, elements);
         List<String> compareToElements = generateCompareTo(clazz, elements, callSuperCompareTo);
         String compareToStatement = generateCompareTo(compareToElements);
+        List<String> externals = generateExternal(clazz, elements, false);
+        compareToStatement += generateExternal(externals);
         if(DEBUG) {
         	elements.entrySet().stream().forEach(e -> System.out.println(e.getKey() + ":" + e.getValue()));
         	compareToElements.stream().forEach(e -> System.out.println(e));
@@ -181,25 +184,89 @@ public class InstrumentClass {
    			// primitive or object field or method?
     		if(key.isField) {
     			if(key.type.isPrimitive()) {
-    				s.append("\t\tif(");
-    				s.append(key.name);
-    				s.append(" < ");
-    				s.append("((");
-    				s.append(clazz.getSimpleName());
-    				s.append(")o).");
-    				s.append(key.name);
-    				s.append(")");
-    				s.append("\r\n\t\t\treturn -1;\r\n");
+    				switch(key.type.getName()) {
+    					case "int":
+    						s.append("\t\tn=Integer.compareUnsigned(");
+    						s.append(key.name);
+    						s.append(",");
+    	    				s.append("((");
+    	    				s.append(clazz.getSimpleName());
+    	    				s.append(")o).");
+    	    				s.append(key.name);
+    	    				s.append(");");
+    						break;
+    					case "long":
+    						s.append("\t\tn=Long.compareUnsigned(");
+     						s.append(key.name);
+    						s.append(",");
+    	    				s.append("((");
+    	    				s.append(clazz.getSimpleName());
+    	    				s.append(")o).");
+    	    				s.append(key.name);
+    	    				s.append(");");
+    						break;
+    					case "short":
+    						s.append("\t\tn=Integer.compare(Short.toUnsignedInt(");
+       						s.append(key.name);
+      						s.append(",Short.toUnsignedInt(");
+      	    				s.append("((");
+    	    				s.append(clazz.getSimpleName());
+    	    				s.append(")o).");
+    	    				s.append(key.name);
+    	    				s.append(");");
+    	    				break;
+    					case "byte":
+       						s.append("\t\tn=Integer.compare(Byte.toUnsignedInt(");
+       						s.append(key.name);
+      						s.append(",Byte.toUnsignedInt(");
+      	    				s.append("((");
+    	    				s.append(clazz.getSimpleName());
+    	    				s.append(")o).");
+    	    				s.append(key.name);
+    	    				s.append(");");
+    	    				break;
+      					case "double":
+       						s.append("\t\tn=Long.compareUnsigned(Double.doubleToRawLongBits(");
+       						s.append(key.name);
+      						s.append(",Double.doubleToRawLongBits(");
+      	    				s.append("((");
+    	    				s.append(clazz.getSimpleName());
+    	    				s.append(")o).");
+    	    				s.append(key.name);
+    	    				s.append(");");
+    	    				break;
+       					case "float":
+       						s.append("\t\tn=Integer.compareUnsigned(Float.floatToRawIntBits(");
+       						s.append(key.name);
+      						s.append(",Float.floatToRawIntBits(");
+      	    				s.append("((");
+    	    				s.append(clazz.getSimpleName());
+    	    				s.append(")o).");
+    	    				s.append(key.name);
+    	    				s.append(");");
+    	    				break;	
+    				}
+    				//s.append(key.name);
+    				//s.append(" < ");
+    				//s.append(",");
+    				//s.append("((");
+    				//s.append(clazz.getSimpleName());
+    				//s.append(")o).");
+    				//s.append(key.name);
+    				//s.append(");");
+    				//s.append(")");
+    				//s.append("\r\n\t\t\treturn -1;\r\n");
+    				s.append("\r\n\t\tif(n != 0) return n;\r\n");
     				//
-    				s.append("\t\tif(");
-    				s.append(key.name);
-    				s.append(" > ");
-    				s.append("((");
-    				s.append(clazz.getSimpleName());
-    				s.append(")o).");
-    				s.append(key.name);
-    				s.append(")");
-    				s.append("\r\n\t\t\treturn 1;\r\n");
+    				//s.append("\t\tif(");
+    				//s.append(key.name);
+    				//s.append(" > ");
+    				//s.append("((");
+    				//s.append(clazz.getSimpleName());
+    				//s.append(")o).");
+    				//s.append(key.name);
+    				//s.append(")");
+    				//s.append("\r\n\t\t\treturn 1;\r\n");
     			} else { // object field
     	 			// use of hasAtLeastOneMethod to generate n temp var
     	   			if(!Comparable.class.isAssignableFrom(key.type))
@@ -255,6 +322,24 @@ public class InstrumentClass {
     		compareToComponents.add(s.toString());
     	});
     	return compareToComponents;
+    }
+    
+    private List<String> generateExternal(Class clazz, Map<Integer, NameAndType> elements, boolean callSuper) {
+    	ArrayList<String> externalComponents = new ArrayList<String>();
+    	return externalComponents;
+    }
+    
+    private String generateExternal(List<String> externals) {
+    	StringBuilder sb = new StringBuilder();
+      	sb.append("\t@Override\r\n");
+    	sb.append("\tpublic void readExternal(java.io.ObjectInput in) throws java.io.IOException,ClassNotFoundException {\r\n");
+    	// put external reads here
+    	sb.append("\t}\r\n");
+      	sb.append("\t@Override\r\n");
+    	sb.append("\tpublic void writeExternal(java.io.ObjectOutput out) throws java.io.IOException {\r\n");
+    	// put external writes here
+    	sb.append("\t}\r\n");
+    	return sb.toString();
     }
     /**
      * Defines the name of the field or method, the class of the field or class of return type of method,

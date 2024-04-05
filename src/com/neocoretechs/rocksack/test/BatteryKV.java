@@ -40,6 +40,7 @@ public class BatteryKV {
 		DatabaseManager.setTableSpaceDir(argv[0]);
 		bmap = DatabaseManager.getMap(String.class);
 		battery1(argv);
+		battery2(argv);
 		battery11(argv);
 		battery1AR6(argv);
 		battery1AR7(argv);
@@ -83,6 +84,27 @@ public class BatteryKV {
 		System.out.println("KV BATTERY1 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms. Stored "+recs+" records.");
 	}
 	
+	/**
+	 * 
+	 * Testing of first(), and firstKey()
+	 * @param argv
+	 * @throws Exception
+	 */
+	public static void battery2(String[] argv) throws Exception {
+		int i = min;
+		long tims = System.currentTimeMillis();
+		Object k = bmap.lastKey(); // first key
+		System.out.println("KV Battery2");
+		Iterator it = bmap.headSet((Comparable) k);
+		Iterator it2 = bmap.headSet((Comparable) k);
+		Iterator it3 = bmap.headSet((Comparable) k);
+		while(it.hasNext() && it2.hasNext() && it3.hasNext()) {
+			System.out.println(it.next());
+			it2.next();
+			it3.next();
+		}
+		System.out.println("KV BATTERY2 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
+	}
 	/**
 	 * Tries to store partial key that should match existing keys, should reject all
 	 * @param argv

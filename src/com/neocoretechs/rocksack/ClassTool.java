@@ -55,6 +55,8 @@ public class ClassTool {
 	private static int serialVerLine = -1;
 	private static int serialVerPos = -1;
 	private static int lineLast = -1; // location of last { line
+	private static String pack;
+	private static int packLine = 0;
 	//static int cnt = 0;
 
 	private static List<String> fileLines = new ArrayList<String>();
@@ -86,9 +88,11 @@ public class ClassTool {
 			System.out.println("Backup file already exists, will not overwrite");
 			return;
 		}
-		Class targetClass =  compile(args[0]);
+		writeLines(args[0]); // write intermediate without package, but import all package elements
+		Class targetClass = compile(args[0]);
 		Class<?>[] interfaces = targetClass.getInterfaces();
-		boolean hasSerializable = false;
+		//boolean hasSerializable = false;
+		boolean hasExternalizable = false;
 		boolean hasComparable = false;
 		for(Class c: interfaces) {
 			if(DEBUG)
@@ -96,13 +100,15 @@ public class ClassTool {
 			if(c.equals(java.lang.Comparable.class))
 				hasComparable = true;
 			else
-				if(c.equals(java.io.Serializable.class))
-					hasSerializable = true;
+				//if(c.equals(java.io.Serializable.class))
+					//hasSerializable = true;
+				if(c.equals(java.io.Externalizable.class))	
+					hasExternalizable = true;
 		}
 		Class<?> superclass = targetClass.getSuperclass();
 		if(DEBUG)
 			System.out.println("Compiled instance:"/*"+classToTool*/+" of class:"+targetClass+" superclass:"+superclass);
-		// see if we need to create Serializable interface tooling
+		// see if we need to create Externalizable interface tooling
 		String newImpl;
 		if(interfaces.length == 0) {
 			if(DEBUG)
@@ -110,29 +116,33 @@ public class ClassTool {
 			// no implements
 			// no extends? put implements directly above class line end decl
 			newImpl = fileLines.get(classLine).substring(0,classPosEnd)+
-					" implements java.io.Serializable,java.lang.Comparable"+
+					//" implements java.io.Serializable,java.lang.Comparable"
+					" implements java.io.Externalizable,java.lang.Comparable"+
 					fileLines.get(classLine).substring(classPosEnd);
 			generateCompareTo(args[0], targetClass, newImpl);
 		} else {
 			if(DEBUG)
 				System.out.println("Detected interfaces, class line "+classLine);
-			if(!hasSerializable && !hasComparable) {
+			if(/*!hasSerializable*/hasExternalizable && !hasComparable) {
 				// implements, but not our interfaces
 				if(DEBUG)
 					System.out.println("Detected interfaces, but not required interfaces.");
 				newImpl = fileLines.get(classLine).substring(0,classPosEnd)+
-						",java.io.Serializable,java.lang.Comparable"+
+						//",java.io.Serializable,java.lang.Comparable"
+						",java.io.Externalizable,java.lang.Comparable"+
 						fileLines.get(classLine).substring(classPosEnd);
 				if(DEBUG)
 					System.out.println("New impl:"+newImpl);
 				generateCompareTo(args[0], targetClass, newImpl);
 			} else {
-				if(!hasSerializable) {
+				if(/*!hasSerializable*/hasExternalizable) {
 					// implements, but not Serializable, has compareTo
 					if(DEBUG)
-						System.out.println("Detected interfaces, but not with Serializable interface.");
+						//System.out.println("Detected interfaces, but not with Serializable interface.");
+						System.out.println("Detected interfaces, but not with Externalizable interface.");
 					newImpl = fileLines.get(classLine).substring(0,classPosEnd)+
-							",java.io.Serializable"+
+							/*",java.io.Serializable"+*/
+							",java.io.Externalizable"+
 							fileLines.get(classLine).substring(classPosEnd);
 					if(DEBUG)
 						System.out.println("New impl:"+newImpl);
@@ -178,6 +188,9 @@ public class ClassTool {
 			fileLines.add(classLine+1, serialVer);
 			writeLines(args[0]);
 		}
+		// replace package decl
+		fileLines.set(packLine, pack);
+		writeLines(args[0]);
 		System.out.println("Tooling complete, backup of original source file is in "+args[0]+".bak");
 	}
 	
@@ -364,6 +377,11 @@ public class ClassTool {
 			// read next line
 			//lines.add(line);
 			preprocess(line);
+			if(line.startsWith("package")) {
+				packLine = fileLines.size();
+				pack = line;
+				line = "import "+line.substring(7,line.indexOf(";"))+".*;";
+			}
 			fileLines.add(line);
 			line = reader.readLine();
 		}
