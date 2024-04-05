@@ -20,9 +20,14 @@ public class TestTooling2{
 	@ComparisonOrderField
 	private String j;
 	private String l;
+	private double d;
 	@ComparisonOrderMethod
 	public String getL() {
 		return l;
+	}
+	@ComparisonOrderMethod
+	public double getD() {
+		return d;
 	}
 	public TestTooling2(int key1, String key2, String key3) {
 		this.i = key1;

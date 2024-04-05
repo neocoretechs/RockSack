@@ -172,8 +172,7 @@ public class InstrumentClass {
     		hasAtLeastOneMethod = true;
     		StringBuilder s = new StringBuilder();
 	   		s.append("\t\tn = super.compareTo(o);\r\n");
-  			s.append("\t\tif(n != 0)");
-			s.append("\r\n\t\t\treturn n;\r\n");
+  			s.append("\t\tif(n != 0) return n;\r\n");
 			compareToComponents.add(s.toString());
     	}
     	Stream<Map.Entry<Integer, NameAndType>> sorted =
@@ -267,7 +266,7 @@ public class InstrumentClass {
     				//s.append(key.name);
     				//s.append(")");
     				//s.append("\r\n\t\t\treturn 1;\r\n");
-    			} else { // object field
+    			} else { // object field, not primitive, object must deliver total order bytes for readObject!
     	 			// use of hasAtLeastOneMethod to generate n temp var
     	   			if(!Comparable.class.isAssignableFrom(key.type))
         				throw new RuntimeException("Object Field "+key.name+" must implement Comparable interface");
@@ -278,45 +277,87 @@ public class InstrumentClass {
     				s.append(")o).");
     				s.append(key.name);
     				s.append(");\r\n");
-      				s.append("\t\tif(n != 0)");
-    				s.append("\r\n\t\t\treturn n;\r\n");
+      				s.append("\t\tif(n != 0) return n;\r\n");
     				//
     			}
     		} else { // accessor method
-    			if(key.type.isPrimitive()) { //accessor method type is returnType
-    				s.append("\t\tif(");
-    				s.append(key.name);
-    				s.append("() < ");
-    				s.append("((");
-    				s.append(clazz.getSimpleName());
-    				s.append(")o).");
-    				s.append(key.name);
-    				s.append("())");
-    				s.append("\r\n\t\t\treturn -1;\r\n");
-    				//
-    				s.append("\t\tif(");
-    				s.append(key.name);
-    				s.append("() > ");
-    				s.append("((");
-    				s.append(clazz.getSimpleName());
-    				s.append(")o).");
-    				s.append(key.name);
-    				s.append("())");
-    				s.append("\r\n\t\t\treturn 1;\r\n");
+    			if(key.type.isPrimitive()) { //accessor method name, and type is returnType
+    				switch(key.type.getName()) {
+    				case "int":
+    					s.append("\t\tn=Integer.compareUnsigned(");
+    					s.append(key.name);
+    					s.append("(),");
+    					s.append("((");
+    					s.append(clazz.getSimpleName());
+    					s.append(")o).");
+    					s.append(key.name);
+    					s.append("());");
+    					break;
+    				case "long":
+    					s.append("\t\tn=Long.compareUnsigned(");
+    					s.append(key.name);
+    					s.append("(),");
+    					s.append("((");
+    					s.append(clazz.getSimpleName());
+    					s.append(")o).");
+    					s.append(key.name);
+    					s.append("());");
+    					break;
+    				case "short":
+    					s.append("\t\tn=Integer.compare(Short.toUnsignedInt(");
+    					s.append(key.name);
+    					s.append("()),Short.toUnsignedInt(");
+    					s.append("((");
+    					s.append(clazz.getSimpleName());
+    					s.append(")o).");
+    					s.append(key.name);
+    					s.append("()));");
+    					break;
+    				case "byte":
+    					s.append("\t\tn=Integer.compare(Byte.toUnsignedInt(");
+    					s.append(key.name);
+    					s.append("()),Byte.toUnsignedInt(");
+    					s.append("((");
+    					s.append(clazz.getSimpleName());
+    					s.append(")o).");
+    					s.append(key.name);
+    					s.append("()));");
+    					break;
+    				case "double":
+    					s.append("\t\tn=Long.compareUnsigned(Double.doubleToRawLongBits(");
+    					s.append(key.name);
+    					s.append("()),Double.doubleToRawLongBits(");
+    					s.append("((");
+    					s.append(clazz.getSimpleName());
+    					s.append(")o).");
+    					s.append(key.name);
+    					s.append("()));");
+    					break;
+    				case "float":
+    					s.append("\t\tn=Integer.compareUnsigned(Float.floatToRawIntBits(");
+    					s.append(key.name);
+    					s.append("()),Float.floatToRawIntBits(");
+    					s.append("((");
+    					s.append(clazz.getSimpleName());
+    					s.append(")o).");
+    					s.append(key.name);
+    					s.append("()));");
+    					break;	
+    				}
+    				s.append("\r\n\t\tif(n != 0) return n;\r\n");
     			} else { // accessor returns object
-      	 			// use of hasAtLeastOneMethod to generate n temp var
-    	   			if(!Comparable.class.isAssignableFrom(key.type))
-        				throw new RuntimeException("Accessor Object return Field "+key.name+" must implement Comparable interface");
-    	   			s.append("\t\tn = ");
-    	   			s.append(key.name);
-    	   			s.append("()");
-    	   			s.append(".compareTo(((");
+    				// use of hasAtLeastOneMethod to generate n temp var
+    				if(!Comparable.class.isAssignableFrom(key.type))
+    					throw new RuntimeException("Accessor Object return Field "+key.name+" must implement Comparable interface");
+    				s.append("\t\tn = ");
+    				s.append(key.name);
+    				s.append("()");
+    				s.append(".compareTo(((");
     				s.append(clazz.getSimpleName());
     				s.append(")o).");
     				s.append(key.name);
-    	   			s.append("());\r\n");
-      				s.append("\t\tif(n != 0)");
-    				s.append("\r\n\t\t\treturn n;\r\n");
+    				s.append("());\r\n");
+    				s.append("\t\tif(n != 0) return n;\r\n");
     			}
     		}
     		compareToComponents.add(s.toString());
