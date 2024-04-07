@@ -29,6 +29,12 @@ public class TestTooling2{
 	public double getD() {
 		return d;
 	}
+	public void setD(double d) {
+		this.d = d;
+	}
+	public void setL(String l) {
+		this.l = l;
+	}
 	public TestTooling2(int key1, String key2, String key3) {
 		this.i = key1;
 		this.j = key2;

@@ -48,7 +48,7 @@ import javax.tools.ToolProvider;
  *
  */
 public class ClassTool {
-	private static boolean DEBUG = true;
+	private static boolean DEBUG = false;
 	private static int classLine = -1; // location of space after class space name decl
 	private static int classPosEnd = -1; // location of curly at end of class decl
 
@@ -57,7 +57,7 @@ public class ClassTool {
 	private static int lineLast = -1; // location of last { line
 	private static String pack;
 	private static int packLine = 0;
-	//static int cnt = 0;
+	static int cnt = 0;
 
 	private static List<String> fileLines = new ArrayList<String>();
 	/**
@@ -169,6 +169,7 @@ public class ClassTool {
 		// compile new class
 		//classToTool = compile(args[0]);
 		//targetClass = classToTool.getClass();
+		displayFileLines();
 		targetClass = compile(args[0]);
 		if(DEBUG)
 			System.out.println("New Compiled instance:"+/*classToTool+*/" of class:"+targetClass);
@@ -178,6 +179,7 @@ public class ClassTool {
 		if(objectstreamclass == null) {
 			generateDefaultCtor(targetClass);
 			writeLines(args[0]);
+			displayFileLines();
 			targetClass = compile(args[0]);
 			objectstreamclass = ObjectStreamClass.lookup(targetClass); // try again to generate serialversionuid with default ctor in place
 		}
@@ -202,6 +204,16 @@ public class ClassTool {
 		fileLines.add(lineLast, defCtor.toString());
 	}
 
+	private static void displayFileLines() {
+		cnt = 0;
+		fileLines.forEach(e->{
+			if(!e.endsWith("\r\n"))
+				System.out.println(++cnt+":"+e);
+			else
+				System.out.print(++cnt+":"+e);
+		});
+	}
+	
 	private static void generateCompareTo(String javaFile, Class targetClass, String newImpl) throws IllegalArgumentException, IllegalAccessException, IOException {
 		if(DEBUG)
 			System.out.println("Setting class line "+classLine+" with newImpl:"+newImpl);
@@ -216,11 +228,11 @@ public class ClassTool {
 			InstrumentClass instrument = new InstrumentClass();
 			// return with compareTo statement constructed
 			// If we dont implement Comparable, but superclass does, call superclass compareTo in our new method
-			String compareToStatement = instrument.process(javaFile, targetClass, Comparable.class.isAssignableFrom(targetClass));
+			List<String> compareToStatement = instrument.process(javaFile, targetClass, Comparable.class.isAssignableFrom(targetClass));
 			findLastLine();
 			if(DEBUG)
 				System.out.println("Inserting compareTo @ last line of class decl (EOF):"+lineLast);
-			fileLines.add(lineLast, compareToStatement);
+			fileLines.addAll(lineLast, compareToStatement);
 		}
 		
 	}
@@ -392,9 +404,15 @@ public class ClassTool {
 	private static void writeLines(String javaFile) throws IOException {
 		BufferedWriter writer = new BufferedWriter(new FileWriter(javaFile));
 		for(String s: fileLines){
-			if(DEBUG)
-				System.out.println(s+"\r\n");
-			writer.write(s+"\r\n");
+			if(!s.endsWith("\r\n")) {
+				if(DEBUG)
+					System.out.print(s+"\r\n");
+				writer.write(s+"\r\n");
+			} else {
+				if(DEBUG)
+					System.out.print(s);
+				writer.write(s);
+			}
 		}
 		writer.flush();
 		writer.close();
