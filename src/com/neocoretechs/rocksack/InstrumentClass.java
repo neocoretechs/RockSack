@@ -50,8 +50,11 @@ public class InstrumentClass {
         List<String> externalReads = generateReads(clazz, elements, false);
         List<String> externalWrites = generateWrites(clazz, elements, false);
         List<String> externals = generateExternal(externalReads, externalWrites);
+        List<String> hashes = generateHash(clazz, elements, false);
+        hashes = generateHash(hashes);
         outLines.addAll(compareToElements);
         outLines.addAll(eqs);
+        outLines.addAll(hashes);
         outLines.addAll(externals);
         if(DEBUG) {
         	elements.entrySet().stream().forEach(e -> System.out.println(e.getKey() + ":" + e.getValue()));
@@ -609,21 +612,44 @@ public class InstrumentClass {
     	return s;
     }
     
+    private List<String> generateHash(List<String> hashCodes) {
+    	ArrayList<String> sb = new ArrayList<String>();
+      	sb.add("\t@Override\r\n");
+    	sb.add("\tpublic int hashCode() {\r\n");
+       	sb.add("\t\tfinal int prime = 31;\r\n");
+    	sb.add("\t\tint result = 1;");
+    	// put external reads here
+    	sb.addAll(hashCodes);
+    	sb.add("\t\treturn result;\r\n");
+    	sb.add("\t}\r\n");
+    	return sb;
+    }
+    private List<String> generateHash(Class clazz, Map<Integer, NameAndType> elements, boolean callSuper) {
+     	ArrayList<String> hashComponents = new ArrayList<String>();
+       	if(callSuper) {
+    		hasAtLeastOneMethod = true;
+    		StringBuilder s = new StringBuilder();
+	   		s.append("\t\tresult = super.hashCode();\r\n");
+			hashComponents.add(s.toString());
+    	}
+    	//	result = prime * result + i;
+    	//	result = prime * result + ((j == null) ? 0 : j.hashCode());
+    	//	result = prime * result + ((l == null) ? 0 : l.hashCode());
+    	//	return result;
+     	return hashComponents;
+    }
+    
     private List<String> generateExternal(List<String> externalReads, List<String> externalWrites) {
     	ArrayList<String> sb = new ArrayList<String>();
       	sb.add("\t@Override\r\n");
     	sb.add("\tpublic void readExternal(java.io.ObjectInput in) throws java.io.IOException,ClassNotFoundException {\r\n");
     	// put external reads here
-		externalReads.stream().forEach(e -> {
-			sb.add(e.toString());
-		});
+    	sb.addAll(externalReads);
     	sb.add("\t}\r\n");
       	sb.add("\t@Override\r\n");
     	sb.add("\tpublic void writeExternal(java.io.ObjectOutput out) throws java.io.IOException {\r\n");
     	// put external writes here
-		externalWrites.stream().forEach(e -> {
-			sb.add(e.toString());
-		});
+    	sb.addAll(externalWrites);
     	sb.add("\t}\r\n");
     	return sb;
     }
