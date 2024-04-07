@@ -45,10 +45,13 @@ public class InstrumentClass {
         getMethodOrder(clazz, elements);
         List<String> compareToElements = generateCompareTo(clazz, elements, callSuperCompareTo);
         compareToElements = generateCompareTo(compareToElements);
+        List<String> eqs = generateEquals(clazz, elements, callSuperCompareTo);
+        eqs = generateEquals(eqs);
         List<String> externalReads = generateReads(clazz, elements, false);
         List<String> externalWrites = generateWrites(clazz, elements, false);
         List<String> externals = generateExternal(externalReads, externalWrites);
         outLines.addAll(compareToElements);
+        outLines.addAll(eqs);
         outLines.addAll(externals);
         if(DEBUG) {
         	elements.entrySet().stream().forEach(e -> System.out.println(e.getKey() + ":" + e.getValue()));
@@ -390,6 +393,222 @@ public class InstrumentClass {
     	return s;
     }
     
+    private ArrayList<String> generateEquals(List<String> compareToElements) {
+		ArrayList<String> sb = new ArrayList<String>();
+		sb.add("\t@Override\r\n");
+		sb.add("\tpublic boolean equals(Object o) {\r\n");
+		if(hasAtLeastOneMethod) {
+			sb.add("\t\tint n;\r\n");
+			sb.add("\t\tboolean b;\r\n");
+		}
+		sb.addAll(compareToElements);
+		sb.add("\t\treturn true;\r\n");
+		sb.add("\t}\r\n");
+		return sb;
+	}
+    private List<String> generateEquals(Class clazz, Map<Integer, NameAndType> elements, boolean callSuper) {
+    	ArrayList<String> s = new ArrayList<String>();
+    	if(callSuper) {
+    		hasAtLeastOneMethod = true;
+	   		s.add("\t\tb = super.equals(o);\r\n");
+  			s.add("\t\tif(!b) return b;\r\n");
+    	}
+    	Stream<Map.Entry<Integer, NameAndType>> sorted =
+    		    elements.entrySet().stream().sorted(Map.Entry.comparingByKey());
+    	sorted.forEach(e ->  {
+    		NameAndType key = (NameAndType)e.getValue();
+    		StringBuilder sb = new StringBuilder();
+   			// primitive or object field or method?
+    		if(key.isField) {
+    			if(key.type.isPrimitive()) {
+    				switch(key.type.getName()) {
+    					case "int":
+    						sb.append("\t\tn=Integer.compareUnsigned(");
+    						sb.append(key.name);
+    						sb.append(",");
+    	    				sb.append("((");
+    	    				sb.append(clazz.getSimpleName());
+    	    				sb.append(")o).");
+    	    				sb.append(key.name);
+    	    				sb.append(");\r\n");
+    						break;
+    					case "long":
+    						sb.append("\t\tn=Long.compareUnsigned(");
+     						sb.append(key.name);
+    						sb.append(",");
+    	    				sb.append("((");
+    	    				sb.append(clazz.getSimpleName());
+    	    				sb.append(")o).");
+    	    				sb.append(key.name);
+    	    				sb.append(");\r\n");
+    						break;
+    					case "short":
+    						sb.append("\t\tn=Integer.compare(Short.toUnsignedInt(");
+       						sb.append(key.name);
+      						sb.append(",Short.toUnsignedInt(");
+      	    				sb.append("((");
+    	    				sb.append(clazz.getSimpleName());
+    	    				sb.append(")o).");
+    	    				sb.append(key.name);
+    	    				sb.append(");\r\n");
+    	    				break;
+    					case "byte":
+       						sb.append("\t\tn=Integer.compare(Byte.toUnsignedInt(");
+       						sb.append(key.name);
+      						sb.append(",Byte.toUnsignedInt(");
+      	    				sb.append("((");
+    	    				sb.append(clazz.getSimpleName());
+    	    				sb.append(")o).");
+    	    				sb.append(key.name);
+    	    				sb.append(");\r\n");
+    	    				break;
+      					case "double":
+       						sb.append("\t\tn=Long.compareUnsigned(Double.doubleToRawLongBits(");
+       						sb.append(key.name);
+      						sb.append(",Double.doubleToRawLongBits(");
+      	    				sb.append("((");
+    	    				sb.append(clazz.getSimpleName());
+    	    				sb.append(")o).");
+    	    				sb.append(key.name);
+    	    				sb.append(");\r\n");
+    	    				break;
+       					case "float":
+       						sb.append("\t\tn=Integer.compareUnsigned(Float.floatToRawIntBits(");
+       						sb.append(key.name);
+      						sb.append(",Float.floatToRawIntBits(");
+      	    				sb.append("((");
+    	    				sb.append(clazz.getSimpleName());
+    	    				sb.append(")o).");
+    	    				sb.append(key.name);
+    	    				sb.append(");\r\n");
+    	    				break;
+     					case "boolean":
+       						sb.append("\t\tn=Boolean.compare(");
+       						sb.append(key.name);
+      						sb.append(",");
+      	    				sb.append("((");
+    	    				sb.append(clazz.getSimpleName());
+    	    				sb.append(")o).");
+    	    				sb.append(key.name);
+    	    				sb.append(");\r\n");
+    	    				break;	
+    				}
+    				s.add(sb.toString());
+    				sb = new StringBuilder();
+    				s.add("\t\tif(n != 0) return false;\r\n");
+    			} else { // object field, not primitive, object must deliver total order bytes for readObject!
+    	 			// use of hasAtLeastOneMethod to generate n temp var
+    	   			if(!Comparable.class.isAssignableFrom(key.type))
+        				throw new RuntimeException("Object Field "+key.name+" must implement Comparable interface");
+    	   			sb.append("\t\tb = ");
+    	   			sb.append(key.name);
+    	   			sb.append(".equals(((");
+    				sb.append(clazz.getSimpleName());
+    				sb.append(")o).");
+    				sb.append(key.name);
+    				sb.append(");\r\n");
+    				s.add(sb.toString());
+      				s.add("\t\tif(!b) return b;\r\n");
+    				//
+    			}
+    		} else { // accessor method
+    			if(key.type.isPrimitive()) { //accessor method name, and type is returnType
+    				switch(key.type.getName()) {
+    				case "int":
+    					sb.append("\t\tn=Integer.compareUnsigned(");
+    					sb.append(key.name);
+    					sb.append("(),");
+    					sb.append("((");
+    					sb.append(clazz.getSimpleName());
+    					sb.append(")o).");
+    					sb.append(key.name);
+    					sb.append("());\r\n");
+    					break;
+    				case "long":
+    					sb.append("\t\tn=Long.compareUnsigned(");
+    					sb.append(key.name);
+    					sb.append("(),");
+    					sb.append("((");
+    					sb.append(clazz.getSimpleName());
+    					sb.append(")o).");
+    					sb.append(key.name);
+    					sb.append("());\r\n");
+    					break;
+    				case "short":
+    					sb.append("\t\tn=Integer.compare(Short.toUnsignedInt(");
+    					sb.append(key.name);
+    					sb.append("()),Short.toUnsignedInt(");
+    					sb.append("((");
+    					sb.append(clazz.getSimpleName());
+    					sb.append(")o).");
+    					sb.append(key.name);
+    					sb.append("()));\r\n");
+    					break;
+    				case "byte":
+    					sb.append("\t\tn=Integer.compare(Byte.toUnsignedInt(");
+    					sb.append(key.name);
+    					sb.append("()),Byte.toUnsignedInt(");
+    					sb.append("((");
+    					sb.append(clazz.getSimpleName());
+    					sb.append(")o).");
+    					sb.append(key.name);
+    					sb.append("()));\r\n");
+    					break;
+    				case "double":
+    					sb.append("\t\tn=Long.compareUnsigned(Double.doubleToRawLongBits(");
+    					sb.append(key.name);
+    					sb.append("()),Double.doubleToRawLongBits(");
+    					sb.append("((");
+    					sb.append(clazz.getSimpleName());
+    					sb.append(")o).");
+    					sb.append(key.name);
+    					sb.append("()));\r\n");
+    					break;
+    				case "float":
+    					sb.append("\t\tn=Integer.compareUnsigned(Float.floatToRawIntBits(");
+    					sb.append(key.name);
+    					sb.append("()),Float.floatToRawIntBits(");
+    					sb.append("((");
+    					sb.append(clazz.getSimpleName());
+    					sb.append(")o).");
+    					sb.append(key.name);
+    					sb.append("()));\r\n");
+    					break;
+					case "boolean":
+   						sb.append("\t\tn=Boolean.compare(");
+   						sb.append(key.name);
+  						sb.append("(),");
+  	    				sb.append("((");
+	    				sb.append(clazz.getSimpleName());
+	    				sb.append(")o).");
+	    				sb.append(key.name);
+	    				sb.append("());\r\n");
+	    				break;	
+    				}
+    				s.add(sb.toString());
+    				sb = new StringBuilder();
+    				s.add("\t\tif(n != 0) return false;\r\n");
+    			} else { // accessor returns object
+    				// use of hasAtLeastOneMethod to generate n temp var
+    				if(!Comparable.class.isAssignableFrom(key.type))
+    					throw new RuntimeException("Accessor Object return Field "+key.name+" must implement Comparable interface");
+    				sb.append("\t\tb = ");
+    				sb.append(key.name);
+    				sb.append("()");
+    				sb.append(".equals(((");
+    				sb.append(clazz.getSimpleName());
+    				sb.append(")o).");
+    				sb.append(key.name);
+    				sb.append("());\r\n");
+    				s.add(sb.toString());
+    				sb = new StringBuilder();
+    				s.add("\t\tif(!b) return b;\r\n");
+    			}
+    		}
+    	});
+    	return s;
+    }
+    
     private List<String> generateExternal(List<String> externalReads, List<String> externalWrites) {
     	ArrayList<String> sb = new ArrayList<String>();
       	sb.add("\t@Override\r\n");
@@ -510,6 +729,103 @@ public class InstrumentClass {
     	}
     	Stream<Map.Entry<Integer, NameAndType>> sorted =
     		    elements.entrySet().stream().sorted(Map.Entry.comparingByKey());
+      	sorted.forEach(e ->  {
+    		NameAndType key = (NameAndType)e.getValue();
+   			StringBuilder s = new StringBuilder();
+   			// primitive or object field or method?
+			s.append("\t\t");
+    		if(key.isField) {
+    			if(key.type.isPrimitive()) {
+    				switch(key.type.getName()) {
+    					case "int":
+    						s.append("out.writeInt(");
+    						s.append(key.name);
+    						s.append(");\r\n");
+    						break;
+    					case "long":
+    						s.append("out.writeLong(");
+    						s.append(key.name);
+    						s.append(");\r\n");
+    						break;
+    					case "short":
+    						s.append("out.writeShort(");
+    						s.append(key.name);
+    						s.append(");\r\n");
+    	    				break;
+    					case "byte":
+    						s.append("out.writeByte(");
+    						s.append(key.name);
+    						s.append(");\r\n"); 
+    	    				break;
+      					case "double":
+    						s.append("out.writeDouble(");
+    						s.append(key.name);
+    						s.append(");\r\n");  
+    	    				break;
+       					case "float":
+    						s.append("out.writeFloat(");
+    						s.append(key.name);
+    						s.append(");\r\n");
+    	    				break;	
+     					case "boolean":
+    						s.append("out.writeBoolean(");
+    						s.append(key.name);
+    						s.append(");\r\n");
+    	    				break;	
+    				}
+    			} else { // object field, not primitive, object must deliver total order bytes for readObject!
+					s.append("out.writeObject(");
+					s.append(key.name);
+					s.append(");\r\n");    
+    				//
+    			}
+    		} else { // accessor method
+    			if(key.type.isPrimitive()) { //accessor method name, and type is returnType
+    				switch(key.type.getName()) {
+    				case "int":
+  						s.append("out.writeInt(");
+  						s.append(key.name);
+  	    				s.append("());\r\n");
+    					break;
+ 					case "long":
+						s.append("out.writeLong(");
+						s.append(key.name);
+  	    				s.append("());\r\n");
+						break;
+					case "short":
+						s.append("out.writeShort(");
+						s.append(key.name);
+  	    				s.append("());\r\n");
+	    				break;
+					case "byte":
+						s.append("out.writeByte(");
+						s.append(key.name);
+  	    				s.append("());\r\n");
+	    				break;
+  					case "double":
+						s.append("out.writeDouble(");
+						s.append(key.name);
+  	    				s.append("());\r\n");
+	    				break;
+   					case "float":
+						s.append("out.writeFloat(");
+						s.append(key.name);
+  	    				s.append("());\r\n");
+	    				break;	
+ 					case "boolean":
+						s.append("out.writeBoolean(");
+						s.append(key.name);
+  	    				s.append("());\r\n");
+	    				break;	
+    				}
+    			} else { // accessor returns object
+					s.append("out.writeObject(");
+					s.append(key.name);
+	    			s.append("());\r\n");
+    			}
+    		}
+    		writeComponents.add(s.toString());
+    	});  	
     	return writeComponents;
     }
     /**
