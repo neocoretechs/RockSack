@@ -616,27 +616,127 @@ public class InstrumentClass {
     	ArrayList<String> sb = new ArrayList<String>();
       	sb.add("\t@Override\r\n");
     	sb.add("\tpublic int hashCode() {\r\n");
-       	sb.add("\t\tfinal int prime = 31;\r\n");
-    	sb.add("\t\tint result = 1;");
+    	sb.add("\t\tint n=0;");
     	// put external reads here
     	sb.addAll(hashCodes);
-    	sb.add("\t\treturn result;\r\n");
+    	sb.add("\t\treturn n;\r\n");
     	sb.add("\t}\r\n");
     	return sb;
     }
+    
     private List<String> generateHash(Class clazz, Map<Integer, NameAndType> elements, boolean callSuper) {
-     	ArrayList<String> hashComponents = new ArrayList<String>();
+     	ArrayList<String> s = new ArrayList<String>();
        	if(callSuper) {
     		hasAtLeastOneMethod = true;
-    		StringBuilder s = new StringBuilder();
-	   		s.append("\t\tresult = super.hashCode();\r\n");
-			hashComponents.add(s.toString());
+    		StringBuilder sb = new StringBuilder();
+	   		sb.append("\t\tn = super.hashCode();\r\n");
+			s.add(sb.toString());
     	}
-    	//	result = prime * result + i;
-    	//	result = prime * result + ((j == null) ? 0 : j.hashCode());
-    	//	result = prime * result + ((l == null) ? 0 : l.hashCode());
-    	//	return result;
-     	return hashComponents;
+       	Stream<Map.Entry<Integer, NameAndType>> sorted =
+    		    elements.entrySet().stream().sorted(Map.Entry.comparingByKey());
+    	sorted.forEach(e ->  {
+    		NameAndType key = (NameAndType)e.getValue();
+    		StringBuilder sb = new StringBuilder();
+   			// primitive or object field or method?
+    		if(key.isField) {
+    			if(key.type.isPrimitive()) {
+    				switch(key.type.getName()) {
+    					case "int":
+    						sb.append("\t\tn+=Integer.hashCode(");
+    						sb.append(key.name);
+    	    				sb.append(");\r\n");
+    						break;
+    					case "long":
+    						sb.append("\t\tn+=Long.hashCode(");
+     						sb.append(key.name);
+    	    				sb.append(");\r\n");
+    						break;
+    					case "short":
+    						sb.append("\t\tn+=Short.hashCode(");
+       						sb.append(key.name);
+    	    				sb.append(");\r\n");
+    	    				break;
+    					case "byte":
+       						sb.append("\t\tn+=Byte.hashCode(");
+       						sb.append(key.name);
+    	    				sb.append(");\r\n");
+    	    				break;
+      					case "double":
+       						sb.append("\t\tn+=Double.hashCode(");
+    	    				sb.append(key.name);
+    	    				sb.append(");\r\n");
+    	    				break;
+       					case "float":
+       						sb.append("\t\tn+=Float.hashCode(");
+    	    				sb.append(key.name);
+    	    				sb.append(");\r\n");
+    	    				break;
+     					case "boolean":
+       						sb.append("\t\tn+=Boolean.hashCode(");
+    	    				sb.append(key.name);
+    	    				sb.append(");\r\n");
+    	    				break;	
+    				}
+    				s.add(sb.toString());
+    				sb = new StringBuilder();
+    			} else { // object field, not primitive, object must deliver valid hashCode!
+    	   			sb.append("\t\tn+=");
+    	   			sb.append(key.name);
+    	   			sb.append(".hashCode();\r\n");
+    				s.add(sb.toString());
+    				sb = new StringBuilder();
+    			}
+    		} else { // accessor method
+    			if(key.type.isPrimitive()) { //accessor method name, and type is returnType
+    				switch(key.type.getName()) {
+    				case "int":
+    					sb.append("\t\tn+=Integer.hashCode(");
+    					sb.append(key.name);
+    					sb.append("());\r\n");
+    					break;
+    				case "long":
+    					sb.append("\t\tn+=Long.hashCode(");
+    					sb.append(key.name);
+    					sb.append("());\r\n");
+    					break;
+    				case "short":
+    					sb.append("\t\tn+=Short.hashCode(");
+    					sb.append(key.name);
+    					sb.append("());\r\n");
+    					break;
+    				case "byte":
+    					sb.append("\t\tn+=Byte.hashCode(");
+    					sb.append(key.name);
+    					sb.append("());\r\n");
+    					break;
+    				case "double":
+    					sb.append("\t\tn+=Double.hashCode(");
+    					sb.append(key.name);
+    					sb.append("());\r\n");
+    					break;
+    				case "float":
+    					sb.append("\t\tn+=Float.hashCode(");
+    					sb.append(key.name);
+    					sb.append("());\r\n");
+    					break;
+					case "boolean":
+   						sb.append("\t\tn+=Boolean.hashCode(");
+	    				sb.append(key.name);
+	    				sb.append("());\r\n");
+	    				break;	
+    				}
+    				s.add(sb.toString());
+    				sb = new StringBuilder();
+    			} else { // accessor returns object
+    				sb.append("\t\tn+= ");
+    				sb.append(key.name);
+    				sb.append("().hashCode();\r\n");
+    				s.add(sb.toString());
+    				sb = new StringBuilder();
+    			}
+    		}
+    	});
+     	return s;
     }
     
     private List<String> generateExternal(List<String> externalReads, List<String> externalWrites) {
