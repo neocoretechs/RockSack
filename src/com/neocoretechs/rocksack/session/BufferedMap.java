@@ -619,7 +619,11 @@ public class BufferedMap implements OrderedKVMapInterface {
 			return session.tailSetKVStream(columnFamilyHandle, fkey);
 		//}
 	}
-
+	
+	public void dropColumn() throws IOException {
+		session.dropColumn(columnFamilyHandle);
+	}
+	
 	@Override
 	public String toString() {
 		return this.getClass().getSimpleName()+" using column family:"+columnFamilyHandle+" for session:"+session.getDBname();

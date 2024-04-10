@@ -516,6 +516,10 @@ public class TransactionalMap implements OrderedKVMapInterface {
 		//}
 	}
 	
+	public void dropColumn() throws IOException {
+		session.dropColumn(columnFamilyHandle);
+	}
+	
 	public String getTransactionId() throws IOException {
 		//synchronized (getSession().getMutexObject()) {
 			return txn.getName();

@@ -942,6 +942,18 @@ public class Session {
 		}
 		return false;
 	}
+	
+	/**
+	 * @throws IOException
+	 */
+	protected void dropColumn(ColumnFamilyHandle cfh) throws IOException {
+		try {
+			kvStore.dropColumnFamily(cfh);
+		} catch (RocksDBException e) {
+			throw new IOException(e);
+		}
+	}
+	
 	/**
 	* Close this session.
 	* @param rollback true to roll back, false to commit
