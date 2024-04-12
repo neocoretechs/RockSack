@@ -39,11 +39,17 @@ public class SackStream<T> implements Stream<T> {
 	protected static final int characteristics = Spliterator.DISTINCT | Spliterator.SORTED | Spliterator.ORDERED;
 	protected static final int characteristicsUnordered = Spliterator.DISTINCT | Spliterator.SORTED ;
 	Spliterator<T> spliterator;
-	boolean parallel = false;
+	boolean parallel = true;
 	Iterator<T> it;
 		
 	public SackStream(Iterator esi) {
 		this.it = esi;
+		spliterator = (Spliterator<T>) Spliterators.spliteratorUnknownSize(esi, characteristics);
+	}
+	
+	public SackStream(Iterator esi, boolean parallel) {
+		this.it = esi;
+		this.parallel = parallel;
 		spliterator = (Spliterator<T>) Spliterators.spliteratorUnknownSize(esi, characteristics);
 	}
 	
