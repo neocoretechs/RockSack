@@ -44,13 +44,13 @@ public class SackStream<T> implements Stream<T> {
 		
 	public SackStream(Iterator esi) {
 		this.it = esi;
-		spliterator = (Spliterator<T>) Spliterators.spliteratorUnknownSize(esi, characteristics);
+		spliterator = (Spliterator<T>) Spliterators.spliteratorUnknownSize(this.it, characteristics);
 	}
 	
 	public SackStream(Iterator esi, boolean parallel) {
 		this.it = esi;
 		this.parallel = parallel;
-		spliterator = (Spliterator<T>) Spliterators.spliteratorUnknownSize(esi, characteristics);
+		spliterator = (Spliterator<T>) Spliterators.spliteratorUnknownSize(this.it, characteristics);
 	}
 	
 	public Stream<T> of() {
