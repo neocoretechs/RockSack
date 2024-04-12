@@ -149,10 +149,13 @@ keySetStream<br/>
 <p/>
 
 New capabilities include a ClassTool to rapidly adapt existing classes to use built-in Java functionality for serialization and class indexing.
+In order for Java classes to properly index in RocksDB, they must exhibit "total ordering". The serialized representation of stored bytes
+must be represented by a compareTo and equals method that respects the total ordering of those bytes as RockdsDB sees it, otherwise errors
+are incurred regarding out of order keys during the compaction process. The ClassTool will use proper unsigned primitive comparison and
+the Externalizable extension of Serialization to ensure total ordering.
 
 Starting with this:
 ```
-
 package com;
 
 import com.neocoretechs.rocksack.CompareAndSerialize;
@@ -162,7 +165,7 @@ import com.neocoretechs.rocksack.ComparisonOrderMethod;
  * Basic annotation tooling for RockSack to generate the necessary fields and methods for
  * storage and retrieval under the java.lang.Comparable interface as used throughout the language.
  * The ordering of the keys is defined here as the order in which they appear: i,j, and l. We
- * demonstrate method and field access and generate compareTo method and Serializable interface
+ * demonstrate method and field access and generate compareTo method and Externalizable interface
  * implementation with SerialUID. No modifications will affect the operation of the original class.
  * The original class will be backed up as TestTooling2.bak before modification.
  * {@link CompareAndSerialize} annotation to designate the class as toolable. The {@link ComparisonOrderField} and
@@ -175,9 +178,20 @@ public class TestTooling2{
 	@ComparisonOrderField
 	private String j;
 	private String l;
+	private double d;
 	@ComparisonOrderMethod
 	public String getL() {
 		return l;
+	}
+	@ComparisonOrderMethod
+	public double getD() {
+		return d;
+	}
+	public void setD(double d) {
+		this.d = d;
+	}
+	public void setL(String l) {
+		this.l = l;
 	}
 	public TestTooling2(int key1, String key2, String key3) {
 		this.i = key1;
@@ -185,6 +199,8 @@ public class TestTooling2{
 		this.l = key3;
 	}
 }
+
+
 
 ```
 The ClassTool runs in one command line to produce a fully instrumented version like this:
@@ -199,23 +215,34 @@ import com.neocoretechs.rocksack.ComparisonOrderMethod;
  * Basic annotation tooling for RockSack to generate the necessary fields and methods for
  * storage and retrieval under the java.lang.Comparable interface as used throughout the language.
  * The ordering of the keys is defined here as the order in which they appear: i,j, and l. We
- * demonstrate method and field access and generate compareTo method and Serializable interface
+ * demonstrate method and field access and generate compareTo method and Externalizable interface
  * implementation with SerialUID. No modifications will affect the operation of the original class.
  * The original class will be backed up as TestTooling2.bak before modification.
  * {@link CompareAndSerialize} annotation to designate the class as toolable. The {@link ComparisonOrderField} and
  * {@link ComparisonOrderMethod}. {@link com.neocoretechs.rocksack.ClassTool}
  */
 @CompareAndSerialize
-public class TestTooling2 implements java.io.Serializable,java.lang.Comparable{
+public class TestTooling2 implements java.io.Externalizable,java.lang.Comparable{
 	private static final long serialVersionUID = 1L;
 	@ComparisonOrderField
 	private int i;
 	@ComparisonOrderField
 	private String j;
 	private String l;
+	private double d;
 	@ComparisonOrderMethod
 	public String getL() {
 		return l;
+	}
+	@ComparisonOrderMethod
+	public double getD() {
+		return d;
+	}
+	public void setD(double d) {
+		this.d = d;
+	}
+	public void setL(String l) {
+		this.l = l;
 	}
 	public TestTooling2(int key1, String key2, String key3) {
 		this.i = key1;
@@ -225,21 +252,54 @@ public class TestTooling2 implements java.io.Serializable,java.lang.Comparable{
 	@Override
 	public int compareTo(Object o) {
 		int n;
-		if(i < ((TestTooling2)o).i)
-			return -1;
-		if(i > ((TestTooling2)o).i)
-			return 1;
+		n=Integer.compareUnsigned(i,((TestTooling2)o).i);
+		if(n != 0) return n;
 		n = j.compareTo(((TestTooling2)o).j);
-		if(n != 0)
-			return n;
+		if(n != 0) return n;
+		n=Long.compareUnsigned(Double.doubleToRawLongBits(getD()),Double.doubleToRawLongBits(((TestTooling2)o).getD()));
+		if(n != 0) return n;
 		n = getL().compareTo(((TestTooling2)o).getL());
-		if(n != 0)
-			return n;
+		if(n != 0) return n;
 		return 0;
 	}
-
+	@Override
+	public boolean equals(Object o) {
+		int n;
+		boolean b;
+		n=Integer.compareUnsigned(i,((TestTooling2)o).i);
+		if(n != 0) return false;
+		b = j.equals(((TestTooling2)o).j);
+		if(!b) return b;
+		n=Long.compareUnsigned(Double.doubleToRawLongBits(getD()),Double.doubleToRawLongBits(((TestTooling2)o).getD()));
+		if(n != 0) return false;
+		b = getL().equals(((TestTooling2)o).getL());
+		if(!b) return b;
+		return true;
+	}
+	@Override
+	public int hashCode() {
+		int n=0;
+		n+=Integer.hashCode(i);
+		n+=j.hashCode();
+		n+=Double.hashCode(getD());
+		n+= getL().hashCode();
+		return n;
+	}
+	@Override
+	public void readExternal(java.io.ObjectInput in) throws java.io.IOException,ClassNotFoundException {
+		i=in.readInt();
+		j=(String)in.readObject();
+		setD(in.readDouble());
+		setL((String)in.readObject());
+	}
+	@Override
+	public void writeExternal(java.io.ObjectOutput out) throws java.io.IOException {
+		out.writeInt(i);
+		out.writeObject(j);
+		out.writeDouble(getD());
+		out.writeObject(getL());
+	}
 	public TestTooling2() {}
-
 }
 
 
@@ -259,7 +319,7 @@ import com.neocoretechs.rocksack.ComparisonOrderMethod;
 * Basic annotation tooling for RockSack to generate the necessary fields and methods for
 * storage and retrieval under the java.lang.Comparable interface as used throughout the language.
 * The ordering of the keys is defined here as by the annotation order field: j,i, and l. We
-* demonstrate method and field access and generate compareTo method and Serializable interface
+* demonstrate method and field access and generate compareTo method and Externalizable interface
 * implementation with SerialUID. We also show how to wrap a custom object to give Comparable
 * functionality to any class. No modifications will affect the operation of the original class.
 * The original class will be backed up as TestTooling1.bak before modification.
@@ -317,14 +377,16 @@ import com.neocoretechs.rocksack.ComparisonOrderMethod;
 * Basic annotation tooling for RockSack to generate the necessary fields and methods for
 * storage and retrieval under the java.lang.Comparable interface as used throughout the language.
 * The ordering of the keys is defined here as by the annotation order field: j,i, and l. We
-* demonstrate method and field access and generate compareTo method and Serializable interface
-* implementation with serialVersionUID. We also show how to wrap a custom object to give Comparable
+* demonstrate method and field access and generate compareTo method and Externalizable interface
+* implementation with SerialUID. We also show how to wrap a custom object to give Comparable
 * functionality to any class. No modifications will affect the operation of the original class.
 * The original class will be backed up as TestTooling1.bak before modification.
+* {@link CompareAndSerialize} annotation to designate the class as toolable. The {@link ComparisonOrderField} and
+* {@link ComparisonOrderMethod}. {@link com.neocoretechs.rocksack.ClassTool}
 */
 @CompareAndSerialize
-public class TestTooling1 implements java.io.Serializable,java.lang.Comparable{
-	private static final long serialVersionUID = 1793651491005864392L;
+public class TestTooling1 implements java.io.Externalizable,java.lang.Comparable{
+	private static final long serialVersionUID = 1L;
 	@ComparisonOrderField(order=2)
 	private int i;
 	@ComparisonOrderField(order=1)
@@ -333,6 +395,9 @@ public class TestTooling1 implements java.io.Serializable,java.lang.Comparable{
 	@ComparisonOrderMethod(order=3)
 	public ByteObject getL() {
 		return l;
+	}
+	public void setL(ByteObject l) {
+		this.l = l;
 	}
 	public TestTooling1(String key1, int key2) {
 		j = key1;
@@ -353,30 +418,57 @@ public class TestTooling1 implements java.io.Serializable,java.lang.Comparable{
 		}
 		
 	}
-	@Override
-	public int compareTo(Object o) {
-		int n;
-		n = j.compareTo(((TestTooling1)o).j);
-		if(n != 0)
-			return n;
-		if(i < ((TestTooling1)o).i)
-			return -1;
-		if(i > ((TestTooling1)o).i)
-			return 1;
-		n = getL().compareTo(((TestTooling1)o).getL());
-		if(n != 0)
-			return n;
-		return 0;
-	}
-
+	
 	@Override
 	public String toString() {
 		return "Key1="+j+" key2="+i;
 	}
-
+	@Override
+	public int compareTo(Object o) {
+		int n;
+		n = j.compareTo(((TestTooling1)o).j);
+		if(n != 0) return n;
+		n=Integer.compareUnsigned(i,((TestTooling1)o).i);
+		if(n != 0) return n;
+		n = getL().compareTo(((TestTooling1)o).getL());
+		if(n != 0) return n;
+		return 0;
+	}
+	@Override
+	public boolean equals(Object o) {
+		int n;
+		boolean b;
+		b = j.equals(((TestTooling1)o).j);
+		if(!b) return b;
+		n=Integer.compareUnsigned(i,((TestTooling1)o).i);
+		if(n != 0) return false;
+		b = getL().equals(((TestTooling1)o).getL());
+		if(!b) return b;
+		return true;
+	}
+	@Override
+	public int hashCode() {
+		int n=0;
+		n+=j.hashCode();
+		n+=Integer.hashCode(i);
+		n+= getL().hashCode();
+		return n;
+	}
+	@Override
+	public void readExternal(java.io.ObjectInput in) throws java.io.IOException,ClassNotFoundException {
+		j=(String)in.readObject();
+		i=in.readInt();
+		setL((ByteObject)in.readObject());
+	}
+	@Override
+	public void writeExternal(java.io.ObjectOutput out) throws java.io.IOException {
+		out.writeObject(j);
+		out.writeInt(i);
+		out.writeObject(getL());
+	}
 	public TestTooling1() {}
-
 }
+
 
 ```
 

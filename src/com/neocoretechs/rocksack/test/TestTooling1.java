@@ -7,7 +7,7 @@ import com.neocoretechs.rocksack.ComparisonOrderMethod;
 * Basic annotation tooling for RockSack to generate the necessary fields and methods for
 * storage and retrieval under the java.lang.Comparable interface as used throughout the language.
 * The ordering of the keys is defined here as by the annotation order field: j,i, and l. We
-* demonstrate method and field access and generate compareTo method and Serializable interface
+* demonstrate method and field access and generate compareTo method and Externalizable interface
 * implementation with SerialUID. We also show how to wrap a custom object to give Comparable
 * functionality to any class. No modifications will affect the operation of the original class.
 * The original class will be backed up as TestTooling1.bak before modification.
@@ -24,6 +24,9 @@ public class TestTooling1{
 	@ComparisonOrderMethod(order=3)
 	public ByteObject getL() {
 		return l;
+	}
+	public void setL(ByteObject l) {
+		this.l = l;
 	}
 	public TestTooling1(String key1, int key2) {
 		j = key1;
