@@ -35,6 +35,7 @@ import org.rocksdb.util.SizeUnit;
 import com.neocoretechs.rocksack.DBPhysicalConstants;
 import com.neocoretechs.rocksack.DatabaseClass;
 import com.neocoretechs.rocksack.SerializedComparator;
+import com.neocoretechs.rocksack.TransactionId;
 import com.neocoretechs.rocksack.session.VolumeManager.Volume;
 
 /**
@@ -543,8 +544,8 @@ public class DatabaseManager {
 	 * Generate a randomUUID
 	 * @return the string values randomUUID that will serve as unique globally unique transaction ID
 	 */
-	public static String getTransactionId() {
-		return UUID.randomUUID().toString();
+	public static TransactionId getTransactionId() {
+		return TransactionId.generate();
 	}
 	
 	/**
@@ -555,7 +556,7 @@ public class DatabaseManager {
 	 * @throws IOException
 	 * @throws RocksDBException 
 	 */
-	public static synchronized TransactionalMap getTransactionalMap(Comparable clazz, String xid) throws IllegalAccessException, IOException {
+	public static synchronized TransactionalMap getTransactionalMap(Comparable clazz, TransactionId xid) throws IllegalAccessException, IOException {
 		return getTransactionalMap(clazz.getClass(), xid);
 	}
 	/**
@@ -566,7 +567,7 @@ public class DatabaseManager {
 	 * @throws IOException
 	 * @throws RocksDBException 
 	 */
-	public static synchronized TransactionalMap getTransactionalMap(Class clazz, String xid) throws IllegalAccessException, IOException {
+	public static synchronized TransactionalMap getTransactionalMap(Class clazz, TransactionId xid) throws IllegalAccessException, IOException {
 		boolean isDerivedClass = false;
 		String xClass,dClass = null;
 		TransactionalMap ret = null;
@@ -601,16 +602,16 @@ public class DatabaseManager {
 						ret = (TransactionalMap)(new TransactionalMap(ts, xid, dClass));
 					} else {
 						// create derived with session of main, previously instantiated default ColumnFamily
-						ret = (TransactionalMap)(new TransactionalMap(def.getSession(), dClass));
+						ret = (TransactionalMap)(new TransactionalMap(def.getSession(), xid, dClass));
 					}
 					v.classToIsoTransaction.put(dClass, ret);
-					v.idToTransaction.put(xid, ret.getTransaction());
+					v.idToTransaction.put(xid.getTransactionId(), ret.getTransaction());
 					if(DEBUG)
 						System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return DERIVED map:"+ret+" for dir:"+tableSpaceDir+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
 				} else {
 					ret =  new TransactionalMap(SessionManager.ConnectTransaction(tableSpaceDir+xClass, options), xid);
 					v.classToIsoTransaction.put(xClass, ret);
-					v.idToTransaction.put(xid, ret.getTransaction());
+					v.idToTransaction.put(xid.getTransactionId(), ret.getTransaction());
 					if(DEBUG)
 						System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return BASE map:"+ret+" for dir:"+tableSpaceDir+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
 				}
@@ -625,7 +626,7 @@ public class DatabaseManager {
 		return ret;		
 	}
 	
-	public static synchronized TransactionalMap getTransactionalMap(Volume v, String tDir, Class clazz, String xid) throws IllegalAccessException, IOException, RocksDBException {
+	public static synchronized TransactionalMap getTransactionalMap(Volume v, String tDir, Class clazz, TransactionId xid) throws IllegalAccessException, IOException, RocksDBException {
 		boolean isDerivedClass = false;
 		String xClass,dClass = null;
 		TransactionalMap ret = null;
@@ -659,16 +660,16 @@ public class DatabaseManager {
 						ret = (TransactionalMap)(new TransactionalMap(ts, xid, dClass));
 					} else {
 						// create derived with session of main, previously instantiated default ColumnFamily
-						ret = (TransactionalMap)(new TransactionalMap(def.getSession(), dClass));
+						ret = (TransactionalMap)(new TransactionalMap(def.getSession(), xid, dClass));
 					}
 					v.classToIsoTransaction.put(dClass, ret);
-					v.idToTransaction.put(xid, ret.getTransaction());
+					v.idToTransaction.put(xid.getTransactionId(), ret.getTransaction());
 					if(DEBUG)
 						System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return DERIVED map:"+ret+" for dir:"+(tDir+xClass)+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
 				} else {
 					ret =  new TransactionalMap(SessionManager.ConnectTransaction(tDir+xClass, options), xid);
 					v.classToIsoTransaction.put(xClass, ret);
-					v.idToTransaction.put(xid, ret.getTransaction());
+					v.idToTransaction.put(xid.getTransactionId(), ret.getTransaction());
 					if(DEBUG)
 						System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return BASE map:"+ret+" for dir:"+(tDir+xClass)+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
 				}
@@ -692,7 +693,7 @@ public class DatabaseManager {
 	 * @throws IOException
 	 * @throws RocksDBException 
 	 */
-	public static synchronized TransactionalMap getTransactionalMap(String alias, Comparable clazz, String xid) throws IllegalAccessException, IOException, NoSuchElementException {
+	public static synchronized TransactionalMap getTransactionalMap(String alias, Comparable clazz, TransactionId xid) throws IllegalAccessException, IOException, NoSuchElementException {
 		return getTransactionalMap(alias, clazz.getClass(), xid);
 	}
 	/**
@@ -705,7 +706,7 @@ public class DatabaseManager {
 	 * @throws IOException
 	 * @throws RocksDBException 
 	 */
-	public static synchronized TransactionalMap getTransactionalMap(String alias, Class clazz, String xid) throws IllegalAccessException, IOException, NoSuchElementException {
+	public static synchronized TransactionalMap getTransactionalMap(String alias, Class clazz, TransactionId xid) throws IllegalAccessException, IOException, NoSuchElementException {
 		Volume v = VolumeManager.getByAlias(alias);
 		try {
 			return getTransactionalMap(v, VolumeManager.getAliasToPath(alias), clazz, xid);
@@ -723,7 +724,7 @@ public class DatabaseManager {
 	 * @throws RocksDBException 
 	 * @throws NoSuchElementException 
 	 */
-	public static synchronized TransactionalMap getTransactionalMapByPath(String path, Comparable clazz, String xid) throws IllegalAccessException, IOException, NoSuchElementException {
+	public static synchronized TransactionalMap getTransactionalMapByPath(String path, Comparable clazz, TransactionId xid) throws IllegalAccessException, IOException, NoSuchElementException {
 		return getTransactionalMap(path, clazz.getClass(), xid);
 	}
 	/**
@@ -735,7 +736,7 @@ public class DatabaseManager {
 	 * @throws IOException
 	 * @throws RocksDBException 
 	 */
-	public static synchronized TransactionalMap getTransactionalMapByPath(String path, Class clazz, String xid) throws IllegalAccessException, IOException {
+	public static synchronized TransactionalMap getTransactionalMapByPath(String path, Class clazz, TransactionId xid) throws IllegalAccessException, IOException {
 		Volume v = VolumeManager.get(path);
 		try {
 			return getTransactionalMap(v, path, clazz, xid);
@@ -768,10 +769,11 @@ public class DatabaseManager {
 	 * @param xid
 	 * @throws IOException If the transaction is not in a state to be removed. i.e. not COMMITTED, ROLLEDBACK or STARTED
 	 */
-	public static synchronized void removeTransaction(String xid) throws IOException {
-		removeTransactionalMap(xid);
-		VolumeManager.removeTransaction(xid);
+	public static synchronized void removeTransaction(TransactionId xid) throws IOException {
+		removeTransactionalMap(xid.getTransactionId());
+		VolumeManager.removeTransaction(xid.getTransactionId());
 	}
+
 	/**
 	 * Remove from classToIso then idToTransaction in {@link VolumeManager}
 	 * @param alias
@@ -779,13 +781,13 @@ public class DatabaseManager {
 	 * @throws NoSuchElementException if the alias doesnt exist
 	 * @throws IOException If the transaction is not in a state to be removed. i.e. not COMMITTED, ROLLEDBACK or STARTED
 	 */
-	public static synchronized void removeTransaction(String alias, String xid) throws NoSuchElementException, IOException {
-		removeTransactionalMap(alias, xid);
-		VolumeManager.removeTransaction(xid);
+	public static synchronized void removeTransaction(String alias, TransactionId xid) throws NoSuchElementException, IOException {
+		removeTransactionalMap(alias, xid.getTransactionId());
+		VolumeManager.removeTransaction(xid.getTransactionId());
 	}
 	
-	public static void commitTransaction(String xid) throws IOException {
-		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByPathAndId(tableSpaceDir, xid);
+	public static void commitTransaction(TransactionId xid) throws IOException {
+		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByPathAndId(tableSpaceDir, xid.getTransactionId());
 		if(tx != null && !tx.isEmpty()) {
 			try {
 				for(Transaction t: tx)
@@ -797,8 +799,8 @@ public class DatabaseManager {
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
-	public static void commitTransaction(String alias, String xid) throws IOException, NoSuchElementException {
-		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByAliasAndId(alias, xid);
+	public static void commitTransaction(String alias, TransactionId xid) throws IOException, NoSuchElementException {
+		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByAliasAndId(alias, xid.getTransactionId());
 		if(tx != null && !tx.isEmpty()) {
 			try {
 				for(Transaction t: tx)
@@ -810,8 +812,8 @@ public class DatabaseManager {
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
-	public static void rollbackTransaction(String xid) throws IOException {
-		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByPathAndId(tableSpaceDir, xid);
+	public static void rollbackTransaction(TransactionId xid) throws IOException {
+		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByPathAndId(tableSpaceDir, xid.getTransactionId());
 		if(tx != null && !tx.isEmpty()) {
 			try {
 				for(Transaction t: tx)
@@ -823,8 +825,8 @@ public class DatabaseManager {
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
-	public static void rollbackTransaction(String alias, String xid) throws IOException, NoSuchElementException {
-		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByAliasAndId(alias, xid);
+	public static void rollbackTransaction(String alias, TransactionId xid) throws IOException, NoSuchElementException {
+		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByAliasAndId(alias, xid.getTransactionId());
 		if(tx != null && !tx.isEmpty()) {
 			try {
 				for(Transaction t: tx)
@@ -836,8 +838,8 @@ public class DatabaseManager {
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
-	public static void checkpointTransaction(String xid) throws IOException {
-		List<Transaction> tx = VolumeManager.getOutstandingTransactionsById(xid);
+	public static void checkpointTransaction(TransactionId xid) throws IOException {
+		List<Transaction> tx = VolumeManager.getOutstandingTransactionsById(xid.getTransactionId());
 		if(tx != null && !tx.isEmpty()) {
 			try {
 				for(Transaction t: tx)
@@ -849,8 +851,8 @@ public class DatabaseManager {
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
-	public static void checkpointTransaction(String alias, String xid) throws IOException, NoSuchElementException {
-		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByAliasAndId(alias, xid);
+	public static void checkpointTransaction(String alias, TransactionId xid) throws IOException, NoSuchElementException {
+		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByAliasAndId(alias, xid.getTransactionId());
 		if(tx != null && !tx.isEmpty()) {
 			try {
 				for(Transaction t: tx)
@@ -862,8 +864,8 @@ public class DatabaseManager {
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
-	public static void rollbackToCheckpoint(String xid) throws IOException {
-		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByPathAndId(tableSpaceDir, xid);
+	public static void rollbackToCheckpoint(TransactionId xid) throws IOException {
+		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByPathAndId(tableSpaceDir, xid.getTransactionId());
 		if(tx != null && !tx.isEmpty()) {
 			try {
 				for(Transaction t: tx)
@@ -875,8 +877,8 @@ public class DatabaseManager {
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
-	public static void rollbackToCheckpoint(String alias, String xid) throws IOException, NoSuchElementException {
-		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByAliasAndId(alias, xid);
+	public static void rollbackToCheckpoint(String alias, TransactionId xid) throws IOException, NoSuchElementException {
+		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByAliasAndId(alias, xid.getTransactionId());
 		if(tx != null && !tx.isEmpty()) {
 			try {
 				for(Transaction t: tx)
@@ -985,16 +987,16 @@ public class DatabaseManager {
 		});
 	}
 
-	public static void endTransaction(String uid) throws IOException {
-		VolumeManager.removeTransaction(uid);
+	public static void endTransaction(TransactionId xid) throws IOException {
+		VolumeManager.removeTransaction(xid.getTransactionId());
 	}
 	
 	public static void clearAllOutstandingTransactions() {
 		VolumeManager.clearAllOutstandingTransactions();
 	}
 	
-	public static void clearOutstandingTransaction(String uid) {
-		VolumeManager.clearOutstandingTransaction(uid);
+	public static void clearOutstandingTransaction(TransactionId xid) {
+		VolumeManager.clearOutstandingTransaction(xid.getTransactionId());
 	}
 	
 	/**
@@ -1028,4 +1030,5 @@ public class DatabaseManager {
 			System.out.println(e.toString());
 		});
 	}
+
 }

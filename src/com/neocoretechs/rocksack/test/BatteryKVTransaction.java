@@ -3,6 +3,7 @@ package com.neocoretechs.rocksack.test;
 import java.util.Iterator;
 import java.util.Map;
 
+import com.neocoretechs.rocksack.TransactionId;
 import com.neocoretechs.rocksack.iterator.Entry;
 import com.neocoretechs.rocksack.session.BufferedMap;
 import com.neocoretechs.rocksack.session.DatabaseManager;
@@ -44,7 +45,7 @@ public class BatteryKVTransaction {
 			System.exit(1);
 		}
 		DatabaseManager.setTableSpaceDir(argv[0]);
-		String xid = DatabaseManager.getTransactionId();
+		TransactionId xid = DatabaseManager.getTransactionId();
 		bmap = DatabaseManager.getTransactionalMap(String.class, xid);
 		battery1(xid);	
 		battery11(xid);
@@ -70,7 +71,7 @@ public class BatteryKVTransaction {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1(String xid) throws Exception {
+	public static void battery1(TransactionId xid) throws Exception {
 		System.out.println("KV Battery1 ");
 		long tims = System.currentTimeMillis();
 		int dupes = 0;
@@ -96,12 +97,12 @@ public class BatteryKVTransaction {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery11(String xid) throws Exception {
+	public static void battery11(TransactionId xid) throws Exception {
 		System.out.println("KV Battery11 ");
 		long tims = System.currentTimeMillis();
 		int recs = 0;
 		String fkey = null;
-		String xid2 = DatabaseManager.getTransactionId();
+		TransactionId xid2 = DatabaseManager.getTransactionId();
 		TransactionalMap bmap2 = DatabaseManager.getTransactionalMap(String.class, xid2);
 		for(int i = max; i < max*2; i++) {
 			fkey = String.format(uniqKeyFmt, i);
@@ -130,7 +131,7 @@ public class BatteryKVTransaction {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1AR6(String xid) throws Exception {
+	public static void battery1AR6(TransactionId xid) throws Exception {
 		int i = min;
 		long tims = System.currentTimeMillis();
 		Iterator its = bmap.entrySet();
@@ -155,7 +156,7 @@ public class BatteryKVTransaction {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1AR7(String xid) throws Exception {
+	public static void battery1AR7(TransactionId xid) throws Exception {
 		int i = min;
 		long tims = System.currentTimeMillis();
 		Iterator its = bmap.keySet();
@@ -179,7 +180,7 @@ public class BatteryKVTransaction {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1AR8(String xid) throws Exception {
+	public static void battery1AR8(TransactionId xid) throws Exception {
 		int i = min;
 		System.out.println("KV Battery1AR8");
 		long tims = System.currentTimeMillis();
@@ -230,7 +231,7 @@ public class BatteryKVTransaction {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1AR9(String xid) throws Exception {
+	public static void battery1AR9(TransactionId xid) throws Exception {
 		int i = min;
 		long tims = System.currentTimeMillis();
 		Object k = bmap.firstKey(); // first key
@@ -252,7 +253,7 @@ public class BatteryKVTransaction {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1AR10(String xid) throws Exception {
+	public static void battery1AR10(TransactionId xid) throws Exception {
 		int i = max-1;
 		long tims = System.currentTimeMillis();
 		Object k = bmap.lastKey(); // key
@@ -273,7 +274,7 @@ public class BatteryKVTransaction {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1AR101(String xid) throws Exception {
+	public static void battery1AR101(TransactionId xid) throws Exception {
 		int i = max;
 		long tims = System.currentTimeMillis();
 		long bits = bmap.size();
@@ -289,7 +290,7 @@ public class BatteryKVTransaction {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1AR11(String xid) throws Exception {
+	public static void battery1AR11(TransactionId xid) throws Exception {
 		long tims = System.currentTimeMillis();
 		int i = min;
 		String fkey = String.format(uniqKeyFmt, i);
@@ -311,7 +312,7 @@ public class BatteryKVTransaction {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1AR12(String xid) throws Exception {
+	public static void battery1AR12(TransactionId xid) throws Exception {
 		long tims = System.currentTimeMillis();
 		int i = min;
 		String fkey = String.format(uniqKeyFmt, i);
@@ -335,7 +336,7 @@ public class BatteryKVTransaction {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1AR13(String xid) throws Exception {
+	public static void battery1AR13(TransactionId xid) throws Exception {
 		long tims = System.currentTimeMillis();
 		int i = max;
 		String fkey = String.format(uniqKeyFmt, i);
@@ -360,7 +361,7 @@ public class BatteryKVTransaction {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1AR14(String xid) throws Exception {
+	public static void battery1AR14(TransactionId xid) throws Exception {
 		long tims = System.currentTimeMillis();
 		int i = max;
 		String fkey = String.format(uniqKeyFmt, i);
@@ -385,7 +386,7 @@ public class BatteryKVTransaction {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1AR15(String xid) throws Exception {
+	public static void battery1AR15(TransactionId xid) throws Exception {
 		long tims = System.currentTimeMillis();
 		int i = min;
 		int j = max;
@@ -412,7 +413,7 @@ public class BatteryKVTransaction {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1AR16(String xid) throws Exception {
+	public static void battery1AR16(TransactionId xid) throws Exception {
 		long tims = System.currentTimeMillis();
 		int i = min;
 		int j = max;
@@ -439,11 +440,11 @@ public class BatteryKVTransaction {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery1AR17(String xid) throws Exception {
+	public static void battery1AR17(TransactionId xid) throws Exception {
 		long tims = System.currentTimeMillis();
 		//int i = min;
 		//int j = max;
-		String xid2 = DatabaseManager.getTransactionId();
+		TransactionId xid2 = DatabaseManager.getTransactionId();
 		TransactionalMap bmap2 = DatabaseManager.getTransactionalMap(String.class, xid2);
 		// with j at max, should get them all since we stored to max -1
 		//String tkey = String.format(uniqKeyFmt, j);
@@ -453,7 +454,7 @@ public class BatteryKVTransaction {
 			String fkey = String.format(uniqKeyFmt, i);
 			bmap2.remove(fkey);
 			// Map.Entry
-			if(bmap2.contains(xid2)) { 
+			if(bmap2.contains(xid2.getTransactionId())) { 
 				System.out.println("KV RANGE 1AR17 KEY MISMATCH:"+i);
 				//throw new Exception("KV RANGE 1AR17 KEY MISMATCH:"+i);
 			}
@@ -479,9 +480,9 @@ public class BatteryKVTransaction {
 	 * @param argv
 	 * @throws Exception
 	 */
-	public static void battery18(String xid) throws Exception {
+	public static void battery18(TransactionId xid) throws Exception {
 		System.out.println("KV Battery18 ");
-		String xid2 = DatabaseManager.getTransactionId();
+		TransactionId xid2 = DatabaseManager.getTransactionId();
 		TransactionalMap bmap2 = DatabaseManager.getTransactionalMap(String.class, xid2);
 		int max1 = max - 50000;
 		long tims = System.currentTimeMillis();
@@ -509,7 +510,7 @@ public class BatteryKVTransaction {
 	 * @param argv
 	 * @throws Exception
 	 */
-	private static void batteryCleanDB(String xid) throws Exception {
+	private static void batteryCleanDB(TransactionId xid) throws Exception {
 		long tims = System.currentTimeMillis();
 		//int i = min;
 		//int j = max;

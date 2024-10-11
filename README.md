@@ -54,10 +54,10 @@ If a transaction context is desired, in other words one in which multiple operat
 ```
 
 DatabaseManager.setTableSpaceDir(argv[0]);
-String xid = DatabaseManager.getTransactionId();
+TransactionId xid = DatabaseManager.getTransactionId();
 TransactionalMap map = DatabaseManager.getTransactionalMap(key.getClass(), xid);
-map.put(xid, key, value);
-Comparable c = map.get(xid, key);
+map.put(key, value);
+Comparable c = map.get(key);
 
 DatabaseManager.commitTransaction(xid); // Or
 DatabaseManager.rollbackTransaction(xid); // Or
@@ -124,7 +124,7 @@ keySetStream<br/>
 		
 	// Demonstration of transactional stream retrieval functional lambda expressions:
 	
-	String xid = DatabaseManager.getTransactionId();
+	TransactionId xid = DatabaseManager.getTransactionId();
 	// Get a transactional map for a fully qualified class name delivered on the command line
 	TransactionalMap map = DatabaseManager.getTransactionalMap(Class.forName(argv[1]), xid);
 	Object o; // Object to hold stream retrieval items
@@ -132,15 +132,15 @@ keySetStream<br/>
 	
 	// Functionally equivalent stream retrievals below:
 	
-	map.headSetStream(xid, (Comparable) map.lastKey()).forEach(System.out::println);
+	map.headSetStream((Comparable) map.lastKey()).forEach(System.out::println);
 
 	// Lamdba expressions:
 	
-	map.tailSetStream(xid, (Comparable) map.firstKey()).forEach(o -> {
+	map.tailSetStream((Comparable) map.firstKey()).forEach(o -> {
 		System.out.println("["+(i++)+"]"+o);
 	});
 	
-	map.subSetStream(xid, (Comparable) map.firstKey(), (Comparable) map.lastKey()).forEach(o -> {
+	map.subSetStream((Comparable) map.firstKey(), (Comparable) map.lastKey()).forEach(o -> {
 		System.out.println("["+(i++)+"]"+o);
 	});
 		

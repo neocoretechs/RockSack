@@ -5,13 +5,14 @@ import java.util.stream.Stream;
 
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.Transaction;
 import org.rocksdb.TransactionDB;
 import org.rocksdb.WriteOptions;
+
+import com.neocoretechs.rocksack.TransactionId;
 
 /*
 * Copyright (c) 2024, NeoCoreTechs
@@ -47,6 +48,7 @@ import org.rocksdb.WriteOptions;
 public class TransactionalMap implements OrderedKVMapInterface {
 	private static boolean DEBUG = false;
 	protected TransactionSession session;
+	private TransactionId transactionId;
 	Transaction txn;
 	ReadOptions ro;
 	WriteOptions wo;
@@ -77,12 +79,13 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	 * @throws IllegalAccessException
 	 * @throws RocksDBException
 	 */
-	public TransactionalMap(TransactionSession session, String xid) throws IOException, IllegalAccessException, RocksDBException {
+	public TransactionalMap(TransactionSession session, TransactionId xid) throws IOException, IllegalAccessException, RocksDBException {
 		ro = new ReadOptions();
 		wo = new WriteOptions();
 		this.session = session;
+		this.transactionId = xid;
 		BeginTransaction();
-		txn.setName(xid);
+		txn.setName(xid.getTransactionId());
 		processColumnFamily();
 	}
 	/**
@@ -110,12 +113,13 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	 * @throws IllegalAccessException
 	 * @throws RocksDBException
 	 */
-	public TransactionalMap(TransactionSession session, String xid, String derivedClassName) throws IOException, IllegalAccessException, RocksDBException {
+	public TransactionalMap(TransactionSession session, TransactionId xid, String derivedClassName) throws IOException, IllegalAccessException, RocksDBException {
 		ro = new ReadOptions();
 		wo = new WriteOptions();
 		this.session = session;
+		this.transactionId = xid;
 		BeginTransaction();
-		txn.setName(xid);
+		txn.setName(xid.getTransactionId());
 		processColumnFamily(derivedClassName);
 	}
 	/**
@@ -520,9 +524,9 @@ public class TransactionalMap implements OrderedKVMapInterface {
 		session.dropColumn(columnFamilyHandle);
 	}
 	
-	public String getTransactionId() throws IOException {
+	public TransactionId getTransactionId() throws IOException {
 		//synchronized (getSession().getMutexObject()) {
-			return txn.getName();
+			return transactionId;
 		//}
 	}
 
