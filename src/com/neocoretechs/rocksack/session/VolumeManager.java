@@ -11,6 +11,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.Transaction;
 import org.rocksdb.Transaction.TransactionState;
+
+import com.neocoretechs.rocksack.Alias;
 /**
  * A volume is a set of RocksDb directories and files indexed by a volume name, which is a directory path PLUS database prefix. The
  * last component of the volume refers to the prefix of a database name within the parent path. When forming filesets for RocksDb, the
@@ -29,7 +31,7 @@ import org.rocksdb.Transaction.TransactionState;
 public class VolumeManager {
 	private static boolean DEBUG = false;
 	private static ConcurrentHashMap<String, Volume> pathToVolume = new ConcurrentHashMap<String,Volume>();
-	private static ConcurrentHashMap<String, String> aliasToPath = new ConcurrentHashMap<String,String>();
+	private static ConcurrentHashMap<Alias, String> aliasToPath = new ConcurrentHashMap<Alias,String>();
 	/**
 	 * Index by tablespaceDir
 	 */
@@ -63,6 +65,16 @@ public class VolumeManager {
 	 */
 	static String getAliasToPath(String alias) {
 		if(DEBUG)
+			System.out.println("VolumeManager.getAliasToPath attempt for alias:"+alias+" will return:"+aliasToPath.get(new Alias(alias)));
+		return aliasToPath.get(new Alias(alias));
+	}
+	/**
+	 * Get the tablespace path for the given alias
+	 * @param alias
+	 * @return The path for this alias or null if none
+	 */
+	static String getAliasToPath(Alias alias) {
+		if(DEBUG)
 			System.out.println("VolumeManager.getAliasToPath attempt for alias:"+alias+" will return:"+aliasToPath.get(alias));
 		return aliasToPath.get(alias);
 	}
@@ -74,22 +86,36 @@ public class VolumeManager {
 	 * @throws NoSuchElementException If the alias was not found
 	 */
 	static Volume getByAlias(String alias) throws NoSuchElementException {
-		String path = aliasToPath.get(alias);
+		String path = aliasToPath.get(new Alias(alias));
 		if(path == null)
 			throw new NoSuchElementException("The alias "+alias+" was not found.");
 		if(DEBUG)
 			System.out.println("VolumeManager.getByAlias attempt for alias:"+alias+" got path:"+path);
 		return get(path);
 	}
-	
+	/**
+	 * Get the volume for the given alias. If the alias does not exist, the volume will NOT be created.
+	 * An explicit createAlias call is needed.
+	 * @param alias
+	 * @return The Volume for the alias
+	 * @throws NoSuchElementException If the alias was not found
+	 */
+	static Volume getByAlias(Alias alias) throws NoSuchElementException {
+		String path = aliasToPath.get(alias);
+		if(path == null)
+			throw new NoSuchElementException("The alias "+alias+" was not found.");
+		if(DEBUG)
+			System.out.println("VolumeManager.getByAlias attempt for alias:"+alias+" got path:"+path);
+		return get(path);
+	}	
 	/**
 	 * @return The aliases and their paths as 2d array. 1st dim is 0 if none.
 	 */
 	static String[][] getAliases() {
 		String[][] array = new String[aliasToPath.size()][2];
 		int count = 0;
-		for(Map.Entry<String,String> entry : aliasToPath.entrySet()){
-		    array[count][0] = entry.getKey();
+		for(Map.Entry<Alias,String> entry : aliasToPath.entrySet()){
+		    array[count][0] = entry.getKey().getAlias();
 		    array[count][1] = entry.getValue();
 		    count++;
 		}
@@ -103,6 +129,20 @@ public class VolumeManager {
 	static Volume createAlias(String alias, String path) throws IllegalArgumentException {
 		if(DEBUG)
 			System.out.println("VolumeManager.createAlias for alias:"+alias+" and path:"+path);
+		String prevAlias = aliasToPath.get(new Alias(alias));
+		if(prevAlias != null)
+			throw new IllegalArgumentException("Alias "+alias+" already assigned. Must be explicitly removed before reassignment.");
+		aliasToPath.put(new Alias(alias), path);
+		return get(path);
+	}
+	/**
+	 * Create an alias for the given tablespace path
+	 * @param alias
+	 * @param path
+	 */
+	static Volume createAlias(Alias alias, String path) throws IllegalArgumentException {
+		if(DEBUG)
+			System.out.println("VolumeManager.createAlias for alias:"+alias+" and path:"+path);
 		String prevAlias = aliasToPath.get(alias);
 		if(prevAlias != null)
 			throw new IllegalArgumentException("Alias "+alias+" already assigned. Must be explicitly removed before reassignment.");
@@ -114,6 +154,15 @@ public class VolumeManager {
 	 * @param alias
 	 */
 	static void removeAlias(String alias) {
+		if(DEBUG)
+			System.out.println("VolumeManager.removeAlias for alias:"+alias);
+		aliasToPath.remove(new Alias(alias));
+	}
+	/**
+	 * Remove the alias for the given tablespace path. The volume will not be affected.
+	 * @param alias
+	 */
+	static void removeAlias(Alias alias) {
 		if(DEBUG)
 			System.out.println("VolumeManager.removeAlias for alias:"+alias);
 		aliasToPath.remove(alias);
