@@ -305,20 +305,29 @@ public class VolumeManager {
 					 }
 				}
 	}
-	
-	static void removeTransaction(String uid) throws IOException {
+	/**
+	 * Remove the transaction from all volumes that had an idToTransaction table entry with this transaction id.
+	 * @param uid The target transaction id
+	 * @return The unique list of volumes that had an entry for this id. Typically only 1, or empty list.
+	 * @throws IOException If transaction state was not STARTED, COMMITTED, or ROLLEDBACK
+	 */
+	static List<Volume> removeTransaction(String uid) throws IOException {
+		ArrayList<Volume> rv = new ArrayList<Volume>();
 		for(Map.Entry<String, Volume> volumes : pathToVolume.entrySet()) {
 			Transaction removed = volumes.getValue().idToTransaction.get(uid);
 			if(removed != null) {
 				if(removed.getState().equals(TransactionState.COMMITTED) || removed.getState().equals(TransactionState.ROLLEDBACK) ||
-					removed.getState().equals(TransactionState.STARTED)	)
+					removed.getState().equals(TransactionState.STARTED)	) {
 					removed = volumes.getValue().idToTransaction.remove(uid);
-				else
+					if(!rv.contains(volumes.getValue()))
+						rv.add(volumes.getValue());
+				} else
 					throw new IOException("Transaction "+uid+" is in state "+removed.getState().name()+" must be COMMITTED or ROLLEDBACK or STARTED for removal");
 				if(DEBUG) {
 					System.out.println("VolumeManager removed uid "+uid+" for transaction "+removed);
 				}
 			}
 		}
+		return rv;
 	}
 }

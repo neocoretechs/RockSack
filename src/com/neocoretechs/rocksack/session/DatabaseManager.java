@@ -951,6 +951,29 @@ public class DatabaseManager {
 	}
 	
 	/**
+	 * Remove the given TransactionalMap from active DB/transaction collection
+	 * @param xid the transaction id
+	 * @param tmap the TransactionalMap for a given transaction Id
+	 * @throws IOException 
+	 */
+	public static synchronized void removeTransactionalMap(TransactionId xid, SetInterface tmap) throws IOException {
+		List<Volume> vms = VolumeManager.removeTransaction(xid.getTransactionId());
+		for(Volume vm : vms) {
+			vm.classToIsoTransaction.forEach((k,v) -> {
+				if(v.equals(tmap)) {
+					TransactionalMap verify;
+					try {
+						verify = (TransactionalMap) v.remove(((TransactionalMap)tmap).txn.getName());
+						verify.session.Close();
+					} catch (IOException e) {} // close RocksDB database
+					if(DEBUG)
+						System.out.println("DatabaseManager.removeRockSackTransactionalMap removing xaction "+((TransactionalMap)tmap).txn.getName()+" for DB "+k);
+				}
+			});
+		}
+	}
+	
+	/**
 	 * Bridge method
 	 * Remove the given TransactionalMap from active DB/transaction collection
 	 * @param xid The Transaction Id
