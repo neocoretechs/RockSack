@@ -618,7 +618,10 @@ public class DatabaseManager {
 			}
 			if(DEBUG)
 				System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to create new map:"+ret);
+			return ret;
 		}
+		// We had the map requested, see if the transaction is present, if not, create it
+		ret.getTransaction(xid, true);
 		if(DEBUG)
 			System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return map:"+ret+" for class:"+xClass+" isDerivedClass:"+isDerivedClass);
 		return ret;		
@@ -674,7 +677,10 @@ public class DatabaseManager {
 			}
 			if(DEBUG)
 				System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to create new map:"+ret);
+			return ret;
 		}
+		// If we dont have the requested transaction, create it and start it
+		ret.getTransaction(xid, true);
 		if(DEBUG)
 			System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return map:"+ret+" for class:"+xClass+" isDerivedClass:"+isDerivedClass);
 		return ret;	

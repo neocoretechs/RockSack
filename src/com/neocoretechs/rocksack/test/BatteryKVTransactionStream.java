@@ -44,6 +44,7 @@ public class BatteryKVTransactionStream {
 		TransactionId xid = DatabaseManager.getTransactionId();
 		bmap = DatabaseManager.getTransactionalMap(String.class, xid);
 		battery1(xid);	// build and store
+		// Store records in another transaction then attempt to roll it back
 		battery11(xid);  // build and store
 		battery1AR6(xid);
 		battery1AR7(xid);
@@ -102,7 +103,7 @@ public class BatteryKVTransactionStream {
 		TransactionalMap bmap2 = DatabaseManager.getTransactionalMap(String.class, xid2);
 		for(int i = max; i < max*2; i++) {
 			fkey = String.format(uniqKeyFmt, i);
-			bmap2.put(xid, fkey, new Long(fkey));
+			bmap2.put(xid2, fkey, new Long(fkey));
 			++recs;
 		}
 		if( recs > 0) {
@@ -140,7 +141,7 @@ public class BatteryKVTransactionStream {
 		});
 		if( i != max ) {
 			System.out.println("BATTERY1AR6 unexpected number of keys "+i);
-			//throw new Exception("BATTERY1AR6 unexpected number of keys "+i);
+			throw new Exception("BATTERY1AR6 unexpected number of keys "+i);
 		}
 		 System.out.println("BATTERY1AR6 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
@@ -162,7 +163,7 @@ public class BatteryKVTransactionStream {
 		});
 		if( i != max ) {
 			System.out.println("KV BATTERY1AR7 unexpected number of keys "+i);
-			//throw new Exception("KV BATTERY1AR7 unexpected number of keys "+i);
+			throw new Exception("KV BATTERY1AR7 unexpected number of keys "+i);
 		}
 		 System.out.println("KV BATTERY1AR7 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
@@ -180,17 +181,17 @@ public class BatteryKVTransactionStream {
 			boolean bits = bmap.contains(xid, fkey);
 			if( !bits ) {
 				System.out.println("KV BATTERY1A8 cant find contains key "+j);
-				//throw new Exception("KV BATTERY1AR8 unexpected cant find contains of key "+fkey);
+				throw new Exception("KV BATTERY1AR8 unexpected cant find contains of key "+fkey);
 			}
 		}
 		 System.out.println("KV BATTERY1AR8 FORWARD CONTAINS KEY TOOK "+(System.currentTimeMillis()-tims)+" ms.");
 		 tims = System.currentTimeMillis();
-		 for(int j = max; j > min; j--) {
+		 for(int j = max-1; j > min; j--) {
 				String fkey = String.format(uniqKeyFmt, j);
 				boolean bits = bmap.contains(xid, fkey);
 				if( !bits ) {
 					System.out.println("KV BATTERY1A8 cant find contains key "+j);
-					//throw new Exception("KV BATTERY1AR8 unexpected cant find contains of key "+fkey);
+					throw new Exception("KV BATTERY1AR8 unexpected cant find contains of key "+fkey);
 				}
 			}
 			 System.out.println("KV BATTERY1AR8 REVERSE CONTAINS KEY TOOK "+(System.currentTimeMillis()-tims)+" ms.");
@@ -201,17 +202,17 @@ public class BatteryKVTransactionStream {
 			boolean bits = bmap.containsValue(xid, (long)j);
 			if( !bits ) {
 				System.out.println("KV BATTERY1AR8 cant find contains value "+j);
-				//throw new Exception("KV BATTERY1AR8 unexpected number cant find contains of value "+i);
+				throw new Exception("KV BATTERY1AR8 unexpected number cant find contains of value "+i);
 			}
 		}
 		System.out.println("KV BATTERY1AR8 FORWARD "+numLookupByValue+" CONTAINS VALUE TOOK "+(System.currentTimeMillis()-tims)+" ms.");
 		tims = System.currentTimeMillis();
-		for(int j = max; j > max-numLookupByValue  ; j--) {
+		for(int j = max-1; j > max-numLookupByValue  ; j--) {
 				// careful here, have to do the conversion explicitly
 				boolean bits = bmap.containsValue(xid, (long)j);
 				if( !bits ) {
 					System.out.println("KV BATTERY1AR8 cant find contains value "+j);
-					//throw new Exception("KV BATTERY1AR8 unexpected number cant find contains of value "+i);
+					throw new Exception("KV BATTERY1AR8 unexpected number cant find contains of value "+i);
 				}
 		}
 		System.out.println("KV BATTERY1AR8 REVERSE "+numLookupByValue+" CONTAINS VALUE TOOK "+(System.currentTimeMillis()-tims)+" ms.");
@@ -229,12 +230,12 @@ public class BatteryKVTransactionStream {
 		System.out.println("KV Battery1AR9");
 		if( Integer.parseInt((String)k) != i ) {
 			System.out.println("KV BATTERY1A9 cant find contains key "+i);
-			//throw new Exception("KV BATTERY1AR9 unexpected cant find contains of key "+i);
+			throw new Exception("KV BATTERY1AR9 unexpected cant find contains of key "+i);
 		}
 		long ks = (long) bmap.first(xid);
 		if( ks != i) {
 			System.out.println("KV BATTERY1A9 cant find contains value "+i);
-			//throw new Exception("KV BATTERY1AR9 unexpected cant find contains of value "+i);
+			throw new Exception("KV BATTERY1AR9 unexpected cant find contains of value "+i);
 		}
 		System.out.println("KV BATTERY1AR9 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
@@ -251,12 +252,12 @@ public class BatteryKVTransactionStream {
 		System.out.println("KV Battery1AR10");
 		if( Long.parseLong((String) k) != (long)i ) {
 			System.out.println("KV BATTERY1AR10 cant find last key "+i);
-			//throw new Exception("KV BATTERY1AR10 unexpected cant find last of key "+i);
+			throw new Exception("KV BATTERY1AR10 unexpected cant find last of key "+i);
 		}
 		long ks = (long)bmap.last(xid);
 		if( ks != i) {
 			System.out.println("KV BATTERY1AR10 cant find last value "+i);
-			//throw new Exception("KV BATTERY1AR10 unexpected cant find last of key "+i);
+			throw new Exception("KV BATTERY1AR10 unexpected cant find last of key "+i);
 		}
 		System.out.println("KV BATTERY1AR10 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
@@ -272,7 +273,7 @@ public class BatteryKVTransactionStream {
 		System.out.println("KV Battery1AR101");
 		if( bits != i ) {
 			System.out.println("KV BATTERY1AR101 size mismatch "+bits+" should be:"+i);
-			//throw new Exception("KV BATTERY1AR101 size mismatch "+bits+" should be "+i);
+			throw new Exception("KV BATTERY1AR101 size mismatch "+bits+" should be "+i);
 		}
 		System.out.println("BATTERY1AR101 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
@@ -290,7 +291,7 @@ public class BatteryKVTransactionStream {
 		stream.forEach(e ->{
 			if(Integer.parseInt((String)e) != i) {
 				System.out.println("KV RANGE KEY MISMATCH:"+i+" - "+e);
-				//throw new Exception("KV RANGE KEY MISMATCH:"+i+" - "+e);
+				throw new RuntimeException("KV RANGE KEY MISMATCH:"+i+" - "+e);
 			}
 			++i;
 		});
@@ -311,7 +312,7 @@ public class BatteryKVTransactionStream {
 			if(Integer.parseInt(((Map.Entry<String,Long>)e).getKey()) != i) {
 			// Map.Entry
 				System.out.println("KV RANGE KEY MISMATCH:"+i+" - "+e);
-				//throw new Exception("KV RANGE KEY MISMATCH:"+i+" - "+e);
+				throw new RuntimeException("KV RANGE KEY MISMATCH:"+i+" - "+e);
 			}
 			++i;
 		});
@@ -335,7 +336,7 @@ public class BatteryKVTransactionStream {
 			if(Integer.parseInt((String)e) != i) {
 			// Map.Entry
 				System.out.println("KV RANGE 1AR13 KEY MISMATCH:"+i+" - "+e);
-				//throw new Exception("KV RANGE 1AR13 KEY MISMATCH:"+i+" - "+e);
+				throw new RuntimeException("KV RANGE 1AR13 KEY MISMATCH:"+i+" - "+e);
 			}
 			++i;
 		});
@@ -358,7 +359,7 @@ public class BatteryKVTransactionStream {
 			if(Integer.parseInt(((Map.Entry<String,Long>)e).getKey()) != i) {
 			// Map.Entry
 				System.out.println("KV RANGE KEY MISMATCH:"+i+" - "+e);
-				//throw new Exception("KV RANGE KEY MISMATCH:"+i+" - "+e);
+				throw new RuntimeException("KV RANGE KEY MISMATCH:"+i+" - "+e);
 			}
 			++i;
 		});
@@ -384,7 +385,7 @@ public class BatteryKVTransactionStream {
 			if(Integer.parseInt((String) e) != i) {
 			// Map.Entry
 				System.out.println("KV RANGE 1AR15 KEY MISMATCH:"+i+" - "+e);
-				//throw new Exception("KV RANGE 1AR15 KEY MISMATCH:"+i+" - "+e);
+				throw new RuntimeException("KV RANGE 1AR15 KEY MISMATCH:"+i+" - "+e);
 			}
 			++i;
 		});
@@ -410,7 +411,7 @@ public class BatteryKVTransactionStream {
 			if(Integer.parseInt(((Map.Entry<String,Long>)e).getKey()) != i) {
 			// Map.Entry
 				System.out.println("KV RANGE 1AR16 KEY MISMATCH:"+i+" - "+e);
-				//throw new Exception("KV RANGE 1AR16 KEY MISMATCH:"+i+" - "+e);
+				throw new RuntimeException("KV RANGE 1AR16 KEY MISMATCH:"+i+" - "+e);
 			}
 			++i;
 		});
@@ -437,7 +438,7 @@ public class BatteryKVTransactionStream {
 			// Map.Entry
 			if(bmap2.contains(xid2, xid2.getTransactionId())) { 
 				System.out.println("KV RANGE 1AR17 KEY MISMATCH:"+i);
-				//throw new Exception("KV RANGE 1AR17 KEY MISMATCH:"+i);
+				throw new Exception("KV RANGE 1AR17 KEY MISMATCH:"+i);
 			}
 		}
 		DatabaseManager.commitTransaction(xid2);
@@ -453,7 +454,7 @@ public class BatteryKVTransactionStream {
 				++i;
 			});
 			System.out.println("KV RANGE 1AR17 KEY MISMATCH:"+siz+" > 0 after all deleted and committed. Total="+i);
-			//throw new Exception("KV RANGE 1AR17 KEY MISMATCH:"+siz+" > 0 after delete/commit");
+			throw new Exception("KV RANGE 1AR17 KEY MISMATCH:"+siz+" > 0 after delete/commit");
 		}
 		DatabaseManager.removeTransaction(xid2);
 		System.out.println("BATTERY1AR17 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");

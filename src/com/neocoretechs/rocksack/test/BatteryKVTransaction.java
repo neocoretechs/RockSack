@@ -36,6 +36,7 @@ public class BatteryKVTransaction {
 	private static int dupes;
 	private static int numLookupByValue = 10;
 	private static TransactionalMap bmap;
+	private static TransactionalMap bmap2;
 	/**
 	* Main test fixture driver
 	*/
@@ -47,8 +48,16 @@ public class BatteryKVTransaction {
 		DatabaseManager.setTableSpaceDir(argv[0]);
 		TransactionId xid = DatabaseManager.getTransactionId();
 		bmap = DatabaseManager.getTransactionalMap(String.class, xid);
-		battery1(xid);	
-		battery11(xid);
+		battery1(xid);
+		// Test 1 commits the transaction id xid
+		TransactionId xid2 = DatabaseManager.getTransactionId();
+		bmap2 = DatabaseManager.getTransactionalMap(String.class, xid2);
+		// we can also just say:
+		// bmap.getTransaction(xid2, true);
+		// or bmap2 = bmap.getTransaction(xid2, true);
+		// at this point bmap and bmap2 should refer to the same TransactionalMap for the String class
+		battery11(xid2);
+		// Now return to using the original, previously committed transaction
 		battery1AR6(xid);
 		battery1AR7(xid);
 		battery1AR8(xid);
@@ -89,13 +98,12 @@ public class BatteryKVTransaction {
 				++recs;
 		}
 		DatabaseManager.commitTransaction(xid);
-		DatabaseManager.removeTransaction(xid);
 		System.out.println("KV BATTERY1 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms. Stored "+recs+" records, rejected "+dupes+" dupes.");
 	}
 	
 	/**
 	 * Store another transaction then roll it back.
-	 * @param argv
+	 * @param argv Transaction id that we will ignore and use another new transaction for this test
 	 * @throws Exception
 	 */
 	public static void battery11(TransactionId xid) throws Exception {
@@ -103,18 +111,16 @@ public class BatteryKVTransaction {
 		long tims = System.currentTimeMillis();
 		int recs = 0;
 		String fkey = null;
-		TransactionId xid2 = DatabaseManager.getTransactionId();
-		TransactionalMap bmap2 = DatabaseManager.getTransactionalMap(String.class, xid2);
 		for(int i = max; i < max*2; i++) {
 			fkey = String.format(uniqKeyFmt, i);
 			bmap2.put(xid, fkey, new Long(fkey));
 			++recs;
 		}
 		if( recs > 0) {
-			DatabaseManager.rollbackTransaction(xid2);
+			DatabaseManager.rollbackTransaction(xid);
 			System.out.println("KV BATTERY11 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 		}
-		DatabaseManager.removeTransaction(xid2);
+		DatabaseManager.removeTransaction(xid);
 	}
 	
 	/**
@@ -123,13 +129,13 @@ public class BatteryKVTransaction {
 	 * Returns a Set view of the mappings contained in this map. 
 	 * The set's iterator returns the entries in ascending key order. 
 	 * The set is backed by the map, so changes to the map are reflected in the set, and vice-versa.
-	 *  If the map is modified while an iteration over the set is in progress (except through the iterator's 
-	 *  own remove operation, or through the setValue operation on a map entry returned by the iterator) the results
-	 *   of the iteration are undefined. The set supports element removal, which removes the corresponding mapping from the map, 
-	 *   via the Iterator.remove, Set.remove, removeAll, retainAll and clear operations. 
-	 *   It does not support the add or addAll operations.
-	 *   from battery1 we should have 0 to max, say 1000 keys of length 100
-	 * @param argv
+	 * If the map is modified while an iteration over the set is in progress (except through the iterator's 
+	 * own remove operation, or through the setValue operation on a map entry returned by the iterator) the results
+	 * of the iteration are undefined. The set supports element removal, which removes the corresponding mapping from the map, 
+	 * via the Iterator.remove, Set.remove, removeAll, retainAll and clear operations. 
+	 * It does not support the add or addAll operations.
+	 * from battery1 we should have 0 to max, say 1000 keys of length 100
+	 * @param argv Transaction id
 	 * @throws Exception
 	 */
 	public static void battery1AR6(TransactionId xid) throws Exception {

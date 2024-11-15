@@ -31,7 +31,7 @@ import com.neocoretechs.rocksack.TransactionId;
  *
  */
 public class VolumeManager {
-	private static boolean DEBUG = true;
+	private static boolean DEBUG = false;
 	private static ConcurrentHashMap<String, Volume> pathToVolume = new ConcurrentHashMap<String,Volume>();
 	private static ConcurrentHashMap<Alias, String> aliasToPath = new ConcurrentHashMap<Alias,String>();
 	/**
