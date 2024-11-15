@@ -605,13 +605,11 @@ public class DatabaseManager {
 						ret = (TransactionalMap)(new TransactionalMap(def.getSession(), xid, dClass));
 					}
 					v.classToIsoTransaction.put(dClass, ret);
-					v.idToTransaction.put(xid.getTransactionId(), ret.getTransaction());
 					if(DEBUG)
 						System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return DERIVED map:"+ret+" for dir:"+tableSpaceDir+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
 				} else {
 					ret =  new TransactionalMap(SessionManager.ConnectTransaction(tableSpaceDir+xClass, options), xid);
 					v.classToIsoTransaction.put(xClass, ret);
-					v.idToTransaction.put(xid.getTransactionId(), ret.getTransaction());
 					if(DEBUG)
 						System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return BASE map:"+ret+" for dir:"+tableSpaceDir+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
 				}
@@ -663,13 +661,11 @@ public class DatabaseManager {
 						ret = (TransactionalMap)(new TransactionalMap(def.getSession(), xid, dClass));
 					}
 					v.classToIsoTransaction.put(dClass, ret);
-					v.idToTransaction.put(xid.getTransactionId(), ret.getTransaction());
 					if(DEBUG)
 						System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return DERIVED map:"+ret+" for dir:"+(tDir+xClass)+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
 				} else {
 					ret =  new TransactionalMap(SessionManager.ConnectTransaction(tDir+xClass, options), xid);
 					v.classToIsoTransaction.put(xClass, ret);
-					v.idToTransaction.put(xid.getTransactionId(), ret.getTransaction());
 					if(DEBUG)
 						System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return BASE map:"+ret+" for dir:"+(tDir+xClass)+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
 				}
@@ -754,11 +750,11 @@ public class DatabaseManager {
 		vm.classToIsoTransaction.forEach((k,v) -> {
 			if(v.equals(tmap)) {
 				try {
-					TransactionalMap verify = (TransactionalMap) v.remove(((TransactionalMap)tmap).txn.getName());
-					verify.session.Close(); // close RocksDB database
+					TransactionalMap verify = (TransactionalMap) vm.classToIsoTransaction.remove(k);
+					verify.Close(); // close RocksDB database
 				} catch (IOException e) {}
 				if(DEBUG)
-					System.out.println("DatabaseManager.removeRockSackTransactionalMap removing xaction "+((TransactionalMap)tmap).txn.getName()+" for DB "+k);
+					System.out.println("DatabaseManager.removeRockSackTransactionalMap removed "+k);
 				return;
 			}
 		});
@@ -903,6 +899,7 @@ public class DatabaseManager {
 		vm.classToIso.forEach((k,v) -> {
 			if(v.equals(tmap)) {
 				try {
+					vm.classToIso.remove(k);
 					v.Close(); // close RocksDB database
 				} catch (IOException e) {}
 				if(DEBUG)
@@ -921,6 +918,7 @@ public class DatabaseManager {
 		vm.classToIso.forEach((k,v) -> {
 			if(v.equals(tmap)) {
 				try {
+					vm.classToIso.remove(k);
 					v.Close(); // close RocksDB database
 				} catch (IOException e) {}
 				if(DEBUG)
@@ -935,16 +933,16 @@ public class DatabaseManager {
 	 * @param alias The alias for the tablespace
 	 * @param tmap the TransactionalMap for a given transaction Id
 	 */
-	public static synchronized void removeTransactionalMap(Alias alias, SetInterface tmap) throws NoSuchElementException {
+	public static synchronized void removeTransactionalMap(Alias alias, TransactionSetInterface tmap) throws NoSuchElementException {
 		Volume vm = VolumeManager.getByAlias(alias);
 		vm.classToIsoTransaction.forEach((k,v) -> {
 			if(v.equals(tmap)) {
 				try {
-					TransactionalMap verify = (TransactionalMap) v.remove(((TransactionalMap)tmap).txn.getName());
-					verify.session.Close(); // close RocksDB database
+					TransactionalMap verify = (TransactionalMap) vm.classToIsoTransaction.remove(k);
+					verify.Close(); // close RocksDB database
 				} catch (IOException e) {}
 				if(DEBUG)
-					System.out.println("DatabaseManager.removeRockSackTransactionalMap removing xaction "+((TransactionalMap)tmap).txn.getName()+" for DB "+k);
+					System.out.println("DatabaseManager.removeRockSackTransactionalMap removing "+k);
 				return;
 			}
 		});
@@ -956,18 +954,18 @@ public class DatabaseManager {
 	 * @param tmap the TransactionalMap for a given transaction Id
 	 * @throws IOException 
 	 */
-	public static synchronized void removeTransactionalMap(TransactionId xid, SetInterface tmap) throws IOException {
+	public static synchronized void removeTransactionalMap(TransactionId xid, TransactionSetInterface tmap) throws IOException {
 		List<Volume> vms = VolumeManager.removeTransaction(xid.getTransactionId());
 		for(Volume vm : vms) {
 			vm.classToIsoTransaction.forEach((k,v) -> {
 				if(v.equals(tmap)) {
 					TransactionalMap verify;
 					try {
-						verify = (TransactionalMap) v.remove(((TransactionalMap)tmap).txn.getName());
-						verify.session.Close();
+						verify = (TransactionalMap) vm.classToIsoTransaction.remove(k);
+						verify.Close();
 					} catch (IOException e) {} // close RocksDB database
 					if(DEBUG)
-						System.out.println("DatabaseManager.removeRockSackTransactionalMap removing xaction "+((TransactionalMap)tmap).txn.getName()+" for DB "+k);
+						System.out.println("DatabaseManager.removeRockSackTransactionalMap removed "+k);
 				}
 			});
 		}
@@ -982,12 +980,12 @@ public class DatabaseManager {
 		Volume vm = VolumeManager.get(tableSpaceDir);
 		vm.classToIsoTransaction.forEach((k,c) -> {
 			if(k.equals(xid)) {
-				TransactionalMap verify = (TransactionalMap) vm.classToIsoTransaction.remove(xid);
+				TransactionalMap verify = (TransactionalMap) vm.classToIsoTransaction.remove(k);
 				try {
-					verify.session.Close(); //close RocksDB database
+					verify.Close(); //close RocksDB database
 				} catch (IOException e) {}
 				if(DEBUG)
-					System.out.println("DatabaseManager.removeRockSackTransactionalMap removing xaction "+xid+" for DB "+k+" which should match "+verify.txn.getName());
+					System.out.println("DatabaseManager.removeRockSackTransactionalMap removing xaction "+xid+" for DB "+k);
 				return;
 			}
 		});
@@ -1004,8 +1002,9 @@ public class DatabaseManager {
 		vm.classToIsoTransaction.forEach((k,c) -> {
 			if(k.equals(xid.getTransactionId())) {
 				try {
-					TransactionalMap verify = (TransactionalMap) c.remove(xid.getTransactionId());
-					verify.session.Close(); // close RocksDB database
+					TransactionalMap verify = (TransactionalMap)c;
+					verify.removeTransaction(xid);
+					verify.Close(); // close RocksDB database
 				} catch (IOException e) {}
 				if(DEBUG)
 					System.out.println("DatabaseManager.removeRockSackTransactionalMap removing xaction "+xid+" for DB "+k);

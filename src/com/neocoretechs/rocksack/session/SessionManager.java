@@ -394,8 +394,9 @@ public final class SessionManager {
 			columnFamilyDescriptor.add(cfd);
 		}
 	    TransactionDB db;
+	    TransactionDBOptions tDbo = new TransactionDBOptions();
 		try {
-			db = (TransactionDB) TransactionDB.open(DatabaseManager.getDefaultDBOptions(), dbPath, columnFamilyDescriptor, columnFamilyHandles);
+			db = (TransactionDB) TransactionDB.open(DatabaseManager.getDefaultDBOptions(), tDbo, dbPath, columnFamilyDescriptor, columnFamilyHandles);
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}
@@ -445,8 +446,9 @@ public final class SessionManager {
 			columnFamilyDescriptor.add(cfd);
 		}
 	    TransactionDB db;
+	    TransactionDBOptions tDbo = new TransactionDBOptions();
 		try {
-			db = (TransactionDB) TransactionDB.open(DatabaseManager.getDefaultDBOptions(), dbPath, columnFamilyDescriptor, columnFamilyHandles);
+			db = (TransactionDB) TransactionDB.open(DatabaseManager.getDefaultDBOptions(), tDbo, dbPath, columnFamilyDescriptor, columnFamilyHandles);
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}

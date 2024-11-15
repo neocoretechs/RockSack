@@ -1,12 +1,13 @@
 package com.neocoretechs.rocksack.session;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ReadOptions;
-import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.Transaction;
 import org.rocksdb.TransactionDB;
@@ -45,31 +46,31 @@ import com.neocoretechs.rocksack.TransactionId;
 * or {@link TransactionalMap}.
 * @author Jonathan Groff (C) NeoCoreTechs 2024
 */
-public class TransactionalMap implements OrderedKVMapInterface {
+public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	private static boolean DEBUG = false;
 	protected TransactionSession session;
-	private TransactionId transactionId;
-	Transaction txn;
+	public ConcurrentHashMap<String, Transaction> idToTransaction = new ConcurrentHashMap<String, Transaction>();
 	ReadOptions ro;
 	WriteOptions wo;
 	ColumnFamilyHandle columnFamilyHandle = null;
 	ColumnFamilyDescriptor columnFamilyDescriptor = null;
+
 	/**
-	 * Calls processColumnFamily 
+	 * Calls processColumnFamily
 	 * @param session
-	 * @param txn
+	 * @param xid
 	 * @param derivedClassName
 	 * @throws IOException
 	 * @throws IllegalAccessException
 	 * @throws RocksDBException
 	 */
-	public TransactionalMap(TransactionSession session, Transaction txn) throws IOException, IllegalAccessException, RocksDBException {
+	public TransactionalMap(TransactionSession session) throws IOException, IllegalAccessException, RocksDBException {
 		ro = new ReadOptions();
 		wo = new WriteOptions();
 		this.session = session;
-		this.txn = txn;
-	    processColumnFamily();
+		processColumnFamily();
 	}
+	
 	/**
 	 * Calls processColumnFamily
 	 * @param session
@@ -83,29 +84,26 @@ public class TransactionalMap implements OrderedKVMapInterface {
 		ro = new ReadOptions();
 		wo = new WriteOptions();
 		this.session = session;
-		this.transactionId = xid;
-		BeginTransaction();
-		txn.setName(xid.getTransactionId());
 		processColumnFamily();
+		getTransaction(xid, true);
 	}
 	/**
 	 * Calls processColumnFamily with derivedClassName
 	 * @param session
-	 * @param txn
+	 * @param xid
 	 * @param derivedClassName
 	 * @throws IOException
 	 * @throws IllegalAccessException
 	 * @throws RocksDBException
 	 */
-	public TransactionalMap(TransactionSession session, Transaction txn, String derivedClassName) throws IOException, IllegalAccessException, RocksDBException {
+	public TransactionalMap(TransactionSession session, String derivedClassName) throws IOException, IllegalAccessException, RocksDBException {
 		ro = new ReadOptions();
 		wo = new WriteOptions();
 		this.session = session;
-		this.txn = txn;
-	    processColumnFamily(derivedClassName);
+		processColumnFamily(derivedClassName);
 	}
 	/**
-	 * Calls processColumnFamily with derivedClassName
+	 * Calls processColumnFamily with derivedClassName and starts a transaction with the given id.
 	 * @param session
 	 * @param xid
 	 * @param derivedClassName
@@ -117,10 +115,8 @@ public class TransactionalMap implements OrderedKVMapInterface {
 		ro = new ReadOptions();
 		wo = new WriteOptions();
 		this.session = session;
-		this.transactionId = xid;
-		BeginTransaction();
-		txn.setName(xid.getTransactionId());
 		processColumnFamily(derivedClassName);
+		getTransaction(xid, true);
 	}
 	/**
 	 * Generates columnFamilyHandle and columnFamilydescriptor
@@ -195,8 +191,44 @@ public class TransactionalMap implements OrderedKVMapInterface {
 		return session;
 	}
 	
-	public Transaction getTransaction() {
-		return txn;
+	public Transaction getTransaction(TransactionId transactionId) {
+		return idToTransaction.get(transactionId.getTransactionId());
+	}
+	
+	public Transaction removeTransaction(TransactionId transactionId) {
+		return idToTransaction.remove(transactionId.getTransactionId());
+	}
+	
+	public Transaction getTransaction(TransactionId transactionId, boolean create) {
+		Transaction t = idToTransaction.get(transactionId.getTransactionId());
+		if( t == null && create ) {
+			try {
+				t = getSession().getKVStore().beginTransaction(wo);
+				t.setName(transactionId.getTransactionId());
+			} catch (IOException | RocksDBException e) {
+				throw new RuntimeException(e);
+			}
+			idToTransaction.put(transactionId.getTransactionId(), t);
+		}
+		return t;
+	}
+	
+	public Collection<Transaction> getTransactions() {
+		return idToTransaction.values();
+	}
+
+	@Override
+	public void Open() throws IOException {
+	}
+
+	@Override
+	public void Close() throws IOException {		
+		session.getKVStore().close();
+	}
+	
+	@Override
+	public TransactionDB getKVStore() {
+		return session.getKVStore();
 	}
 	
 	public void setReadOptions(ReadOptions ro) {
@@ -213,11 +245,12 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	* @exception IOException if put to backing store fails
 	*/
 	@SuppressWarnings("rawtypes")
-	public boolean put(Comparable tkey, Object tvalue) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			// now put new
-			return session.put(txn, columnFamilyHandle, tkey, tvalue);
-		//}
+	@Override
+	public boolean put(TransactionId transactionId, Comparable tkey, Object tvalue) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.put(txn, columnFamilyHandle, tkey, tvalue);
 	}
 	/**
 	* Put a  key/value pair to main cache and pool. 
@@ -227,11 +260,11 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	* @exception IOException if put to backing store fails
 	*/
 	@SuppressWarnings("rawtypes")
-	public boolean putViaBytes(byte[] tkey, Object tvalue) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			// now put new
-			return session.putViaBytes(txn, columnFamilyHandle, tkey, tvalue);
-		//}
+	public boolean putViaBytes(TransactionId transactionId, byte[] tkey, Object tvalue) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.putViaBytes(txn, columnFamilyHandle, tkey, tvalue);
 	}
 	/**
 	* Get a value from backing store if not in cache.
@@ -239,11 +272,13 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	* @return The value for the key
 	* @exception IOException if get from backing store fails
 	*/
+	@Override
 	@SuppressWarnings("rawtypes")
-	public Object get(Comparable tkey) throws IOException {
-		//synchronized (session.getMutexObject()) {
-			return getSession().get(txn, columnFamilyHandle, ro, tkey);
-		//}
+	public Object get(TransactionId transactionId, Comparable tkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return getSession().get(txn, columnFamilyHandle, ro, tkey);
 	}
 	/**
 	* Get a value from backing store if not in cache.
@@ -251,10 +286,11 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	* @return The value for the key
 	* @exception IOException if get from backing store fails
 	*/
-	public Object getViaBytes(byte[] tkey) throws IOException {
-		//synchronized (session.getMutexObject()) {
-			return getSession().getViaBytes(txn, columnFamilyHandle, ro, tkey);
-		//}
+	public Object getViaBytes(TransactionId transactionId, byte[] tkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return getSession().getViaBytes(txn, columnFamilyHandle, ro, tkey);
 	}
 	/**
 	* Get a value from backing store if not in cache.
@@ -263,11 +299,13 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	* @return The {@link Entry} from RockSack iterator Entry derived from Map.Entry for the key
 	* @exception IOException if get from backing store fails
 	*/
+	@Override
 	@SuppressWarnings("rawtypes")
-	public Object getValue(Object tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.getValue(txn, columnFamilyHandle, ro, tkey);
-		//}
+	public Object getValue(TransactionId transactionId, Object tkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.getValue(txn, columnFamilyHandle, ro, tkey);
 	}	
 
 	/**
@@ -275,10 +313,12 @@ public class TransactionalMap implements OrderedKVMapInterface {
  	* @return A long value of number of elements
 	* @exception IOException If backing store retrieval failure
 	*/
-	public long size() throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.size(txn, columnFamilyHandle);
-		//}
+	@Override
+	public long size(TransactionId transactionId) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.size(txn, columnFamilyHandle);
 	}
 
 	/**
@@ -286,44 +326,56 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	* @return The Iterator for all elements
 	* @exception IOException if get from backing store fails
 	*/
-	public Iterator<?> entrySet() throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.entrySet(txn, columnFamilyHandle);
-		//}
+	@Override
+	public Iterator<?> entrySet(TransactionId transactionId) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.entrySet(txn, columnFamilyHandle);
 	}
 	
-	public Stream<?> entrySetStream() throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.entrySetStream(txn, columnFamilyHandle);
-		//}
+	@Override
+	public Stream<?> entrySetStream(TransactionId transactionId) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.entrySetStream(txn, columnFamilyHandle);
 	}
+	
 	/**
 	* Get a keySet iterator. Get from backing store if not in cache.
 	* @return The iterator for the keys
 	* @exception IOException if get from backing store fails
 	*/
-	public Iterator<?> keySet() throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.keySet(txn, columnFamilyHandle);
-		//}
+	@Override
+	public Iterator<?> keySet(TransactionId transactionId) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.keySet(txn, columnFamilyHandle);
 	}
 	
-	public Stream<?> keySetStream() throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.keySetStream(txn, columnFamilyHandle);
-		//}
+	@Override
+	public Stream<?> keySetStream(TransactionId transactionId) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.keySetStream(txn, columnFamilyHandle);
 	}
+	
 	/**
 	* Returns true if the collection contains the given key
 	* @param tkey The key to match
 	* @return true if in, or false if absent
 	* @exception IOException If backing store fails
 	*/
+	@Override
 	@SuppressWarnings("rawtypes")
-	public boolean containsKey(Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return  session.contains(txn, columnFamilyHandle, ro, tkey);
-		//}
+	public boolean containsKey(TransactionId transactionId, Comparable tkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.contains(txn, columnFamilyHandle, ro, tkey);
 	}
 	/**
 	* Returns true if the collection contains the given value object
@@ -331,11 +383,13 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	* @return true if in, false if absent
 	* @exception IOException If backing store fails
 	*/
+	@Override
 	@SuppressWarnings("rawtypes")
-	public boolean containsValue(Object value) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return  session.containsValue(txn, columnFamilyHandle, ro, value);
-		//}
+	public boolean containsValue(TransactionId transactionId, Object value) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.containsValue(txn, columnFamilyHandle, ro, value);
 	}
 	/**
 	* Remove object from cache and backing store.
@@ -343,49 +397,60 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	* @return The removed object
 	* @exception IOException If backing store fails
 	*/
+	@Override
 	@SuppressWarnings("rawtypes")
-	public Object remove(Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.remove(txn, columnFamilyHandle, ro, tkey);
-		//}
+	public Object remove(TransactionId transactionId, Comparable tkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.remove(txn, columnFamilyHandle, ro, tkey);
 	}
 	/**
 	* @return First key in set
 	* @exception IOException If backing store retrieval failure
 	*/
-	public Comparable firstKey() throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.firstKey(txn, columnFamilyHandle);
-		//}
+			@Override
+	public Comparable firstKey(TransactionId transactionId) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.firstKey(txn, columnFamilyHandle);
 	}
 	/**
 	* @return Last key in set
 	* @exception IOException If backing store retrieval failure
 	*/
-	public Comparable lastKey() throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.lastKey(txn, columnFamilyHandle);
-		//}
+	@Override
+	public Comparable lastKey(TransactionId transactionId) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.lastKey(txn, columnFamilyHandle);
+
 	}
 	/**
 	* Return the last value in the set
 	* @return The last element in the set
 	* @exception IOException If backing store retrieval failure
 	*/
-	public Object last() throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.last(txn, columnFamilyHandle);
-		//}
+	@Override
+	public Object last(TransactionId transactionId) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.last(txn, columnFamilyHandle);
 	}
 	/**
 	* Return the first element
 	* @return A long value of number of elements
 	* @exception IOException If backing store retrieval failure
 	*/
-	public Object first() throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.first(txn, columnFamilyHandle);
-		//}
+	@Override
+	public Object first(TransactionId transactionId) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.first(txn, columnFamilyHandle);
 	}
 	/**
 	 * Return the element nearest to given key
@@ -393,82 +458,99 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	 * @return the key/value of closest element to tkey
 	 * @throws IOException
 	 */
-	public Object nearest(Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.nearest(txn, columnFamilyHandle, tkey);
-		//}
+	public Object nearest(TransactionId transactionId, Comparable tkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.nearest(txn, columnFamilyHandle, tkey);
 	}
 	/**
 	* @param tkey Strictly less than 'to' this element
 	* @return Iterator of first to tkey
 	* @exception IOException If backing store retrieval failure
 	*/
+	@Override
 	@SuppressWarnings("rawtypes")
-	public Iterator<?> headMap(Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.headSet(txn, columnFamilyHandle, tkey);
-		//}
+	public Iterator<?> headMap(TransactionId transactionId, Comparable tkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.headSet(txn, columnFamilyHandle, tkey);
 	}
 	
+	@Override
 	@SuppressWarnings("rawtypes")
-	public Stream<?> headMapStream(Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.headSetStream(txn, columnFamilyHandle, tkey);
-		//}
+	public Stream<?> headMapStream(TransactionId transactionId, Comparable tkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.headSetStream(txn, columnFamilyHandle, tkey);
 	}
 	/**
 	* @param tkey Strictly less than 'to' this element
 	* @return Iterator of first to tkey returning KeyValuePairs
 	* @exception IOException If backing store retrieval failure
 	*/
+	@Override
 	@SuppressWarnings("rawtypes")
-	public Iterator<?> headMapKV(Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.headSetKV(txn, columnFamilyHandle, tkey);
-		//}
+	public Iterator<?> headMapKV(TransactionId transactionId, Comparable tkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.headSetKV(txn, columnFamilyHandle, tkey);
 	}
 	
+	@Override
 	@SuppressWarnings("rawtypes")
-	public Stream<?> headMapKVStream(Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.headSetKVStream(txn, columnFamilyHandle, tkey);
-		//}
+	public Stream<?> headMapKVStream(TransactionId transactionId, Comparable tkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.headSetKVStream(txn, columnFamilyHandle, tkey);
 	}
 	/**
 	* @param fkey Greater or equal to 'from' element
 	* @return Iterator of objects from fkey to end
 	* @exception IOException If backing store retrieval failure
 	*/
+	@Override
 	@SuppressWarnings("rawtypes")
-	public Iterator<?> tailMap(Comparable fkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.tailSet(txn, columnFamilyHandle, fkey);
-		//}
+	public Iterator<?> tailMap(TransactionId transactionId, Comparable fkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.tailSet(txn, columnFamilyHandle, fkey);
 	}
 	
+	@Override
 	@SuppressWarnings("rawtypes")
-	public Stream<?> tailMapStream(Comparable fkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.tailSetStream(txn, columnFamilyHandle, fkey);
-		//}
+	public Stream<?> tailMapStream(TransactionId transactionId, Comparable fkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.tailSetStream(txn, columnFamilyHandle, fkey);
 	}
 	/**
 	* @param fkey Greater or equal to 'from' element
 	* @return Iterator of objects from fkey to end which are KeyValuePairs
 	* @exception IOException If backing store retrieval failure
 	*/
+	@Override
 	@SuppressWarnings("rawtypes")
-	public Iterator<?> tailMapKV(Comparable fkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.tailSetKV(txn, columnFamilyHandle, fkey);
-		//}
+	public Iterator<?> tailMapKV(TransactionId transactionId, Comparable fkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.tailSetKV(txn, columnFamilyHandle, fkey);
 	}
 	
+	@Override
 	@SuppressWarnings("rawtypes")
-	public Stream<?> tailMapKVStream(Comparable fkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.tailSetKVStream(txn, columnFamilyHandle, fkey);
-		//}
+	public Stream<?> tailMapKVStream(TransactionId transactionId, Comparable fkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.tailSetKVStream(txn, columnFamilyHandle, fkey);
 	}
 	/**
 	* @param fkey 'from' element inclusive 
@@ -476,37 +558,46 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	* @return Iterator of objects in subset from fkey to tkey
 	* @exception IOException If backing store retrieval failure
 	*/
+	@Override
 	@SuppressWarnings("rawtypes")
-	public Iterator<?> subMap(Comparable fkey, Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.subSet(txn, columnFamilyHandle, fkey, tkey);
-		//}
+	public Iterator<?> subMap(TransactionId transactionId, Comparable fkey, Comparable tkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.subSet(txn, columnFamilyHandle, fkey, tkey);
 	}
 	
+	@Override
 	@SuppressWarnings("rawtypes")
-	public Stream<?> subMapStream(Comparable fkey, Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.subSetStream(txn, columnFamilyHandle, fkey, tkey);
-		//}
+	public Stream<?> subMapStream(TransactionId transactionId, Comparable fkey, Comparable tkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.subSetStream(txn, columnFamilyHandle, fkey, tkey);
 	}
+	
 	/**
 	* @param fkey 'from' element inclusive 
 	* @param tkey 'to' element exclusive
 	* @return Iterator of objects in subset from fkey to tkey composed of KeyValuePairs
 	* @exception IOException If backing store retrieval failure
 	*/
+	@Override
 	@SuppressWarnings("rawtypes")
-	public Iterator<?> subMapKV(Comparable fkey, Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.subSetKV(txn, columnFamilyHandle, fkey, tkey);
-		//}
+	public Iterator<?> subMapKV(TransactionId transactionId, Comparable fkey, Comparable tkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.subSetKV(txn, columnFamilyHandle, fkey, tkey);
 	}
 	
+	@Override
 	@SuppressWarnings("rawtypes")
-	public Stream<?> subMapKVStream(Comparable fkey, Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.subSetKVStream(txn, columnFamilyHandle, fkey, tkey);
-		//}
+	public Stream<?> subMapKVStream(TransactionId transactionId, Comparable fkey, Comparable tkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.subSetKVStream(txn, columnFamilyHandle, fkey, tkey);
 	}
 	
 	/**
@@ -514,21 +605,18 @@ public class TransactionalMap implements OrderedKVMapInterface {
 	* @return true if empty
 	* @exception IOException If backing store retrieval failure
 	*/
-	public boolean isEmpty() throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-				return session.isEmpty(txn, columnFamilyHandle);
-		//}
+	@Override
+	public boolean isEmpty(TransactionId transactionId) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.isEmpty(txn, columnFamilyHandle);
 	}
 	
 	public void dropColumn() throws IOException {
 		session.dropColumn(columnFamilyHandle);
 	}
 	
-	public TransactionId getTransactionId() throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return transactionId;
-		//}
-	}
 
 	@Override
 	public String getDBName() {
@@ -540,134 +628,125 @@ public class TransactionalMap implements OrderedKVMapInterface {
 		return session.getMutexObject();
 	}
 	
-
 	@Override
-	public Iterator<?> iterator() throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.keySet(txn, columnFamilyHandle);
-		//}
-	}
-
-	@Override
-	public boolean contains(Comparable o) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.contains(txn, columnFamilyHandle, ro, o);
-		//}
+	public Iterator<?> iterator(TransactionId transactionId) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.keySet(txn, columnFamilyHandle);
 	}
 
 	@Override
-	public void Open() throws IOException {
-		//synchronized (session.getMutexObject()) {
-			
-		//}
+	public boolean contains(TransactionId transactionId, Comparable o) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.contains(txn, columnFamilyHandle, ro, o);
 	}
 
 	@Override
-	public void Close() throws IOException {		
-		//synchronized (getSession().getMutexObject()) {
-			session.getKVStore().close();
-		//}		
-	}
-	
-	@Override
-	public RocksDB getKVStore() {
-		//synchronized (session.getMutexObject()) {
-			return session.getKVStore();
-		//}
+	public Iterator<?> subSet(TransactionId transactionId, Comparable fkey, Comparable tkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.subSet(txn, columnFamilyHandle, fkey, tkey);
 	}
 
 	@Override
-	public Iterator<?> subSet(Comparable fkey, Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.subSet(txn, columnFamilyHandle, fkey, tkey);
-		//}
+	public Stream<?> subSetStream(TransactionId transactionId, Comparable fkey, Comparable tkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.subSetStream(txn, columnFamilyHandle, fkey, tkey);
 	}
 
 	@Override
-	public Stream<?> subSetStream(Comparable fkey, Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.subSetStream(txn, columnFamilyHandle, fkey, tkey);
-		//}
+	public Iterator<?> headSet(TransactionId transactionId, Comparable tkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.headSet(txn, columnFamilyHandle, tkey);
 	}
 
 	@Override
-	public Iterator<?> headSet(Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.headSet(txn, columnFamilyHandle, tkey);
-		//}
+	public Stream<?> headSetStream(TransactionId transactionId, Comparable tkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.headSetStream(txn, columnFamilyHandle, tkey);
 	}
 
 	@Override
-	public Stream<?> headSetStream(Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.headSetStream(txn, columnFamilyHandle, tkey);
-		//}
+	public Iterator<?> tailSet(TransactionId transactionId, Comparable fkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.tailSet(txn, columnFamilyHandle, fkey);
 	}
 
 	@Override
-	public Iterator<?> tailSet(Comparable fkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.tailSet(txn, columnFamilyHandle, fkey);
-		//}
+	public Stream<?> tailSetStream(TransactionId transactionId, Comparable fkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.tailSetStream(txn, columnFamilyHandle, fkey);
 	}
 
 	@Override
-	public Stream<?> tailSetStream(Comparable fkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.tailSetStream(txn, columnFamilyHandle, fkey);
-		//}
+	public Iterator<?> subSetKV(TransactionId transactionId, Comparable fkey, Comparable tkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.subSetKV(txn, columnFamilyHandle, fkey, tkey);
 	}
 
 	@Override
-	public Iterator<?> subSetKV(Comparable fkey, Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.subSetKV(txn, columnFamilyHandle, fkey, tkey);
-		//}
+	public Stream<?> subSetKVStream(TransactionId transactionId, Comparable fkey, Comparable tkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.subSetKVStream(txn, columnFamilyHandle, fkey, tkey);
 	}
 
 	@Override
-	public Stream<?> subSetKVStream(Comparable fkey, Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.subSetKVStream(txn, columnFamilyHandle, fkey, tkey);
-		//}
+	public Iterator<?> headSetKV(TransactionId transactionId, Comparable tkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.headSetKV(txn, columnFamilyHandle, tkey);
 	}
 
 	@Override
-	public Iterator<?> headSetKV(Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.headSetKV(txn, columnFamilyHandle, tkey);
-		//}
+	public Stream<?> headSetKVStream(TransactionId transactionId, Comparable tkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.headSetKVStream(txn, columnFamilyHandle, tkey);
 	}
 
 	@Override
-	public Stream<?> headSetKVStream(Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.headSetKVStream(txn, columnFamilyHandle, tkey);
-		//}
+	public Iterator<?> tailSetKV(TransactionId transactionId, Comparable fkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.tailSetKV(txn, columnFamilyHandle, fkey);
 	}
 
 	@Override
-	public Iterator<?> tailSetKV(Comparable fkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.tailSetKV(txn, columnFamilyHandle, fkey);
-		//}
+	public Stream<?> tailSetKVStream(TransactionId transactionId, Comparable fkey) throws IOException {
+		Transaction txn = getTransaction(transactionId);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found.");
+		return session.tailSetKVStream(txn, columnFamilyHandle, fkey);
 	}
 
-	@Override
-	public Stream<?> tailSetKVStream(Comparable fkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.tailSetKVStream(txn, columnFamilyHandle, fkey);
-		//}
-	}
-
-	public void BeginTransaction() throws IOException {
-		txn = getSession().getKVStore().beginTransaction(wo);	
-	}
+	//public void BeginTransaction() throws IOException {
+	//	txn = getSession().getKVStore().beginTransaction(wo);	
+	//}
 
 	@Override
 	public String toString() {
-		return (session == null ? "TransactionalMap Session NULL" : session.toString())+" Transaction:"+
-				(txn == null ? "TransactionalMap transaction NULL" : txn.getName());
+		return (session == null ? "TransactionalMap Session NULL" : session.toString());
 	}
 
 }

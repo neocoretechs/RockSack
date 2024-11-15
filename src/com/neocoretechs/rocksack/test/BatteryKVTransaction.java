@@ -78,17 +78,18 @@ public class BatteryKVTransaction {
 		int recs = 0;
 		String fkey = null;
 		int j = min;
-		j = (int) bmap.size();
+		j = (int) bmap.size(xid);
 		if(j > 0) {
 			System.out.println("Cleaning DB of "+j+" elements.");
 			batteryCleanDB(xid);		
 		}
 		for(int i = min; i < max; i++) {
 			fkey = String.format(uniqKeyFmt, i);
-				bmap.put(fkey, new Long(i));
+				bmap.put(xid, fkey, new Long(i));
 				++recs;
 		}
 		DatabaseManager.commitTransaction(xid);
+		DatabaseManager.removeTransaction(xid);
 		System.out.println("KV BATTERY1 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms. Stored "+recs+" records, rejected "+dupes+" dupes.");
 	}
 	
@@ -106,7 +107,7 @@ public class BatteryKVTransaction {
 		TransactionalMap bmap2 = DatabaseManager.getTransactionalMap(String.class, xid2);
 		for(int i = max; i < max*2; i++) {
 			fkey = String.format(uniqKeyFmt, i);
-			bmap2.put(fkey, new Long(fkey));
+			bmap2.put(xid, fkey, new Long(fkey));
 			++recs;
 		}
 		if( recs > 0) {
@@ -134,7 +135,7 @@ public class BatteryKVTransaction {
 	public static void battery1AR6(TransactionId xid) throws Exception {
 		int i = min;
 		long tims = System.currentTimeMillis();
-		Iterator its = bmap.entrySet();
+		Iterator its = bmap.entrySet(xid);
 		System.out.println("KV Battery1AR6 "+its);
 		while(its.hasNext()) {
 			Object nex =  its.next();
@@ -159,7 +160,7 @@ public class BatteryKVTransaction {
 	public static void battery1AR7(TransactionId xid) throws Exception {
 		int i = min;
 		long tims = System.currentTimeMillis();
-		Iterator its = bmap.keySet();
+		Iterator its = bmap.keySet(xid);
 		System.out.println("KV Battery1AR7");
 		while(its.hasNext()) {
 			String nex = (String) its.next();
@@ -186,7 +187,7 @@ public class BatteryKVTransaction {
 		long tims = System.currentTimeMillis();
 		for(int j = min; j < max; j++) {
 			String fkey = String.format(uniqKeyFmt, j);
-			boolean bits = bmap.contains(fkey);
+			boolean bits = bmap.contains(xid, fkey);
 			if( !bits ) {
 				System.out.println("KV BATTERY1A8 cant find contains key "+j);
 				//throw new Exception("KV BATTERY1AR8 unexpected cant find contains of key "+fkey);
@@ -196,7 +197,7 @@ public class BatteryKVTransaction {
 		 tims = System.currentTimeMillis();
 		 for(int j = max; j > min; j--) {
 				String fkey = String.format(uniqKeyFmt, j);
-				boolean bits = bmap.contains(fkey);
+				boolean bits = bmap.contains(xid, fkey);
 				if( !bits ) {
 					System.out.println("KV BATTERY1A8 cant find contains key "+j);
 					//throw new Exception("KV BATTERY1AR8 unexpected cant find contains of key "+fkey);
@@ -207,7 +208,7 @@ public class BatteryKVTransaction {
 		tims = System.currentTimeMillis();
 		for(int j = min; j < min+numLookupByValue; j++) {
 			// careful here, have to do the conversion explicitly
-			boolean bits = bmap.containsValue((long)j);
+			boolean bits = bmap.containsValue(xid, (long)j);
 			if( !bits ) {
 				System.out.println("KV BATTERY1AR8 cant find contains value "+j);
 				//throw new Exception("KV BATTERY1AR8 unexpected number cant find contains of value "+i);
@@ -217,7 +218,7 @@ public class BatteryKVTransaction {
 		tims = System.currentTimeMillis();
 		for(int j = max; j > max-numLookupByValue ; j--) {
 				// careful here, have to do the conversion explicitly
-				boolean bits = bmap.containsValue((long)j);
+				boolean bits = bmap.containsValue(xid, (long)j);
 				if( !bits ) {
 					System.out.println("KV BATTERY1AR8 cant find contains value "+j);
 					//throw new Exception("KV BATTERY1AR8 unexpected number cant find contains of value "+i);
@@ -234,13 +235,13 @@ public class BatteryKVTransaction {
 	public static void battery1AR9(TransactionId xid) throws Exception {
 		int i = min;
 		long tims = System.currentTimeMillis();
-		Object k = bmap.firstKey(); // first key
+		Object k = bmap.firstKey(xid); // first key
 		System.out.println("KV Battery1AR9");
 		if( Integer.parseInt((String)k) != i ) {
 			System.out.println("KV BATTERY1A9 cant find contains key "+i);
 			//throw new Exception("KV BATTERY1AR9 unexpected cant find contains of key "+i);
 		}
-		long ks = (long) bmap.first();
+		long ks = (long) bmap.first(xid);
 		if( ks != i) {
 			System.out.println("KV BATTERY1A9 cant find contains value "+i);
 			//throw new Exception("KV BATTERY1AR9 unexpected cant find contains of value "+i);
@@ -256,13 +257,13 @@ public class BatteryKVTransaction {
 	public static void battery1AR10(TransactionId xid) throws Exception {
 		int i = max-1;
 		long tims = System.currentTimeMillis();
-		Object k = bmap.lastKey(); // key
+		Object k = bmap.lastKey(xid); // key
 		System.out.println("KV Battery1AR10");
 		if( Long.parseLong((String) k) != (long)i ) {
 			System.out.println("KV BATTERY1AR10 cant find last key "+i);
 			//throw new Exception("KV BATTERY1AR10 unexpected cant find last of key "+i);
 		}
-		long ks = (long)bmap.last();
+		long ks = (long)bmap.last(xid);
 		if( ks != i) {
 			System.out.println("KV BATTERY1AR10 cant find last value "+i);
 			//throw new Exception("KV BATTERY1AR10 unexpected cant find last of key "+i);
@@ -277,7 +278,7 @@ public class BatteryKVTransaction {
 	public static void battery1AR101(TransactionId xid) throws Exception {
 		int i = max;
 		long tims = System.currentTimeMillis();
-		long bits = bmap.size();
+		long bits = bmap.size(xid);
 		System.out.println("KV Battery1AR101");
 		if( bits != i ) {
 			System.out.println("KV BATTERY1AR101 size mismatch "+bits+" should be:"+i);
@@ -294,7 +295,7 @@ public class BatteryKVTransaction {
 		long tims = System.currentTimeMillis();
 		int i = min;
 		String fkey = String.format(uniqKeyFmt, i);
-		Iterator its = bmap.tailMap(fkey);
+		Iterator its = bmap.tailMap(xid, fkey);
 		System.out.println("KV Battery1AR11");
 		while(its.hasNext()) {
 			String nex = (String) its.next();
@@ -316,7 +317,7 @@ public class BatteryKVTransaction {
 		long tims = System.currentTimeMillis();
 		int i = min;
 		String fkey = String.format(uniqKeyFmt, i);
-		Iterator its = bmap.tailMapKV(fkey);
+		Iterator its = bmap.tailMapKV(xid, fkey);
 		System.out.println("KV Battery1AR12");
 		while(its.hasNext()) {
 			Comparable nex = (Comparable) its.next();
@@ -340,7 +341,7 @@ public class BatteryKVTransaction {
 		long tims = System.currentTimeMillis();
 		int i = max;
 		String fkey = String.format(uniqKeyFmt, i);
-		Iterator its = bmap.headMap(fkey);
+		Iterator its = bmap.headMap(xid, fkey);
 		System.out.println("KV Battery1AR13");
 		// with i at max, should catch them all
 		i = min;
@@ -365,7 +366,7 @@ public class BatteryKVTransaction {
 		long tims = System.currentTimeMillis();
 		int i = max;
 		String fkey = String.format(uniqKeyFmt, i);
-		Iterator its = bmap.headMapKV(fkey);
+		Iterator its = bmap.headMapKV(xid, fkey);
 		System.out.println("KV Battery1AR14");
 		i = min;
 		while(its.hasNext()) {
@@ -393,7 +394,7 @@ public class BatteryKVTransaction {
 		String fkey = String.format(uniqKeyFmt, i);
 		// with j at max, should get them all since we stored to max -1
 		String tkey = String.format(uniqKeyFmt, j);
-		Iterator its = bmap.subMap(fkey, tkey);
+		Iterator its = bmap.subMap(xid, fkey, tkey);
 		System.out.println("KV Battery1AR15");
 		// with i at max, should catch them all
 		while(its.hasNext()) {
@@ -420,7 +421,7 @@ public class BatteryKVTransaction {
 		String fkey = String.format(uniqKeyFmt, i);
 		// with j at max, should get them all since we stored to max -1
 		String tkey = String.format(uniqKeyFmt, j);
-		Iterator its = bmap.subMapKV(fkey, tkey);
+		Iterator its = bmap.subMapKV(xid, fkey, tkey);
 		System.out.println("KV Battery1AR16");
 		// with i at max, should catch them all
 		while(its.hasNext()) {
@@ -452,17 +453,17 @@ public class BatteryKVTransaction {
 		// with i at max, should catch them all
 		for(int i = min; i < max; i++) {
 			String fkey = String.format(uniqKeyFmt, i);
-			bmap2.remove(fkey);
+			bmap2.remove(xid2, fkey);
 			// Map.Entry
-			if(bmap2.contains(xid2.getTransactionId())) { 
+			if(bmap2.contains(xid2, xid2.getTransactionId())) { 
 				System.out.println("KV RANGE 1AR17 KEY MISMATCH:"+i);
 				//throw new Exception("KV RANGE 1AR17 KEY MISMATCH:"+i);
 			}
 		}
 		DatabaseManager.commitTransaction(xid2);
-		long siz = bmap2.size();
+		long siz = bmap2.size(xid2);
 		if(siz > 0) {
-			Iterator its = bmap2.entrySet();
+			Iterator its = bmap2.entrySet(xid2);
 			while(its.hasNext()) {
 				Object nex = its.next();
 				//System.out.println(i+"="+nex);
@@ -490,14 +491,14 @@ public class BatteryKVTransaction {
 		String fkey = null;
 		for(int i = min; i < max1; i++) {
 			fkey = String.format(uniqKeyFmt, i);
-			bmap2.put(fkey, new Long(i));
+			bmap2.put(xid2, fkey, new Long(i));
 			++recs;
 		}
 		System.out.println("Checkpointing..");
 		DatabaseManager.checkpointTransaction(xid2);
 		for(int i = max1; i < max; i++) {
 			fkey = String.format(uniqKeyFmt, i);
-			bmap2.put(fkey, new Long(i));
+			bmap2.put(xid2, fkey, new Long(i));
 			++recs;
 		}
 		DatabaseManager.commitTransaction(xid2);
@@ -520,7 +521,7 @@ public class BatteryKVTransaction {
 		// with i at max, should catch them all
 		for(int i = min; i < max; i++) {
 			String fkey = String.format(uniqKeyFmt, i);
-			bmap.remove(fkey);
+			bmap.remove(xid, fkey);
 		}
 		 System.out.println("CleanDB SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}

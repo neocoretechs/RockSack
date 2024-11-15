@@ -2,6 +2,7 @@ package com.neocoretechs.rocksack.session;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -13,6 +14,7 @@ import org.rocksdb.Transaction;
 import org.rocksdb.Transaction.TransactionState;
 
 import com.neocoretechs.rocksack.Alias;
+import com.neocoretechs.rocksack.TransactionId;
 /**
  * A volume is a set of RocksDb directories and files indexed by a volume name, which is a directory path PLUS database prefix. The
  * last component of the volume refers to the prefix of a database name within the parent path. When forming filesets for RocksDb, the
@@ -29,7 +31,7 @@ import com.neocoretechs.rocksack.Alias;
  *
  */
 public class VolumeManager {
-	private static boolean DEBUG = false;
+	private static boolean DEBUG = true;
 	private static ConcurrentHashMap<String, Volume> pathToVolume = new ConcurrentHashMap<String,Volume>();
 	private static ConcurrentHashMap<Alias, String> aliasToPath = new ConcurrentHashMap<Alias,String>();
 	/**
@@ -38,8 +40,7 @@ public class VolumeManager {
 	static class Volume {
 		public ConcurrentHashMap<String, SetInterface> classToIso = new ConcurrentHashMap<String,SetInterface>();
 		// these are active in a transaction context
-		public ConcurrentHashMap<String, SetInterface> classToIsoTransaction = new ConcurrentHashMap<String, SetInterface>();
-		public ConcurrentHashMap<String, Transaction> idToTransaction = new ConcurrentHashMap<String, Transaction>();
+		public ConcurrentHashMap<String, TransactionSetInterface> classToIsoTransaction = new ConcurrentHashMap<String, TransactionSetInterface>();
 	}
 	/**
 	 * Get the volume for the given tablespace path. If the volume does not exist, it will be created
@@ -195,75 +196,151 @@ public class VolumeManager {
 	}
 	/**
 	 * Return a list all RocksDB transactions with id's mapped to transactions
-	 * in the set of active volumes.
+	 * in the set of active volumes, regardless of state.
 	 * @return raw RocksDB transactions, use with caution.
 	 */
 	static List<Transaction> getOutstandingTransactions() {
 		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
 		for(Map.Entry<String, Volume> volumes : pathToVolume.entrySet()) {
-			for(Map.Entry<String, Transaction> transactions: volumes.getValue().idToTransaction.entrySet()) {
-				retXactn.add(transactions.getValue());
+			// Get all the TransactionalMaps for the volume
+			for(TransactionSetInterface transMaps: volumes.getValue().classToIsoTransaction.values()) {
+				// Get all the transactions active for each TransactionalMap
+				Collection<Transaction> transactions = ((TransactionalMap)transMaps).getTransactions();
+				for(Transaction transact: transactions) {
+					//if(!transact.getState().equals(TransactionState.COMMITED) &&
+					//	!transact.getState().equals(TransactionState.COMMITTED) &&
+					//	!transact.getState().equals(TransactionState.ROLLEDBACK))
+					retXactn.add(transact);
+				}
 			}
 		}
 		return retXactn;
 	}
 	/**
 	 * Return a list all RocksDB transactions with id's mapped to transactions
-	 * in the set of active volumes for a particular path
+	 * in the set of active volumes for a particular path regardless of state.
 	 * @param path the path in question
 	 * @return the List of RocksDB Transactions. be wary.
 	 */
 	static List<Transaction> getOutstandingTransactions(String path) {
 		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
 		Volume v = get(path);
-		for(Map.Entry<String, Transaction> transactions: v.idToTransaction.entrySet()) {
-				retXactn.add(transactions.getValue());
+		// Get all the TransactionalMaps for the volume
+		for(TransactionSetInterface transMaps: v.classToIsoTransaction.values()) {
+			// Get all the transactions active for each TransactionalMap
+			Collection<Transaction> transactions = ((TransactionalMap)transMaps).getTransactions();
+			for(Transaction transact: transactions) {
+				//if(!transact.getState().equals(TransactionState.COMMITED) &&
+				//	!transact.getState().equals(TransactionState.COMMITTED) &&
+				//	!transact.getState().equals(TransactionState.ROLLEDBACK))
+				retXactn.add(transact);
+			}
 		}
 		return retXactn;
 	}
 	/**
 	 * Return a list all RocksDB transactions with id's mapped to transactions
-	 * in the set of active volumes for a particular alias to a path
+	 * in the set of active volumes for a particular alias to a path regardless of state
 	 * @param alias the path alias
-	 * @return the List of RocksDB Transactions. Use with care.
+	 * @return the List of RocksDB Transactions.
 	 */
 	static List<Transaction> getOutstandingTransactionsAlias(String alias) {
 		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
 		Volume v = getByAlias(alias);
-		for(Map.Entry<String, Transaction> transactions: v.idToTransaction.entrySet()) {
-				retXactn.add(transactions.getValue());
-		}
-		return retXactn;
-	}
-	
-	static List<Transaction> getOutstandingTransactionsById(String uid) {
-		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
-		for(Map.Entry<String, Volume> volumes : pathToVolume.entrySet()) {
-			for(Map.Entry<String, Transaction> transactions: volumes.getValue().idToTransaction.entrySet()) {
-				if(transactions.getKey().equals(uid))
-					retXactn.add(transactions.getValue());
+		// Get all the TransactionalMaps for the volume
+		for(TransactionSetInterface transMaps: v.classToIsoTransaction.values()) {
+			// Get all the transactions active for each TransactionalMap
+			Collection<Transaction> transactions = ((TransactionalMap)transMaps).getTransactions();
+			for(Transaction transact: transactions) {
+				//if(!transact.getState().equals(TransactionState.COMMITED) &&
+				//	!transact.getState().equals(TransactionState.COMMITTED) &&
+				//	!transact.getState().equals(TransactionState.ROLLEDBACK))
+				retXactn.add(transact);
 			}
 		}
 		return retXactn;
 	}
 	
-	static List<Transaction> getOutstandingTransactionsByAliasAndId(String alias, String uid) {
+	/**
+	 * Get a list of transactions with the given id to verify whether it appears in multiple volumes.
+	 * This might signal a user discrepancy.
+	 * @param uid
+	 * @return
+	 */
+	static List<Transaction> getOutstandingTransactionsById(String uid) {
 		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
-		Volume v = getByAlias(alias);
-		for(Map.Entry<String, Transaction> transactions: v.idToTransaction.entrySet()) {
-			if(transactions.getKey().equals(uid))
-				retXactn.add(transactions.getValue());
+		for(Map.Entry<String, Volume> volumes : pathToVolume.entrySet()) {
+			// Get all the TransactionalMaps for the volume
+			for(TransactionSetInterface transMaps: volumes.getValue().classToIsoTransaction.values()) {
+				// Get all the transactions active for each TransactionalMap
+				Collection<Transaction> transactions = ((TransactionalMap)transMaps).getTransactions();
+				for(Transaction transact: transactions) {
+					//if(!transact.getState().equals(TransactionState.COMMITED) &&
+					//	!transact.getState().equals(TransactionState.COMMITTED) &&
+					//	!transact.getState().equals(TransactionState.ROLLEDBACK))
+					if(transact.getName().equals(uid))
+						retXactn.add(transact);
+				}
+			}
 		}
 		return retXactn;
 	}
 	
+	/**
+	 * Get a list of transactions with the given id which may appear in multiple aliases and volumes
+	 * possibly signaling a user discrepancy.
+	 * @param alias
+	 * @param uid
+	 * @return
+	 */
+	static List<Transaction> getOutstandingTransactionsByAliasAndId(String alias, String uid) {
+		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
+		Volume v = getByAlias(alias);
+		// Get all the TransactionalMaps for the volume
+		for(TransactionSetInterface transMaps: v.classToIsoTransaction.values()) {
+			// Get all the transactions active for each TransactionalMap
+			Collection<Transaction> transactions = ((TransactionalMap)transMaps).getTransactions();
+			for(Transaction transact: transactions) {
+				//if(!transact.getState().equals(TransactionState.COMMITED) &&
+				//	!transact.getState().equals(TransactionState.COMMITTED) &&
+				//	!transact.getState().equals(TransactionState.ROLLEDBACK))
+				if(transact.getName().equals(uid))
+					retXactn.add(transact);
+			}
+		}
+		return retXactn;
+	}
+	
+	/**
+	 * Get the list of outstanding transactions based on tablespace path and transaction id, regardless of state.
+	 * @param path
+	 * @param uid
+	 * @return The list of Transaction
+	 */
 	static List<Transaction> getOutstandingTransactionsByPathAndId(String path, String uid) {
 		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
 		Volume v = get(path);
-		for(Map.Entry<String, Transaction> transactions: v.idToTransaction.entrySet()) {
-			if(transactions.getKey().equals(uid))
-				retXactn.add(transactions.getValue());
+		if(DEBUG)
+			System.out.println("VolumeManager.getOutstandingTransactionsByPathAndId for path:"+path+" id:"+uid+" got volume "+v);
+		// Get all the TransactionalMaps for the volume
+		for(TransactionSetInterface transMaps: v.classToIsoTransaction.values()) {
+			// Get all the transactions active for each TransactionalMap
+			Collection<Transaction> transactions = ((TransactionalMap)transMaps).getTransactions();
+			for(Transaction transact: transactions) {
+				if(DEBUG)
+					System.out.println("VolumeManager.getOutstandingTransactionsByPathAndId trying transaction:"+transact.getName());
+				//if(!transact.getState().equals(TransactionState.COMMITED) &&
+				//	!transact.getState().equals(TransactionState.COMMITTED) &&
+				//	!transact.getState().equals(TransactionState.ROLLEDBACK))
+				if(transact.getName().equals(uid)) {
+					if(DEBUG)
+						System.out.println("VolumeManager.getOutstandingTransactionsByPathAndId adding:"+transact.getName());
+					retXactn.add(transact);
+				}
+			}
 		}
+		if(DEBUG)
+			System.out.println("VolumeManager.getOutstandingTransactionsByPathAndId returning:"+retXactn.size());
 		return retXactn;
 	}
 	/**
@@ -278,7 +355,7 @@ public class VolumeManager {
 			} catch (RocksDBException e) {}
 		}
 		for(Map.Entry<String, Volume> volumes : pathToVolume.entrySet()) {
-			 volumes.getValue().idToTransaction.clear();
+			
 		}
 	}
 	/**
@@ -286,24 +363,32 @@ public class VolumeManager {
 	 * @param uid
 	 */
 	static void clearOutstandingTransaction(String uid) {
-				for(Map.Entry<String, Volume> volumes : pathToVolume.entrySet()) {
-					 for(Entry<String, Transaction> id: volumes.getValue().idToTransaction.entrySet()) {
-						 if(id.getKey().equals(uid)) {
+		for(Map.Entry<String, Volume> volumes : pathToVolume.entrySet()) {
+			// Get all the TransactionalMaps for the volume
+			for(TransactionSetInterface transMaps: volumes.getValue().classToIsoTransaction.values()) {
+				// Get all the transactions active for each TransactionalMap
+				Collection<Transaction> transactions = ((TransactionalMap)transMaps).getTransactions();
+				for(Transaction transact: transactions) {
+					//if(!transact.getState().equals(TransactionState.COMMITED) &&
+					//	!transact.getState().equals(TransactionState.COMMITTED) &&
+					//	!transact.getState().equals(TransactionState.ROLLEDBACK))
+					if(transact.getName().equals(uid)) {
+						if(DEBUG)
+							System.out.println("ClearOutstandingTransaction found uid "+uid+" in volume map.");
+						try {
+							transact.rollback();
+						} catch (RocksDBException e) {
 							if(DEBUG)
-								System.out.println("ClearOutstandingTransaction found uid "+uid+" in volume map.");
-							try {
-								id.getValue().rollback();
-							} catch (RocksDBException e) {
-								if(DEBUG)
-									System.out.println("ClearOutstandingTransaction found uid cant rollback "+uid+" exception "+e);
-							}
-							if(DEBUG)
-								System.out.println("ClearOutstandingTransaction found uid "+uid+" in volume map. Removing "+id+" key.");
-							volumes.getValue().idToTransaction.remove(id.getKey());
-							// id can occur multiple places, so continue
-						 }
-					 }
+								System.out.println("ClearOutstandingTransaction found uid cant rollback "+uid+" exception "+e);
+						}
+						if(DEBUG)
+							System.out.println("ClearOutstandingTransaction found uid "+uid+" in volume map. Removing "+uid+" key.");
+						((TransactionalMap)transMaps).removeTransaction(new TransactionId(uid));
+						// id can occur multiple places, so continue
+					}
 				}
+			}
+		}
 	}
 	/**
 	 * Remove the transaction from all volumes that had an idToTransaction table entry with this transaction id.
@@ -314,17 +399,25 @@ public class VolumeManager {
 	static List<Volume> removeTransaction(String uid) throws IOException {
 		ArrayList<Volume> rv = new ArrayList<Volume>();
 		for(Map.Entry<String, Volume> volumes : pathToVolume.entrySet()) {
-			Transaction removed = volumes.getValue().idToTransaction.get(uid);
-			if(removed != null) {
-				if(removed.getState().equals(TransactionState.COMMITTED) || removed.getState().equals(TransactionState.ROLLEDBACK) ||
-					removed.getState().equals(TransactionState.STARTED)	) {
-					removed = volumes.getValue().idToTransaction.remove(uid);
-					if(!rv.contains(volumes.getValue()))
-						rv.add(volumes.getValue());
-				} else
-					throw new IOException("Transaction "+uid+" is in state "+removed.getState().name()+" must be COMMITTED or ROLLEDBACK or STARTED for removal");
-				if(DEBUG) {
-					System.out.println("VolumeManager removed uid "+uid+" for transaction "+removed);
+			for(TransactionSetInterface transMaps: volumes.getValue().classToIsoTransaction.values()) {
+				// Get all the transactions active for each TransactionalMap
+				Collection<Transaction> transactions = ((TransactionalMap)transMaps).getTransactions();
+				for(Transaction transact: transactions) {
+					//if(!transact.getState().equals(TransactionState.COMMITED) &&
+					//	!transact.getState().equals(TransactionState.COMMITTED) &&
+					//	!transact.getState().equals(TransactionState.ROLLEDBACK))
+					if(transact.getName().equals(uid)) {
+						if(transact.getState().equals(TransactionState.COMMITTED) || transact.getState().equals(TransactionState.ROLLEDBACK) ||
+								transact.getState().equals(TransactionState.STARTED)	) {
+							((TransactionalMap)transMaps).removeTransaction(new TransactionId(uid));
+							if(!rv.contains(volumes.getValue()))
+								rv.add(volumes.getValue());
+						} else
+							throw new IOException("Transaction "+uid+" is in state "+transact.getState().name()+" must be COMMITTED or ROLLEDBACK or STARTED for removal");
+						if(DEBUG) {
+							System.out.println("VolumeManager removed uid "+uid+" for transaction "+transact);
+						}
+					}
 				}
 			}
 		}
