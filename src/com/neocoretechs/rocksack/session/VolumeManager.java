@@ -278,7 +278,7 @@ public class VolumeManager {
 					//if(!transact.getState().equals(TransactionState.COMMITED) &&
 					//	!transact.getState().equals(TransactionState.COMMITTED) &&
 					//	!transact.getState().equals(TransactionState.ROLLEDBACK))
-					if(transact.getName().equals(uid))
+					if(transact.getName().substring(0,36).equals(uid))
 						retXactn.add(transact);
 				}
 			}
@@ -304,7 +304,7 @@ public class VolumeManager {
 				//if(!transact.getState().equals(TransactionState.COMMITED) &&
 				//	!transact.getState().equals(TransactionState.COMMITTED) &&
 				//	!transact.getState().equals(TransactionState.ROLLEDBACK))
-				if(transact.getName().equals(uid))
+				if(transact.getName().substring(0,36).equals(uid))
 					retXactn.add(transact);
 			}
 		}
@@ -332,7 +332,7 @@ public class VolumeManager {
 				//if(!transact.getState().equals(TransactionState.COMMITED) &&
 				//	!transact.getState().equals(TransactionState.COMMITTED) &&
 				//	!transact.getState().equals(TransactionState.ROLLEDBACK))
-				if(transact.getName().equals(uid)) {
+				if(transact.getName().substring(0,36).equals(uid)) {
 					if(DEBUG)
 						System.out.println("VolumeManager.getOutstandingTransactionsByPathAndId adding:"+transact.getName());
 					retXactn.add(transact);
@@ -372,7 +372,7 @@ public class VolumeManager {
 					//if(!transact.getState().equals(TransactionState.COMMITED) &&
 					//	!transact.getState().equals(TransactionState.COMMITTED) &&
 					//	!transact.getState().equals(TransactionState.ROLLEDBACK))
-					if(transact.getName().equals(uid)) {
+					if(transact.getName().substring(0,36).equals(uid)) {
 						if(DEBUG)
 							System.out.println("ClearOutstandingTransaction found uid "+uid+" in volume map.");
 						try {
@@ -406,7 +406,7 @@ public class VolumeManager {
 					//if(!transact.getState().equals(TransactionState.COMMITED) &&
 					//	!transact.getState().equals(TransactionState.COMMITTED) &&
 					//	!transact.getState().equals(TransactionState.ROLLEDBACK))
-					if(transact.getName().equals(uid)) {
+					if(transact.getName().substring(0,36).equals(uid)) {
 						if(transact.getState().equals(TransactionState.COMMITTED) || transact.getState().equals(TransactionState.ROLLEDBACK) ||
 								transact.getState().equals(TransactionState.STARTED)	) {
 							((TransactionalMap)transMaps).removeTransaction(new TransactionId(uid));

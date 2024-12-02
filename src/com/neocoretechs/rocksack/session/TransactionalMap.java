@@ -204,8 +204,16 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 		if( t == null && create ) {
 			try {
 				t = getSession().getKVStore().beginTransaction(wo);
-				t.setName(transactionId.getTransactionId());
-			} catch (IOException | RocksDBException e) {
+				int tnum = 0;
+				while(true) {
+					try {
+						t.setName(transactionId.getTransactionId()+"-"+String.valueOf(tnum));
+						break;
+					} catch(RocksDBException rdb) { // duplicate name
+						++tnum;	
+					}
+				}
+			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
 			idToTransaction.put(transactionId.getTransactionId(), t);
