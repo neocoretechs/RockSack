@@ -23,6 +23,7 @@ import org.rocksdb.RocksDBException;
 import org.rocksdb.SkipListMemTableConfig;
 import org.rocksdb.Statistics;
 import org.rocksdb.Transaction;
+import org.rocksdb.Transaction.TransactionState;
 import org.rocksdb.VectorMemTableConfig;
 import org.rocksdb.util.SizeUnit;
 
@@ -795,8 +796,11 @@ public class DatabaseManager {
 		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByPathAndId(tableSpaceDir, xid.getTransactionId());
 		if(tx != null && !tx.isEmpty()) {
 			try {
-				for(Transaction t: tx)
+				for(Transaction t: tx) {
+					if(!t.getState().equals(TransactionState.COMMITTED) &&
+					   !t.getState().equals(TransactionState.ROLLEDBACK))
 					t.commit();
+				}
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
@@ -808,8 +812,11 @@ public class DatabaseManager {
 		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), xid.getTransactionId());
 		if(tx != null && !tx.isEmpty()) {
 			try {
-				for(Transaction t: tx)
-					t.commit();
+				for(Transaction t: tx) {
+					if(!t.getState().equals(TransactionState.COMMITTED) &&
+					   !t.getState().equals(TransactionState.ROLLEDBACK))
+						t.commit();
+				}
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
@@ -821,8 +828,11 @@ public class DatabaseManager {
 		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByPathAndId(tableSpaceDir, xid.getTransactionId());
 		if(tx != null && !tx.isEmpty()) {
 			try {
-				for(Transaction t: tx)
-					t.rollback();
+				for(Transaction t: tx) {
+					if(!t.getState().equals(TransactionState.COMMITTED) &&
+					   !t.getState().equals(TransactionState.ROLLEDBACK))
+						t.rollback();
+				}
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
@@ -834,8 +844,11 @@ public class DatabaseManager {
 		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), xid.getTransactionId());
 		if(tx != null && !tx.isEmpty()) {
 			try {
-				for(Transaction t: tx)
-					t.rollback();
+				for(Transaction t: tx) {
+					if(!t.getState().equals(TransactionState.COMMITTED) &&
+					   !t.getState().equals(TransactionState.ROLLEDBACK))
+						t.rollback();
+				}
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
@@ -847,8 +860,11 @@ public class DatabaseManager {
 		List<Transaction> tx = VolumeManager.getOutstandingTransactionsById(xid.getTransactionId());
 		if(tx != null && !tx.isEmpty()) {
 			try {
-				for(Transaction t: tx)
-					t.setSavePoint();
+				for(Transaction t: tx) {
+					if(!t.getState().equals(TransactionState.COMMITTED) &&
+					   !t.getState().equals(TransactionState.ROLLEDBACK))
+						t.setSavePoint();
+				}
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
@@ -860,8 +876,11 @@ public class DatabaseManager {
 		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), xid.getTransactionId());
 		if(tx != null && !tx.isEmpty()) {
 			try {
-				for(Transaction t: tx)
-					t.setSavePoint();
+				for(Transaction t: tx) {
+					if(!t.getState().equals(TransactionState.COMMITTED) &&
+					   !t.getState().equals(TransactionState.ROLLEDBACK))
+						t.setSavePoint();
+				}
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
@@ -873,8 +892,11 @@ public class DatabaseManager {
 		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByPathAndId(tableSpaceDir, xid.getTransactionId());
 		if(tx != null && !tx.isEmpty()) {
 			try {
-				for(Transaction t: tx)
-					t.rollbackToSavePoint();
+				for(Transaction t: tx) {
+					if(!t.getState().equals(TransactionState.COMMITTED) &&
+					   !t.getState().equals(TransactionState.ROLLEDBACK))
+						t.rollbackToSavePoint();
+				}
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
@@ -886,8 +908,11 @@ public class DatabaseManager {
 		List<Transaction> tx = VolumeManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), xid.getTransactionId());
 		if(tx != null && !tx.isEmpty()) {
 			try {
-				for(Transaction t: tx)
-					t.rollbackToSavePoint();
+				for(Transaction t: tx) {
+					if(!t.getState().equals(TransactionState.COMMITTED) &&
+					   !t.getState().equals(TransactionState.ROLLEDBACK))
+						t.rollbackToSavePoint();
+				}
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}

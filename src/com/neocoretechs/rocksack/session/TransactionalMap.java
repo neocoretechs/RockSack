@@ -208,6 +208,8 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 				while(true) {
 					try {
 						t.setName(transactionId.getTransactionId()+"-"+String.valueOf(tnum));
+						if(DEBUG)
+							System.out.println(this.getClass().getName()+".getTransaction setting name "+t.getName());
 						break;
 					} catch(RocksDBException rdb) { // duplicate name
 						++tnum;	
