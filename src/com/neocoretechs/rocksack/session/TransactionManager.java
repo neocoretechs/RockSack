@@ -22,7 +22,7 @@ public class TransactionManager {
 	}
 	// 2.) volatile instance
 	private static volatile TransactionManager instance = null;
-	private static boolean DEBUG;
+	private static boolean DEBUG = true;
 	// 3.) lock class, assign instance if null
 	public static TransactionManager getInstance() {
 		synchronized(TransactionManager.class) {

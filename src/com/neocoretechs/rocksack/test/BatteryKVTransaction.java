@@ -81,7 +81,7 @@ public class BatteryKVTransaction {
 	 * @throws Exception
 	 */
 	public static void battery1(TransactionId xid) throws Exception {
-		System.out.println("KV Battery1 ");
+		System.out.println(xid+" KV Battery1 ");
 		long tims = System.currentTimeMillis();
 		int dupes = 0;
 		int recs = 0;
@@ -107,7 +107,7 @@ public class BatteryKVTransaction {
 	 * @throws Exception
 	 */
 	public static void battery11(TransactionId xid) throws Exception {
-		System.out.println("KV Battery11 ");
+		System.out.println(xid+" KV Battery11 ");
 		long tims = System.currentTimeMillis();
 		int recs = 0;
 		String fkey = null;
@@ -142,7 +142,7 @@ public class BatteryKVTransaction {
 		int i = min;
 		long tims = System.currentTimeMillis();
 		Iterator its = bmap.entrySet(xid);
-		System.out.println("KV Battery1AR6 "+its);
+		System.out.println(xid+" KV Battery1AR6 "+its);
 		while(its.hasNext()) {
 			Object nex =  its.next();
 			Entry enex = (Entry)nex;
@@ -167,7 +167,7 @@ public class BatteryKVTransaction {
 		int i = min;
 		long tims = System.currentTimeMillis();
 		Iterator its = bmap.keySet(xid);
-		System.out.println("KV Battery1AR7");
+		System.out.println(xid+" KV Battery1AR7");
 		while(its.hasNext()) {
 			String nex = (String) its.next();
 			// Map.Entry
@@ -189,7 +189,7 @@ public class BatteryKVTransaction {
 	 */
 	public static void battery1AR8(TransactionId xid) throws Exception {
 		int i = min;
-		System.out.println("KV Battery1AR8");
+		System.out.println(xid+" KV Battery1AR8");
 		long tims = System.currentTimeMillis();
 		for(int j = min; j < max; j++) {
 			String fkey = String.format(uniqKeyFmt, j);
@@ -242,7 +242,7 @@ public class BatteryKVTransaction {
 		int i = min;
 		long tims = System.currentTimeMillis();
 		Object k = bmap.firstKey(xid); // first key
-		System.out.println("KV Battery1AR9");
+		System.out.println(xid+" KV Battery1AR9");
 		if( Integer.parseInt((String)k) != i ) {
 			System.out.println("KV BATTERY1A9 cant find contains key "+i);
 			//throw new Exception("KV BATTERY1AR9 unexpected cant find contains of key "+i);
@@ -264,7 +264,7 @@ public class BatteryKVTransaction {
 		int i = max-1;
 		long tims = System.currentTimeMillis();
 		Object k = bmap.lastKey(xid); // key
-		System.out.println("KV Battery1AR10");
+		System.out.println(xid+" KV Battery1AR10");
 		if( Long.parseLong((String) k) != (long)i ) {
 			System.out.println("KV BATTERY1AR10 cant find last key "+i);
 			//throw new Exception("KV BATTERY1AR10 unexpected cant find last of key "+i);
@@ -285,7 +285,7 @@ public class BatteryKVTransaction {
 		int i = max;
 		long tims = System.currentTimeMillis();
 		long bits = bmap.size(xid);
-		System.out.println("KV Battery1AR101");
+		System.out.println(xid+" KV Battery1AR101");
 		if( bits != i ) {
 			System.out.println("KV BATTERY1AR101 size mismatch "+bits+" should be:"+i);
 			//throw new Exception("KV BATTERY1AR101 size mismatch "+bits+" should be "+i);
@@ -302,7 +302,7 @@ public class BatteryKVTransaction {
 		int i = min;
 		String fkey = String.format(uniqKeyFmt, i);
 		Iterator its = bmap.tailMap(xid, fkey);
-		System.out.println("KV Battery1AR11");
+		System.out.println(xid+" KV Battery1AR11");
 		while(its.hasNext()) {
 			String nex = (String) its.next();
 			// Map.Entry
@@ -324,7 +324,7 @@ public class BatteryKVTransaction {
 		int i = min;
 		String fkey = String.format(uniqKeyFmt, i);
 		Iterator its = bmap.tailMapKV(xid, fkey);
-		System.out.println("KV Battery1AR12");
+		System.out.println(xid+" KV Battery1AR12");
 		while(its.hasNext()) {
 			Comparable nex = (Comparable) its.next();
 			Map.Entry<String, Long> nexe = (Map.Entry<String,Long>)nex;
@@ -348,7 +348,7 @@ public class BatteryKVTransaction {
 		int i = max;
 		String fkey = String.format(uniqKeyFmt, i);
 		Iterator its = bmap.headMap(xid, fkey);
-		System.out.println("KV Battery1AR13");
+		System.out.println(xid+" KV Battery1AR13");
 		// with i at max, should catch them all
 		i = min;
 		while(its.hasNext()) {
@@ -373,7 +373,7 @@ public class BatteryKVTransaction {
 		int i = max;
 		String fkey = String.format(uniqKeyFmt, i);
 		Iterator its = bmap.headMapKV(xid, fkey);
-		System.out.println("KV Battery1AR14");
+		System.out.println(xid+" KV Battery1AR14");
 		i = min;
 		while(its.hasNext()) {
 			Comparable nex = (Comparable) its.next();
@@ -401,7 +401,7 @@ public class BatteryKVTransaction {
 		// with j at max, should get them all since we stored to max -1
 		String tkey = String.format(uniqKeyFmt, j);
 		Iterator its = bmap.subMap(xid, fkey, tkey);
-		System.out.println("KV Battery1AR15");
+		System.out.println(xid+" KV Battery1AR15");
 		// with i at max, should catch them all
 		while(its.hasNext()) {
 			String nex = (String) its.next();
@@ -428,7 +428,7 @@ public class BatteryKVTransaction {
 		// with j at max, should get them all since we stored to max -1
 		String tkey = String.format(uniqKeyFmt, j);
 		Iterator its = bmap.subMapKV(xid, fkey, tkey);
-		System.out.println("KV Battery1AR16");
+		System.out.println(xid+" KV Battery1AR16");
 		// with i at max, should catch them all
 		while(its.hasNext()) {
 			Comparable nex = (Comparable) its.next();
@@ -455,7 +455,7 @@ public class BatteryKVTransaction {
 		TransactionalMap bmap2 = DatabaseManager.getTransactionalMap(String.class, xid2);
 		// with j at max, should get them all since we stored to max -1
 		//String tkey = String.format(uniqKeyFmt, j);
-		System.out.println("KV Battery1AR17");
+		System.out.println(xid+" KV Battery1AR17");
 		// with i at max, should catch them all
 		for(int i = min; i < max; i++) {
 			String fkey = String.format(uniqKeyFmt, i);
@@ -488,7 +488,7 @@ public class BatteryKVTransaction {
 	 * @throws Exception
 	 */
 	public static void battery18(TransactionId xid) throws Exception {
-		System.out.println("KV Battery18 ");
+		System.out.println(xid+" KV Battery18 ");
 		TransactionId xid2 = DatabaseManager.getTransactionId();
 		TransactionalMap bmap2 = DatabaseManager.getTransactionalMap(String.class, xid2);
 		int max1 = max - 50000;
@@ -500,7 +500,7 @@ public class BatteryKVTransaction {
 			bmap2.put(xid2, fkey, new Long(i));
 			++recs;
 		}
-		System.out.println("Checkpointing..");
+		System.out.println(xid2+" Checkpointing..");
 		DatabaseManager.checkpointTransaction(xid2);
 		for(int i = max1; i < max; i++) {
 			fkey = String.format(uniqKeyFmt, i);
@@ -523,7 +523,7 @@ public class BatteryKVTransaction {
 		//int j = max;
 		// with j at max, should get them all since we stored to max -1
 		//String tkey = String.format(uniqKeyFmt, j);
-		System.out.println("CleanDB");
+		System.out.println("CleanDB "+xid);
 		// with i at max, should catch them all
 		for(int i = min; i < max; i++) {
 			String fkey = String.format(uniqKeyFmt, i);

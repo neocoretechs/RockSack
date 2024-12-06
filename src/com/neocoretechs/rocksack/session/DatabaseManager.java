@@ -75,7 +75,7 @@ import com.neocoretechs.rocksack.session.VolumeManager.Volume;
  *
  */
 public class DatabaseManager {
-	private static boolean DEBUG = false;
+	private static boolean DEBUG = true;
 	private static String tableSpaceDir = "/";
 	private static final char[] ILLEGAL_CHARS = { '[', ']', '!', '+', '=', '|', ';', '?', '*', '\\', '<', '>', '|', '\"', ':' };
 	private static final char[] OK_CHARS = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E' };
@@ -788,18 +788,26 @@ public class DatabaseManager {
 	
 	public static void associateSession(TransactionId xid, TransactionalMap tm) throws IOException {
 		TransactionSession ts = TransactionManager.getTransactionSession(xid);
+		if(DEBUG)
+			System.out.printf("DatabaseManager.associateSession Enter Transaction id:%s TransactionMap:%s got session:%s%n",xid,tm,ts);
 		if(ts == null) {
-			TransactionManager.setTransaction(xid, tm.getSession());
-			return;
+			if(DEBUG)
+				System.out.printf("DatabaseManager.associateSession Setting Transaction id:%s TransactionMap:%s set session:%s%n",xid,tm,tm.getSession());
+			ts = tm.getSession();
+			TransactionManager.setTransaction(xid, ts);
 		}
 		ts.getTransaction(xid, tm.getClassName(), true);
 	}
 	
 	public static void associateSession(Alias alias, TransactionId xid, TransactionalMap tm) throws IOException {
 		TransactionSession ts = TransactionManager.getTransactionSession(xid);
+		if(DEBUG)
+			System.out.printf("DatabaseManager.associateSession Enter Alias:%s Transaction id:%s TransactionMap:%s got session:%s%n",alias,xid,tm,ts);
 		if(ts == null) {
-			TransactionManager.setTransaction(xid, tm.getSession());
-			return;
+			if(DEBUG)
+				System.out.printf("DatabaseManager.associateSession Setting Transaction Alias:%s Transaction id:%s TransactionMap:%s set session:%s%n",alias,xid,tm,tm.getSession());
+			ts = tm.getSession();
+			TransactionManager.setTransaction(xid, ts);
 		}
 		ts.getTransaction(alias, xid, tm.getClassName(), true);
 	}

@@ -28,7 +28,7 @@ import com.neocoretechs.rocksack.TransactionId;
  *
  */
 public class TransactionSession extends Session implements TransactionInterface {
-	private static boolean DEBUG = false;
+	private static boolean DEBUG = true;
 	ReadOptions ro;
 	private WriteOptions wo;
 	private static ConcurrentHashMap<String, Transaction> nameToTransaction = new ConcurrentHashMap<String,Transaction>();
@@ -59,21 +59,33 @@ public class TransactionSession extends Session implements TransactionInterface 
 	public Transaction getTransaction(TransactionId transactionId, String clazz, boolean create) {
 		try {
 			String name = transactionId.getTransactionId()+clazz;
+			if(DEBUG)
+				System.out.printf("%s.getTransaction Enter Transaction id:%s Class:%s create:%b from name:%s%n",this.getClass().getName(),transactionId,clazz,create,name);
 			Transaction transaction = null;
 			boolean exists = false;
+			if(DEBUG) {
+				System.out.println("nameToTransaction:");
+				nameToTransaction.forEach((k,v)->System.out.println(k+" "+v));
+			}
 			// check exact match
 			if((transaction = nameToTransaction.get(name)) == null) {
 				// no match, is id in use for another class? if so, use that transaction
 				Set<Entry<String, Transaction>> all = getTransactions();
-				for(Entry<String, Transaction> alle : all) {
-					if(alle.getKey().startsWith(transactionId.getTransactionId())) {
-						transaction = alle.getValue();
-						exists = true;
-						break;
+				if(all != null && !all.isEmpty()) {
+					for(Entry<String, Transaction> alle : all) {
+						if(DEBUG)
+							System.out.printf("%s.getTransaction Transaction id:%s Transaction name:%s%n",this.getClass().getName(),alle.getKey(),alle.getValue().getName());
+						if(alle.getKey().startsWith(transactionId.getTransactionId())) {
+							transaction = alle.getValue();
+							exists = true;
+							break;
+						}
 					}
 				}
 			}
 			if(!exists && create) {
+				if(DEBUG)
+					System.out.printf("%s.getTransaction Creating Transaction id:%s Transaction name:%s%n",this.getClass().getName(),transactionId,name);
 				transaction = getKVStore().beginTransaction(wo);
 				transaction.setName(name);
 				nameToTransaction.put(name, transaction);
@@ -96,22 +108,34 @@ public class TransactionSession extends Session implements TransactionInterface 
 	public Transaction getTransaction(Alias alias, TransactionId transactionId, String clazz, boolean create) {
 		try {
 			String name = transactionId.getTransactionId()+clazz+alias.getAlias();
+			if(DEBUG)
+				System.out.printf("%s.getTransaction Enter Alias:%s Transaction id:%s Class:%s create:%b from name:%s%n",this.getClass().getName(),alias,transactionId,clazz,create,name);
 			Transaction transaction = null;
 			boolean exists = false;
 			// check exact match
+			if(DEBUG) {
+				System.out.println("nameToTransaction:");
+				nameToTransaction.forEach((k,v)->System.out.println(k+" "+v));
+			}
 			if((transaction = nameToTransaction.get(name)) == null) {
 				// no match, is id in use for another class? if so, use that transaction
 				Set<Entry<String, Transaction>> all = getTransactions();
-				for(Entry<String, Transaction> alle : all) {
-					if(alle.getKey().startsWith(transactionId.getTransactionId()) &&
-					   alle.getKey().endsWith(alias.getAlias())) {
-						transaction = alle.getValue();
-						exists = true;
-						break;
+				if(all != null && !all.isEmpty()) {
+					for(Entry<String, Transaction> alle : all) {
+						if(DEBUG)
+							System.out.printf("%s.getTransaction Creating Transaction id:%s Transaction name:%s%n",this.getClass().getName(),transactionId,name);
+						if(alle.getKey().startsWith(transactionId.getTransactionId()) &&
+								alle.getKey().endsWith(alias.getAlias())) {
+							transaction = alle.getValue();
+							exists = true;
+							break;
+						}
 					}
 				}
 			}
 			if(!exists && create) {
+				if(DEBUG)
+					System.out.printf("%s.getTransaction Creating Transaction id:%s Transaction name:%s%n",this.getClass().getName(),transactionId,name);
 				transaction = getKVStore().beginTransaction(wo);
 				transaction.setName(name);
 				nameToTransaction.put(name, transaction);
