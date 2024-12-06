@@ -8,7 +8,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -41,10 +40,7 @@ import org.rocksdb.TransactionDBOptions;
 /**
 * SessionManager class is a singleton 
 * that accepts connections and returns a {@link Session} object. A table of one to one sessions and
-* tables is maintained. Typically the RockSackAdapter will create the proper instance of the map based on
-* desired transaction level or none, and the map then issues a call here to establish a session.<p/>
-* The session opens the database or passes an already opened database to a new transaction map which
-* creates a new transaction context for that map.
+* tables is maintained. 
 * @author Jonathan Groff (c) NeoCoreTechs 2003, 2017, 2021, 2024
 */
 public final class SessionManager {
