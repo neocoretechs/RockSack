@@ -230,7 +230,7 @@ public class BatteryKVTransactionAlias {
 		}
 		 System.out.println("KV BATTERY1AR8 FORWARD CONTAINS KEY TOOK "+(System.currentTimeMillis()-tims)+" ms.");
 		 tims = System.currentTimeMillis();
-		 for(int j = max; j > min; j--) {
+		 for(int j = max-1; j > min; j--) {
 				String fkey = alias12+String.format(uniqKeyFmt, j);
 				boolean bits = bmap3.contains(xid, fkey);
 				if( !bits ) {

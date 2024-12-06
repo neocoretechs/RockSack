@@ -194,7 +194,7 @@ public class BatteryKVTransaction {
 		}
 		 System.out.println("KV BATTERY1AR8 FORWARD CONTAINS KEY TOOK "+(System.currentTimeMillis()-tims)+" ms.");
 		 tims = System.currentTimeMillis();
-		 for(int j = max; j > min; j--) {
+		 for(int j = max-1; j > min; j--) {
 				String fkey = String.format(uniqKeyFmt, j);
 				boolean bits = bmap.contains(xid, fkey);
 				if( !bits ) {
@@ -215,7 +215,7 @@ public class BatteryKVTransaction {
 		}
 		System.out.println("KV BATTERY1AR8 FORWARD "+numLookupByValue+" CONTAINS VALUE TOOK "+(System.currentTimeMillis()-tims)+" ms.");
 		tims = System.currentTimeMillis();
-		for(int j = max; j > max-numLookupByValue ; j--) {
+		for(int j = max-1; j > max-numLookupByValue ; j--) {
 				// careful here, have to do the conversion explicitly
 				boolean bits = bmap.containsValue(xid, (long)j);
 				if( !bits ) {
@@ -338,7 +338,7 @@ public class BatteryKVTransaction {
 		long tims = System.currentTimeMillis();
 		int i = max;
 		String fkey = String.format(uniqKeyFmt, i);
-		Iterator its = bmap.headMap(xid, fkey);
+		Iterator<?> its = bmap.headMap(xid, fkey);
 		System.out.println(xid+" KV Battery1AR13");
 		// with i at max, should catch them all
 		i = min;
@@ -362,7 +362,7 @@ public class BatteryKVTransaction {
 		long tims = System.currentTimeMillis();
 		int i = max;
 		String fkey = String.format(uniqKeyFmt, i);
-		Iterator its = bmap.headMapKV(xid, fkey);
+		Iterator<?> its = bmap.headMapKV(xid, fkey);
 		System.out.println(xid+" KV Battery1AR14");
 		i = min;
 		while(its.hasNext()) {
@@ -415,7 +415,7 @@ public class BatteryKVTransaction {
 		String fkey = String.format(uniqKeyFmt, i);
 		// with j at max, should get them all since we stored to max -1
 		String tkey = String.format(uniqKeyFmt, j);
-		Iterator its = bmap.subMapKV(xid, fkey, tkey);
+		Iterator<?> its = bmap.subMapKV(xid, fkey, tkey);
 		System.out.println(xid+" KV Battery1AR16");
 		// with i at max, should catch them all
 		while(its.hasNext()) {
