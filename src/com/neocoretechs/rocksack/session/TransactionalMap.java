@@ -377,7 +377,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	}
 	/**
 	* Return the first element
-	* @return A long value of number of elements
+	* @return The value of the Object of the first key
 	* @exception IOException If backing store retrieval failure
 	*/
 	@Override

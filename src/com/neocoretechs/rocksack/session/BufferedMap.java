@@ -303,7 +303,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	}
 	/**
 	* Return the first element. {@link Session}
-	* @return A long value of number of elements
+	* @return The value of the Object of the first key
 	* @exception IOException If backing store retrieval failure
 	*/
 	public Object first() throws IOException {
