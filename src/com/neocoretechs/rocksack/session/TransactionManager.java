@@ -246,7 +246,11 @@ public class TransactionManager {
 		//ArrayList<Volume> rv = new ArrayList<Volume>();
 		TransactionId tid = new TransactionId(uid);
 		TransactionSession tis = idToSession.get(tid);
-		Set<Entry<String, Transaction>> s = tis.getTransactions();
+		Set<Entry<String, Transaction>> s = tis.getTransactions(tid);
+		if(DEBUG) {
+			System.out.printf("TransactionManager.removeTransaction xid:%s %n", uid);
+			s.forEach((k)->System.out.println("will remove "+k.getKey()+" xid:"+k.getValue().getName()));
+		}
 		tis.removeTransactions(s);
 		//return rv;
 	}
