@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -13,10 +15,17 @@ import org.rocksdb.Transaction;
 
 import com.neocoretechs.rocksack.Alias;
 import com.neocoretechs.rocksack.TransactionId;
+import com.neocoretechs.rocksack.session.TransactionManager.SessionAndTransaction;
 import com.neocoretechs.rocksack.session.VolumeManager.Volume;
-
+/**
+ * Singleton transaction manager which maintains the map of {@link TransactionId}s to
+ * {@link TransactionSession}s. We can access and manipulate this map in order to get us to the eventual
+ * map of mangled transaction names and RocksDb TransactionDb Transaction instances in TransactionSession.
+ * @author Jonathan Groff Copyright (C) NeoCoreTechs 2024
+ *
+ */
 public class TransactionManager {
-	private static ConcurrentHashMap<TransactionId, TransactionSession> idToSession = new ConcurrentHashMap<TransactionId,TransactionSession>();
+	private static ConcurrentHashMap<TransactionId, ConcurrentHashMap<String, SessionAndTransaction>> idToNameToSessionAndTransaction = new ConcurrentHashMap<TransactionId,ConcurrentHashMap<String, SessionAndTransaction>>();
 	// Multithreaded double check Singleton setups:
 	// 1.) privatized constructor; no other class can call
 	private TransactionManager() {
@@ -33,18 +42,99 @@ public class TransactionManager {
 		}
 		return instance;
 	}
-	
-	static Collection<TransactionSession> getTransactionSessions() {
-		return idToSession.values();
+	/**
+	 * Class to hold instances that link session and transaction to mangled transaction name
+	 *
+	 */
+	static class SessionAndTransaction {
+		TransactionSession transactionSession;
+		Transaction transaction;
+		public SessionAndTransaction(TransactionSession session, Transaction transaction) {
+			this.transactionSession = session;
+			this.transaction = transaction;
+		}
+		/**
+		 * @return the transactionSession
+		 */
+		public TransactionSession getTransactionSession() {
+			return transactionSession;
+		}
+		/**
+		 * @param transactionSession the transactionSession to set
+		 */
+		public void setTransactionSession(TransactionSession transactionSession) {
+			this.transactionSession = transactionSession;
+		}
+		/**
+		 * @return the transaction
+		 */
+		public Transaction getTransaction() {
+			return transaction;
+		}
+		/**
+		 * @param transaction the transaction to set
+		 */
+		public void setTransaction(Transaction transaction) {
+			this.transaction = transaction;
+		}
+		@Override
+		public int hashCode() {
+			return Objects.hash(transaction, transactionSession);
+		}
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (!(obj instanceof SessionAndTransaction)) {
+				return false;
+			}
+			SessionAndTransaction other = (SessionAndTransaction) obj;
+			return Objects.equals(transaction, other.transaction)
+					&& Objects.equals(transactionSession, other.transactionSession);
+		}
+		@Override
+		public String toString() {
+			return "SessionAndTransaction [transactionSession=" + transactionSession + ", transaction=" + transaction+ "]";
+		}
+
 	}
 	
-	static TransactionSession getTransactionSession(TransactionId xid) {
-		return idToSession.get(xid);
+	static Collection<ConcurrentHashMap<String, SessionAndTransaction>> getTransactionSessions() {
+		return idToNameToSessionAndTransaction.values();
 	}
 	
-	static void setTransaction(TransactionId xid, TransactionSession ts) {
-		idToSession.put(xid,  ts);
+	static ConcurrentHashMap<String, SessionAndTransaction> getTransactionSession(TransactionId xid) {
+		return idToNameToSessionAndTransaction.get(xid);
 	}
+	/**
+	 * Associate a TransactionId with a NameToSessionAndTransaction instance. this is
+	 * called from associateSession where we want to link an existing TransactionalMap with a TransactionId.<p/>
+	 * Calls linkSessionAndTransaction with new map of mangled name to SessionAndTransaction and passed
+	 * xid and TransactionalMap tm. Newly formed map is put into idToNameToSessionaAndTransaction with key xid.
+	 * @param xid
+	 * @param tm
+	 * @throws IOException
+	 */
+	static void setTransaction(TransactionId xid, TransactionalMap tm) throws IOException {
+		if(idToNameToSessionAndTransaction.contains(xid))
+			throw new IOException("Transaction id table already contains "+xid);
+		ConcurrentHashMap<String, SessionAndTransaction> newLink = new ConcurrentHashMap<String, SessionAndTransaction>();
+		tm.getSession().linkSessionAndTransaction(xid, tm, newLink);
+		idToNameToSessionAndTransaction.put(xid, newLink);
+	}
+	/**
+	 * Create a new empty map of mangled name to SessionAndTransaction, put it in idToNameToSessionAndTransaction
+	 * return the new linkage for further population with mangled name and session subclass.
+	 * @param xid
+	 * @return
+	 */
+	static ConcurrentHashMap<String, SessionAndTransaction> setTransaction(TransactionId xid) {
+		ConcurrentHashMap<String, SessionAndTransaction> newLink = new ConcurrentHashMap<String, SessionAndTransaction>();
+		idToNameToSessionAndTransaction.put(xid, newLink);
+		return newLink;
+	}
+	
 	/**
 	 * Return a list of the state of all transactions with id's mapped to transactions
 	 * in the set of active volumes. According to docs states are:
@@ -61,21 +151,42 @@ public class TransactionManager {
 		return retState;
 	}
 	/**
+	 * Extract the list of unique transactions from a subset of the mapping of mangled names to SessionAndTransaction instances
+	 * @param tLink
+	 * @return
+	 */
+	static List<Transaction> getTransactions(ConcurrentHashMap<String, SessionAndTransaction> tLink) {
+		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
+		// Get all the SessionAndTransactions instances
+		for(Entry<String, SessionAndTransaction> transMaps: tLink.entrySet()) {
+			SessionAndTransaction sLink = transMaps.getValue();
+			// Get all the transactions active for each TransactionSession
+			//if(!transact.getState().equals(TransactionState.COMMITED) &&
+			//	!transact.getState().equals(TransactionState.COMMITTED) &&
+			//	!transact.getState().equals(TransactionState.ROLLEDBACK))
+			if(!retXactn.contains(sLink.getTransaction()))
+				retXactn.add(sLink.getTransaction());
+		}
+		return retXactn;
+	}
+	/**
 	 * Return a list all RocksDB transactions with id's mapped to transactions
 	 * in the set of active volumes, regardless of state.
 	 * @return raw RocksDB transactions, use with caution.
 	 */
 	static List<Transaction> getOutstandingTransactions() {
 		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
-		for(Entry<TransactionId, TransactionSession> transSessions : idToSession.entrySet()) {
-			// Get all the TransactionSessions
-			for(Entry<String, Transaction> transMaps: transSessions.getValue().getTransactions()) {
+		for(Entry<TransactionId, ConcurrentHashMap<String, SessionAndTransaction>> transSessions : idToNameToSessionAndTransaction.entrySet()) {
+			ConcurrentHashMap<String,SessionAndTransaction> sessAndTrans = transSessions.getValue();
+			// Get all the SessionAndTransactions instances which contain the Session and its Transaction
+			for(Entry<String, SessionAndTransaction> transMaps: sessAndTrans.entrySet()) {
+				SessionAndTransaction sLink = transMaps.getValue();
 				// Get all the transactions active for each TransactionSession
 					//if(!transact.getState().equals(TransactionState.COMMITED) &&
 					//	!transact.getState().equals(TransactionState.COMMITTED) &&
 					//	!transact.getState().equals(TransactionState.ROLLEDBACK))
-				if(!retXactn.contains(transMaps.getValue()))
-					retXactn.add(transMaps.getValue());
+				if(!retXactn.contains(sLink.getTransaction()))
+					retXactn.add(sLink.getTransaction());
 			}
 		}
 		return retXactn;
@@ -83,23 +194,42 @@ public class TransactionManager {
 	/**
 	 * Return a list all RocksDB transactions with id's mapped to transactions
 	 * in the set of active volumes for a particular path regardless of state.
+	 * Build a list of Session instances from the VolumeManager path linkages
+	 * then find those sessions in the map of Transaction Id to SessionAndTransaction
 	 * @param path the path in question
 	 * @return the List of RocksDB Transactions.
 	 * @throws IOException 
 	 */
 	static List<Transaction> getOutstandingTransactions(String path) throws IOException {
-		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
+		ArrayList<Session> sessions = new ArrayList<Session>();
 		Volume v = VolumeManager.get(path);
 		// Get all the TransactionalMaps for the volume
 		for(TransactionSetInterface transMaps: v.classToIsoTransaction.values()) {
 			// Get all the transactions active for each TransactionalMap
-			Collection<Entry<String, Transaction>> transactions = ((TransactionalMap)transMaps).getSession().getTransactions();
-			for(Entry<String, Transaction> transact: transactions) {
-				//if(!transact.getState().equals(TransactionState.COMMITED) &&
-				//	!transact.getState().equals(TransactionState.COMMITTED) &&
-				//	!transact.getState().equals(TransactionState.ROLLEDBACK))
-				if(!retXactn.contains(transact.getValue()))
-					retXactn.add(transact.getValue());
+			sessions.add(((TransactionalMap)transMaps).getSession());
+		}
+		return getTransactionsForSessionList(sessions);
+	}
+	/**
+	 * Return a list of transactions associated with a list of sessions
+	 * @param sessions
+	 * @return
+	 */
+	private static List<Transaction> getTransactionsForSessionList(List<Session> sessions) {
+		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
+		for(Entry<TransactionId, ConcurrentHashMap<String, SessionAndTransaction>> transSessions : idToNameToSessionAndTransaction.entrySet()) {
+			ConcurrentHashMap<String,SessionAndTransaction> sessAndTrans = transSessions.getValue();
+			// Get all the SessionAndTransactions instances which contain the Session and its Transaction
+			for(Entry<String, SessionAndTransaction> transMaps: sessAndTrans.entrySet()) {
+				SessionAndTransaction sLink = transMaps.getValue();
+				if(!sessions.contains(sLink.getTransactionSession()))
+					continue;
+				// Get all the transactions active for each TransactionSession
+					//if(!transact.getState().equals(TransactionState.COMMITED) &&
+					//	!transact.getState().equals(TransactionState.COMMITTED) &&
+					//	!transact.getState().equals(TransactionState.ROLLEDBACK))
+				if(!retXactn.contains(sLink.getTransaction()))
+					retXactn.add(sLink.getTransaction());
 			}
 		}
 		return retXactn;
@@ -111,23 +241,19 @@ public class TransactionManager {
 	 * @return the List of RocksDB Transactions.
 	 * @throws IOException 
 	 */
-	static List<Transaction> getOutstandingTransactionsAlias(String alias) throws IOException {
-		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
+	static List<Transaction> getOutstandingTransactionsAlias(String alias) throws NoSuchElementException, IOException {
+		ArrayList<Session> sessions = new ArrayList<Session>();
+		Alias al = new Alias(alias);
 		Volume v = VolumeManager.getByAlias(alias);
-		// Get all the TransactionalMaps for the volume
 		// Get all the TransactionalMaps for the volume
 		for(TransactionSetInterface transMaps: v.classToIsoTransaction.values()) {
 			// Get all the transactions active for each TransactionalMap
-			Collection<Entry<String, Transaction>> transactions = ((TransactionalMap)transMaps).getSession().getTransactions();
-			for(Entry<String, Transaction> transact: transactions) {
-				//if(!transact.getState().equals(TransactionState.COMMITED) &&
-				//	!transact.getState().equals(TransactionState.COMMITTED) &&
-				//	!transact.getState().equals(TransactionState.ROLLEDBACK))
-				if(!retXactn.contains(transact.getValue()))
-					retXactn.add(transact.getValue());
+			if(transMaps.getSession() instanceof TransactionSessionAlias &&
+				((TransactionSessionAlias)transMaps.getSession()).getAlias().equals(al)) {
+				sessions.add(transMaps.getSession());
 			}
 		}
-		return retXactn;
+		return getTransactionsForSessionList(sessions);
 	}
 	
 	/**
@@ -137,16 +263,19 @@ public class TransactionManager {
 	 */
 	static List<Transaction> getOutstandingTransactionsById(String uid) {
 		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
-		for(Entry<TransactionId, TransactionSession> sessions : idToSession.entrySet()) {
+		for(Entry<TransactionId, ConcurrentHashMap<String, SessionAndTransaction>> sessions : idToNameToSessionAndTransaction.entrySet()) {
 			// Get all the TransactionalMaps for the session
 			if(sessions.getKey().getTransactionId().equals(uid)) {
-				for(Entry<String, Transaction> transMaps: sessions.getValue().getTransactions()) {
-					// Get all the transactions active for each TransactionalMap
+				ConcurrentHashMap<String,SessionAndTransaction> sessAndTrans = sessions.getValue();
+				// Get all the SessionAndTransactions instances which contain the Session and its Transaction
+				for(Entry<String, SessionAndTransaction> transMaps: sessAndTrans.entrySet()) {
+					SessionAndTransaction sLink = transMaps.getValue();
+					// Get all the transactions active for each TransactionSession
 					//if(!transact.getState().equals(TransactionState.COMMITED) &&
 					//	!transact.getState().equals(TransactionState.COMMITTED) &&
 					//	!transact.getState().equals(TransactionState.ROLLEDBACK))
-					if(!retXactn.contains(transMaps.getValue()))
-						retXactn.add(transMaps.getValue());
+					if(!retXactn.contains(sLink.getTransaction()))
+						retXactn.add(sLink.getTransaction());
 				}
 			}
 		}
@@ -162,17 +291,18 @@ public class TransactionManager {
 	 */
 	static List<Transaction> getOutstandingTransactionsByAliasAndId(String alias, String uid) {
 		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
-		Alias a = new Alias(alias);
-		for(Entry<TransactionId, TransactionSession> sessions : idToSession.entrySet()) {
-			// Get all the TransactionalMaps for the session
-			if(sessions.getKey().getTransactionId().equals(uid)) {
-				for(Entry<String, Transaction> transMaps: sessions.getValue().getTransactions(a)) {
-					// Get all the transactions active for each TransactionalMap
+		Alias al = new Alias(alias);
+		ConcurrentHashMap<String, SessionAndTransaction> sessions = idToNameToSessionAndTransaction.get(new TransactionId(uid));
+		if(sessions != null) {
+			for(SessionAndTransaction sLink : sessions.values()) {
+				if(sLink.getTransactionSession() instanceof TransactionSessionAlias &&
+					((TransactionSessionAlias)sLink.getTransactionSession()).getAlias().equals(al)) {
+					// Get all the transactions active for each TransactionSession
 					//if(!transact.getState().equals(TransactionState.COMMITED) &&
 					//	!transact.getState().equals(TransactionState.COMMITTED) &&
 					//	!transact.getState().equals(TransactionState.ROLLEDBACK))
-					if(!retXactn.contains(transMaps.getValue()))
-						retXactn.add(transMaps.getValue());
+					if(!retXactn.contains(sLink.getTransaction()))
+						retXactn.add(sLink.getTransaction());
 				}
 			}
 		}
@@ -189,30 +319,72 @@ public class TransactionManager {
 	static List<Transaction> getOutstandingTransactionsByPathAndId(String path, String uid) throws IOException {
 		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
 		Volume v = VolumeManager.get(path);
+		ConcurrentHashMap<String, SessionAndTransaction> sessions = idToNameToSessionAndTransaction.get(new TransactionId(uid));
 		if(DEBUG)
-			System.out.println("VolumeManager.getOutstandingTransactionsByPathAndId for path:"+path+" id:"+uid+" got volume "+v);
-		// Get all the TransactionalMaps for the volume
-		for(TransactionSetInterface transMaps: v.classToIsoTransaction.values()) {
-			// Get all the transactions active for each TransactionalMap
-			Set<Entry<String, Transaction>> transactions = ((TransactionalMap)transMaps).getSession().getTransactions();
-			for(Entry<String, Transaction> transact: transactions) {
-				if(DEBUG)
-					System.out.println("VolumeManager.getOutstandingTransactionsByPathAndId trying transaction:"+transact.getKey());
-				//if(!transact.getState().equals(TransactionState.COMMITED) &&
-				//	!transact.getState().equals(TransactionState.COMMITTED) &&
-				//	!transact.getState().equals(TransactionState.ROLLEDBACK))
-				if(transact.getKey().substring(0,36).equals(uid)) {
-					if(DEBUG)
-						System.out.println("VolumeManager.getOutstandingTransactionsByPathAndId adding:"+transact.getKey());
-					if(!retXactn.contains(transact.getValue()))
-						retXactn.add(transact.getValue());
+			System.out.println("TransactionManager.getOutstandingTransactionsByPathAndId for path:"+path+" id:"+uid+" got volume "+v);
+		// Get all the TransactionalMaps for the volume, compare sessions
+		if(sessions != null) {
+			Collection<SessionAndTransaction> sLink = sessions.values();
+			for(TransactionSetInterface transMaps: v.classToIsoTransaction.values()) {
+				// see if TransactionMap has a session that matches the session in the collection attached to this transaction id
+				for(SessionAndTransaction session : sLink) {
+					if(session.getTransactionSession().equals(transMaps.getSession())) {
+						if(DEBUG)
+							System.out.println("TransactionManager.getOutstandingTransactionsByPathAndId adding:"+session);
+						if(!retXactn.contains(session.getTransaction())) {
+							retXactn.add(session.getTransaction());
+						}
+					}
 				}
 			}
 		}
 		if(DEBUG)
-			System.out.println("VolumeManager.getOutstandingTransactionsByPathAndId returning:"+retXactn.size());
+			System.out.println("TransactionManager.getOutstandingTransactionsByPathAndId returning:"+retXactn.size());
 		return retXactn;
 	}
+	/**
+	 * Get the Transaction objects formed from id. 
+	 * @param transactionId
+	 * @return Set of names and RocksDb Transaction objects or null if none found
+	 */
+	public ConcurrentHashMap<String, SessionAndTransaction> getTransactions(TransactionId transactionId) {
+		return idToNameToSessionAndTransaction.get(transactionId);
+	}
+	/**
+	 * Get the Transaction objects formed from id and class name. 
+	 * @param transactionId
+	 * @param clazz
+	 * @return Set of names and RocksDb Transaction objects or null if none found
+	 */
+	public List<Transaction> getTransactions(TransactionId transactionId, String clazz) {
+		ConcurrentHashMap<String, SessionAndTransaction> all = getTransactions(transactionId);
+		ArrayList<Transaction> names = new ArrayList<Transaction>();
+		if(all != null) {
+			for(Entry<String, SessionAndTransaction> alle : all.entrySet()) {
+				if(alle.getKey().startsWith(transactionId.getTransactionId()+clazz)) {
+					names.add(alle.getValue().getTransaction());
+				}
+			}
+		}
+		return names;
+	}
+	
+	/**
+	 * Get the Transaction objects formed from class name. 
+	 * @param clazz
+	 * @return Set of names and RocksDb Transaction objects or null if none found
+	 */
+	public ArrayList<Transaction> getTransactions(String clazz) {
+		List<Transaction> all = getOutstandingTransactions();
+		ArrayList<Transaction> names = new ArrayList<Transaction>();
+		for(Transaction alle : all) {
+			if(alle.getName().substring(36).startsWith(clazz)) {
+				names.add(alle);
+			}
+		}
+		return names;
+	}
+	
 	/**
 	 * Clear all the outstanding transactions. Roll back all in-progress transactions,
 	 * the clear the id to transaction table in the set of volumes.
@@ -229,32 +401,76 @@ public class TransactionManager {
 	 * Roll back all transactions associated with the given transaction uid
 	 * @param uid
 	 * @throws IOException 
+	 * @throws RocksDBException 
 	 */
-	static void clearOutstandingTransaction(String uid) throws IOException {
-		for(Transaction t: getOutstandingTransactions(uid)) {
-			try {
-				t.rollback();
-				removeTransaction(uid);
-			} catch (RocksDBException e) {}
+	static void clearOutstandingTransaction(String uid) throws RocksDBException, IOException {
+		for(Transaction t: getOutstandingTransactions()) {
+				if(t.getName().startsWith(uid)) {
+					t.rollback();
+					removeTransaction(uid);
+				}
 		}
 	}
+	
+	public void commit(String uid) throws RocksDBException {
+		for(Transaction t: getOutstandingTransactions()) {
+			if(t.getName().startsWith(uid)) {			
+					t.commit();
+			}
+		}
+	}
+	
+	public void rollback(String uid) throws RocksDBException {
+		for(Transaction t: getOutstandingTransactions()) {
+			if(t.getName().startsWith(uid)) {			
+					t.rollback();
+			}
+		}
+	}	
+	
+	public void checkpoint(String uid) throws RocksDBException {
+		for(Transaction t: getOutstandingTransactions()) {
+			if(t.getName().startsWith(uid)) {			
+					t.setSavePoint();
+			}
+		}
+	}
+	
+	public void rollbackToCheckpoint(String uid) throws RocksDBException {
+		for(Transaction t: getOutstandingTransactions()) {
+			if(t.getName().startsWith(uid)) {			
+					t.rollbackToSavePoint();
+			}
+		}
+	}
+	
 	/**
 	 * Remove the transaction from all volumes that had an idToTransaction table entry with this transaction id.
 	 * @param uid The target transaction id
-	 * @return The unique list of volumes that had an entry for this id. Typically only 1, or empty list.
 	 * @throws IOException If transaction state was not STARTED, COMMITTED, or ROLLEDBACK
 	 */
-	static void /*List<Volume>*/ removeTransaction(String uid) throws IOException {
-		//ArrayList<Volume> rv = new ArrayList<Volume>();
+	static void removeTransaction(String uid) throws IOException {
 		TransactionId tid = new TransactionId(uid);
-		TransactionSession tis = idToSession.get(tid);
-		Set<Entry<String, Transaction>> s = tis.getTransactions(tid);
-		if(DEBUG) {
-			System.out.printf("TransactionManager.removeTransaction xid:%s %n", uid);
-			s.forEach((k)->System.out.println("will remove "+k.getKey()+" xid:"+k.getValue().getName()));
+		ConcurrentHashMap<String, SessionAndTransaction> tis = idToNameToSessionAndTransaction.get(tid);
+		List<String> ts = new ArrayList<String>();
+		for(Entry<String, SessionAndTransaction> s : tis.entrySet()) {
+			if(DEBUG) {
+				System.out.printf("TransactionManager.removeTransaction xid:%s name:%s%n", uid, s.getValue());
+			}
+			// sanity check
+			if(!s.getKey().startsWith(uid))
+				throw new IOException("Encountered corrupt idToNameToSessionAndTransaction entry");
+			ts.add(s.getKey());
 		}
-		tis.removeTransactions(s);
-		//return rv;
+		for(String s : ts) {
+			tis.remove(s);
+		}
+		if(tis.isEmpty()) {
+			if(DEBUG) {
+				System.out.printf("TransactionManager.removeTransaction removing empty idToNameToSessionAndTransaction map entry for xid:%s%n", tid);
+			}
+			idToNameToSessionAndTransaction.remove(tid);
+		}
 	}
 
 }

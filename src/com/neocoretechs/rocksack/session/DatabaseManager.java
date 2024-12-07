@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.rocksdb.AbstractComparator;
 import org.rocksdb.BlockBasedTableConfig;
@@ -33,6 +34,7 @@ import com.neocoretechs.rocksack.Alias;
 import com.neocoretechs.rocksack.DatabaseClass;
 import com.neocoretechs.rocksack.SerializedComparator;
 import com.neocoretechs.rocksack.TransactionId;
+import com.neocoretechs.rocksack.session.TransactionManager.SessionAndTransaction;
 import com.neocoretechs.rocksack.session.VolumeManager.Volume;
 
 /**
@@ -731,11 +733,11 @@ public class DatabaseManager {
 					TransactionalMap def = (TransactionalMap) v.classToIsoTransaction.get(xClass);
 					// have we already opened the main database?
 					if(def == null) {
-						TransactionSession ts = SessionManager.ConnectTransaction(VolumeManager.getAliasToPath(alias)+xClass, options, dClass);
+						TransactionSession ts = SessionManager.ConnectTransaction(alias,VolumeManager.getAliasToPath(alias)+xClass, options, dClass);
 						// put the main class default ColumnFamily, its not there
 						TransactionalMap tm = new TransactionalMap(ts, dClass);
 						v.classToIsoTransaction.put(xClass, tm);
-						associateSession(alias, xid, tm);
+						associateSession(xid, tm);
 						ret = (TransactionalMap)(new TransactionalMap(ts, dClass));
 					} else {
 						// create derived with session of main, previously instantiated default ColumnFamily
@@ -745,7 +747,7 @@ public class DatabaseManager {
 					if(DEBUG)
 						System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return DERIVED map:"+ret+" for dir:"+VolumeManager.getAliasToPath(alias)+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
 				} else {
-					ret =  new TransactionalMap(SessionManager.ConnectTransaction(VolumeManager.getAliasToPath(alias)+xClass, options), xClass);
+					ret = new TransactionalMap(SessionManager.ConnectTransaction(alias,VolumeManager.getAliasToPath(alias)+xClass, options), xClass);
 					v.classToIsoTransaction.put(xClass, ret);
 					if(DEBUG)
 						System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return BASE map:"+ret+" for dir:"+VolumeManager.getAliasToPath(alias)+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
@@ -755,13 +757,13 @@ public class DatabaseManager {
 			}
 			if(DEBUG)
 				System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to create new map:"+ret);
-			associateSession(alias, xid, ret);
+			associateSession(xid, ret);
 			return ret;
 		}
 		// We had the map requested,
 		if(DEBUG)
 			System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return map:"+ret+" for class:"+xClass+" isDerivedClass:"+isDerivedClass);
-		associateSession(alias, xid, ret);
+		associateSession(xid, ret);
 		return ret;		
 	}
 	/**
@@ -794,32 +796,30 @@ public class DatabaseManager {
 			throw new IOException(e);
 		}
 	}
-	
+	/**
+	 * TransactionalMap contains a {@link Session} or its subclasses {@link TransactionSession} or {@link TransactionSessionAlias}.
+	 * Purpose here is to associate a transaction id {@link TransactionId} with a mangled name and
+	 * 'session to transaction' in SessionTransaction in {@link TransactionManager}. The overriden method in TransactionSession.setTransactionalMap
+	 * will generate a mangled name and start a Transaction.
+	 * @param xid
+	 * @param tm
+	 * @throws IOException
+	 */
 	public static void associateSession(TransactionId xid, TransactionalMap tm) throws IOException {
-		TransactionSession ts = TransactionManager.getTransactionSession(xid);
+		ConcurrentHashMap<String, SessionAndTransaction> ts = TransactionManager.getTransactionSession(xid);
 		if(DEBUG)
 			System.out.printf("DatabaseManager.associateSession Enter Transaction id:%s TransactionMap:%s got session:%s%n",xid,tm,ts);
 		if(ts == null) {
 			if(DEBUG)
-				System.out.printf("DatabaseManager.associateSession Setting Transaction id:%s TransactionMap:%s set session:%s%n",xid,tm,tm.getSession());
-			ts = tm.getSession();
-			TransactionManager.setTransaction(xid, ts);
+				System.out.printf("DatabaseManager.associateSession Setting Transaction id:%s TransactionMap:%s create new link for session:%s%n",xid,tm,tm.getSession());
+			TransactionManager.setTransaction(xid, tm);
+			return;
 		}
-		ts.getTransaction(xid, tm.getClassName(), true);
+		// if map of mangled name to SessionAndTransaction instances exists already, throw exception
+		if(tm.getSession().linkSessionAndTransaction(xid, tm, ts))
+			throw new IOException("Transactional Map "+tm+" already associated with id "+xid);
 	}
 	
-	public static void associateSession(Alias alias, TransactionId xid, TransactionalMap tm) throws IOException {
-		TransactionSession ts = TransactionManager.getTransactionSession(xid);
-		if(DEBUG)
-			System.out.printf("DatabaseManager.associateSession Enter Alias:%s Transaction id:%s TransactionMap:%s got session:%s%n",alias,xid,tm,ts);
-		if(ts == null) {
-			if(DEBUG)
-				System.out.printf("DatabaseManager.associateSession Setting Transaction Alias:%s Transaction id:%s TransactionMap:%s set session:%s%n",alias,xid,tm,tm.getSession());
-			ts = tm.getSession();
-			TransactionManager.setTransaction(xid, ts);
-		}
-		ts.getTransaction(alias, xid, tm.getClassName(), true);
-	}
 	/**
 	 * Remove the given TransactionalMap from active DB/transaction collection
 	 * @param tmap the TransactionalMap for a given transaction Id
@@ -1125,7 +1125,7 @@ public class DatabaseManager {
 		TransactionManager.clearAllOutstandingTransactions();
 	}
 	
-	public static void clearOutstandingTransaction(TransactionId xid) throws IOException {
+	public static void clearOutstandingTransaction(TransactionId xid) throws IOException, RocksDBException {
 		TransactionManager.clearOutstandingTransaction(xid.getTransactionId());
 	}
 	

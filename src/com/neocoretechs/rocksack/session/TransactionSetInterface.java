@@ -2,13 +2,10 @@ package com.neocoretechs.rocksack.session;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.stream.Stream;
 
-import org.rocksdb.RocksDB;
 import org.rocksdb.TransactionDB;
 
 import com.neocoretechs.rocksack.TransactionId;
-
 
 public interface TransactionSetInterface {
 
@@ -72,16 +69,16 @@ public interface TransactionSetInterface {
 	 */
 	boolean isEmpty(TransactionId transactionId) throws IOException;
 
-
 	/**
 	 * Open the files associated with the BTree for the instances of class
 	 * @throws IOException
 	 */
 	void Open() throws IOException;
-	
 
 	TransactionDB getKVStore();
 
 	void Close() throws IOException;
+	
+	Session getSession() throws IOException;
 	
 }

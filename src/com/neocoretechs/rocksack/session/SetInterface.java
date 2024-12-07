@@ -2,10 +2,8 @@ package com.neocoretechs.rocksack.session;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.stream.Stream;
 
 import org.rocksdb.RocksDB;
-
 
 public interface SetInterface {
 
@@ -21,7 +19,6 @@ public interface SetInterface {
 	 */
 	Object get(Comparable o) throws IOException;
 
-	
 	/**
 	* Returns iterator
 	* @return The Iterator over the entrySet
@@ -76,9 +73,10 @@ public interface SetInterface {
 	 */
 	void Open() throws IOException;
 	
-
 	RocksDB getKVStore();
 
 	void Close() throws IOException;
+	
+	Session getSession() throws IOException;
 	
 }

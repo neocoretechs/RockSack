@@ -51,16 +51,16 @@ public class BatteryKVTransactionAlias {
 		TransactionId xid0 = DatabaseManager.getTransactionId();
 		bmap = DatabaseManager.getTransactionalMap(alias1, String.class, xid);
 		System.out.println(bmap);
-		DatabaseManager.associateSession(alias1, xid0, bmap);
+		DatabaseManager.associateSession(xid0, bmap);
 		battery1(xid, xid0, alias1, bmap);
 		// Test 1 commits the transaction id's xid xid0
 		// expand these transactions to the next database
 		bmap2 = DatabaseManager.getTransactionalMap(alias2, String.class, xid);
 		System.out.println(bmap2);
-		DatabaseManager.associateSession(alias2, xid0, bmap2);
+		DatabaseManager.associateSession(xid0, bmap2);
 		battery1(xid, xid0, alias2, bmap2);
 		TransactionId xid2 = DatabaseManager.getTransactionId();
-		DatabaseManager.associateSession(alias2, xid2, bmap2);
+		DatabaseManager.associateSession(xid2, bmap2);
 		// xid2 will be rolled back then removed
 		battery11(xid2, alias2, bmap2);
 		// xid, and xid0 should still be valid
@@ -590,6 +590,7 @@ public class BatteryKVTransactionAlias {
 			String fkey = alias12+String.format(uniqKeyFmt, i);
 			bmap3.remove(xid, fkey);
 		}
+		DatabaseManager.commitTransaction(alias12,xid);
 		 System.out.println("CleanDB SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
 	

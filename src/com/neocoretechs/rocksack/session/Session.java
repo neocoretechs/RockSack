@@ -89,11 +89,6 @@ public class Session {
 		return kvStore.getName();
 	}
 	
-	@Override
-	public String toString() {
-		return this.getClass().getSimpleName()+" using DB:"+getDBname();
-	}
-	
 	protected Object getMutexObject() {
 		return kvStore;
 	}
@@ -972,5 +967,10 @@ public class Session {
 	}
 	
 	protected RocksDB getKVStore() { return kvStore; }
+	
+	@Override
+	public String toString() {
+		return this.getClass().getSimpleName()+" using DB:"+getDBname();
+	}
 	
 }
