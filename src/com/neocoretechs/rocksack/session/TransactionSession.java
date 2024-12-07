@@ -89,6 +89,9 @@ public class TransactionSession extends Session implements TransactionInterface 
 							}
 						}
 					}
+				} else {
+					transaction = transLink.getTransaction();
+					exists = true;
 				}
 			}
 			if(!exists && create) {

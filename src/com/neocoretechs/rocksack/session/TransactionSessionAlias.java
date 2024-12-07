@@ -78,15 +78,21 @@ public class TransactionSessionAlias extends TransactionSession {
 			// check exact match
 			ConcurrentHashMap<String, SessionAndTransaction> transSession = TransactionManager.getTransactionSession(transactionId);
 			if(transSession == null) {
+				if(DEBUG)
+					System.out.printf("%s.getTransaction transSession null Alias:%s Transaction id:%s Class:%s create:%b from name:%s%n",this.getClass().getName(),alias,transactionId,clazz,create,name);
 				transSession = TransactionManager.setTransaction(transactionId);
 			} else {
 				transLink = transSession.get(name);
 				if(transLink == null) {
+					if(DEBUG)
+						System.out.printf("%s.getTransaction transLink null Alias:%s Transaction id:%s Class:%s create:%b from name:%s%n",this.getClass().getName(),alias,transactionId,clazz,create,name);
 					// no match, is id in use for another class? if so, use that transaction
 					// as long as its in the same alias. RocksDb transactions cant span databases
 					// but conceptually and virtually we can.
 					Collection<SessionAndTransaction> all = transSession.values();
 					if(all != null && !all.isEmpty()) {
+						if(DEBUG)
+							System.out.printf("%s.getTransaction transSession collection null or empty Alias:%s Transaction id:%s Class:%s create:%b from name:%s%n",this.getClass().getName(),alias,transactionId,clazz,create,name);
 						for(SessionAndTransaction alle : all) {
 							if(alle.getTransaction().getName().startsWith(transactionId.getTransactionId()) &&
 								alle.getTransaction().getName().endsWith(alias.getAlias())) {
@@ -96,6 +102,9 @@ public class TransactionSessionAlias extends TransactionSession {
 							}
 						}
 					}
+				} else {
+					transaction = transLink.getTransaction();
+					exists = true;
 				}
 			}
 			if(!exists && create) {

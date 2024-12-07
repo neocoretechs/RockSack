@@ -1,20 +1,11 @@
 package com.neocoretechs.rocksack.session;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.rocksdb.RocksDBException;
-import org.rocksdb.Transaction;
-import org.rocksdb.Transaction.TransactionState;
-
 import com.neocoretechs.rocksack.Alias;
-import com.neocoretechs.rocksack.TransactionId;
 /**
  * A volume is a set of RocksDb directories and files indexed by a volume name, which is a directory path PLUS database prefix. The
  * last component of the volume refers to the prefix of a database name within the parent path. When forming filesets for RocksDb, the

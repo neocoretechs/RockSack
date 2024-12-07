@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.rocksdb.RocksDBException;
@@ -15,7 +14,6 @@ import org.rocksdb.Transaction;
 
 import com.neocoretechs.rocksack.Alias;
 import com.neocoretechs.rocksack.TransactionId;
-import com.neocoretechs.rocksack.session.TransactionManager.SessionAndTransaction;
 import com.neocoretechs.rocksack.session.VolumeManager.Volume;
 /**
  * Singleton transaction manager which maintains the map of {@link TransactionId}s to
@@ -25,6 +23,7 @@ import com.neocoretechs.rocksack.session.VolumeManager.Volume;
  *
  */
 public class TransactionManager {
+	private static boolean DEBUG = true;
 	private static ConcurrentHashMap<TransactionId, ConcurrentHashMap<String, SessionAndTransaction>> idToNameToSessionAndTransaction = new ConcurrentHashMap<TransactionId,ConcurrentHashMap<String, SessionAndTransaction>>();
 	// Multithreaded double check Singleton setups:
 	// 1.) privatized constructor; no other class can call
@@ -32,7 +31,6 @@ public class TransactionManager {
 	}
 	// 2.) volatile instance
 	private static volatile TransactionManager instance = null;
-	private static boolean DEBUG = true;
 	// 3.) lock class, assign instance if null
 	public static TransactionManager getInstance() {
 		synchronized(TransactionManager.class) {
@@ -105,6 +103,11 @@ public class TransactionManager {
 	}
 	
 	static ConcurrentHashMap<String, SessionAndTransaction> getTransactionSession(TransactionId xid) {
+		if(DEBUG) {
+			System.out.printf("TransactionManager.getTransactionSession %s%n", xid);
+			System.out.printf("TransactionManager.getTransactionSession size:%s%n",idToNameToSessionAndTransaction.size());
+			System.out.printf("TransactionManager.getTransactionSession will return:%s%n",idToNameToSessionAndTransaction.get(xid));
+		}
 		return idToNameToSessionAndTransaction.get(xid);
 	}
 	/**
@@ -347,7 +350,7 @@ public class TransactionManager {
 	 * @param transactionId
 	 * @return Set of names and RocksDb Transaction objects or null if none found
 	 */
-	public ConcurrentHashMap<String, SessionAndTransaction> getTransactions(TransactionId transactionId) {
+	public static ConcurrentHashMap<String, SessionAndTransaction> getTransactions(TransactionId transactionId) {
 		return idToNameToSessionAndTransaction.get(transactionId);
 	}
 	/**
@@ -356,7 +359,7 @@ public class TransactionManager {
 	 * @param clazz
 	 * @return Set of names and RocksDb Transaction objects or null if none found
 	 */
-	public List<Transaction> getTransactions(TransactionId transactionId, String clazz) {
+	public static List<Transaction> getTransactions(TransactionId transactionId, String clazz) {
 		ConcurrentHashMap<String, SessionAndTransaction> all = getTransactions(transactionId);
 		ArrayList<Transaction> names = new ArrayList<Transaction>();
 		if(all != null) {
@@ -374,7 +377,7 @@ public class TransactionManager {
 	 * @param clazz
 	 * @return Set of names and RocksDb Transaction objects or null if none found
 	 */
-	public ArrayList<Transaction> getTransactions(String clazz) {
+	public static ArrayList<Transaction> getTransactions(String clazz) {
 		List<Transaction> all = getOutstandingTransactions();
 		ArrayList<Transaction> names = new ArrayList<Transaction>();
 		for(Transaction alle : all) {
@@ -412,7 +415,7 @@ public class TransactionManager {
 		}
 	}
 	
-	public void commit(String uid) throws RocksDBException {
+	public static void commit(String uid) throws RocksDBException {
 		for(Transaction t: getOutstandingTransactions()) {
 			if(t.getName().startsWith(uid)) {			
 					t.commit();
@@ -420,7 +423,7 @@ public class TransactionManager {
 		}
 	}
 	
-	public void rollback(String uid) throws RocksDBException {
+	public static void rollback(String uid) throws RocksDBException {
 		for(Transaction t: getOutstandingTransactions()) {
 			if(t.getName().startsWith(uid)) {			
 					t.rollback();
@@ -428,7 +431,7 @@ public class TransactionManager {
 		}
 	}	
 	
-	public void checkpoint(String uid) throws RocksDBException {
+	public static void checkpoint(String uid) throws RocksDBException {
 		for(Transaction t: getOutstandingTransactions()) {
 			if(t.getName().startsWith(uid)) {			
 					t.setSavePoint();
@@ -436,7 +439,7 @@ public class TransactionManager {
 		}
 	}
 	
-	public void rollbackToCheckpoint(String uid) throws RocksDBException {
+	public static void rollbackToCheckpoint(String uid) throws RocksDBException {
 		for(Transaction t: getOutstandingTransactions()) {
 			if(t.getName().startsWith(uid)) {			
 					t.rollbackToSavePoint();
