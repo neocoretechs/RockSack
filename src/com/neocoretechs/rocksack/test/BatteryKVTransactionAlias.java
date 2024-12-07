@@ -64,35 +64,37 @@ public class BatteryKVTransactionAlias {
 		// xid2 will be rolled back then removed
 		battery11(xid2, alias2, bmap2);
 		// xid, and xid0 should still be valid
-		battery1AR6(xid, alias1, bmap);
-		battery1AR6(xid0, alias2, bmap2);
-		battery1AR7(xid, alias1, bmap);
-		battery1AR7(xid0, alias2, bmap2);
-		battery1AR8(xid, alias1, bmap);
-		battery1AR8(xid0, alias2, bmap2);
-		battery1AR9(xid, alias1, bmap);
-		battery1AR9(xid0, alias2, bmap2);
-		battery1AR10(xid, alias1, bmap);
-		battery1AR10(xid0, alias2, bmap2);
-		battery1AR101(xid, alias1, bmap);
-		battery1AR101(xid0, alias2, bmap2);
-		battery1AR11(xid, alias1, bmap);
-		battery1AR11(xid0, alias2, bmap2);
-		battery1AR12(xid, alias1, bmap);
-		battery1AR12(xid0, alias2, bmap2);
-		battery1AR13(xid, alias1, bmap);
-		battery1AR13(xid0, alias2, bmap2);
-		battery1AR14(xid, alias1, bmap);
-		battery1AR14(xid0, alias2, bmap2);
-		battery1AR15(xid, alias1, bmap);
-		battery1AR15(xid0, alias2, bmap2);
-		battery1AR16(xid, alias1, bmap);
-		battery1AR16(xid0, alias2, bmap2);
-		battery1AR17(xid, alias1, bmap);
-		battery1AR17(xid0, alias2, bmap2);
+		// odd is xid, even is xid0, supply starting value for range checking for each subsequent method
+		// to ensure transaction isolation
+		battery1AR6(xid, alias1, bmap, 1);
+		battery1AR6(xid0, alias2, bmap2, 0);
+		battery1AR7(xid, alias1, bmap, 1);
+		battery1AR7(xid0, alias2, bmap2, 0);
+		battery1AR8(xid, alias1, bmap, 1);
+		battery1AR8(xid0, alias2, bmap2, 0);
+		battery1AR9(xid, alias1, bmap, 1);
+		battery1AR9(xid0, alias2, bmap2, 0);
+		battery1AR10(xid, alias1, bmap, 1);
+		battery1AR10(xid0, alias2, bmap2,0);
+		battery1AR101(xid, alias1, bmap, 1);
+		battery1AR101(xid0, alias2, bmap2, 0);
+		battery1AR11(xid, alias1, bmap, 1);
+		battery1AR11(xid0, alias2, bmap2, 0);
+		battery1AR12(xid, alias1, bmap, 1);
+		battery1AR12(xid0, alias2, bmap2, 0);
+		battery1AR13(xid, alias1, bmap, 1);
+		battery1AR13(xid0, alias2, bmap2, 0);
+		battery1AR14(xid, alias1, bmap, 1);
+		battery1AR14(xid0, alias2, bmap2, 0);
+		battery1AR15(xid, alias1, bmap, 1);
+		battery1AR15(xid0, alias2, bmap2, 0);
+		battery1AR16(xid, alias1, bmap, 1);
+		battery1AR16(xid0, alias2, bmap2, 0);
+		battery1AR17(xid, alias1, bmap, 1);
+		battery1AR17(xid0, alias2, bmap2, 0);
 		// commit in this method
-		battery18(xid, alias1, bmap);
-		battery18(xid0, alias2, bmap2);
+		battery18(xid, alias1, bmap, 1);
+		battery18(xid0, alias2, bmap2, 0);
 		System.out.println("BatteryKVTransactionAlias TEST BATTERY COMPLETE.");
 		DatabaseManager.removeTransaction(alias1,xid);
 		DatabaseManager.removeTransaction(alias1,xid0);
@@ -146,7 +148,7 @@ public class BatteryKVTransactionAlias {
 		String fkey = null;
 		for(int i = max; i < max*2; i++) {
 			fkey = alias12+String.format(uniqKeyFmt, i);
-			bmap2.put(xid, fkey, new Long(fkey));
+			bmap2.put(xid, fkey, new Long(i));
 			++recs;
 		}
 		if( recs > 0) {
@@ -169,10 +171,11 @@ public class BatteryKVTransactionAlias {
 	 * @param xid
 	 * @param alias12 
 	 * @param bmap3 
+	 * @param j 
 	 * @throws Exception
 	 */
-	public static void battery1AR6(TransactionId xid, Alias alias12, TransactionalMap bmap3) throws Exception {
-		int i = min;
+	public static void battery1AR6(TransactionId xid, Alias alias12, TransactionalMap bmap3, int j) throws Exception {
+		int i = min+j;
 		long tims = System.currentTimeMillis();
 		Iterator<?> its = bmap3.entrySet(xid);
 		System.out.println(xid+" KV Battery1AR6 "+alias12);
@@ -182,8 +185,7 @@ public class BatteryKVTransactionAlias {
 			//System.out.println(i+"="+nex);
 			if(((Long)enex.getValue()).intValue() != i)
 				System.out.println("RANGE KEY MISMATCH:"+i+" - "+nex);
-			else
-				++i;
+			i+=2;
 		}
 		if( i != max ) {
 			System.out.println("BATTERY1AR6 unexpected number of keys "+i);
@@ -196,10 +198,11 @@ public class BatteryKVTransactionAlias {
 	 * @param xid
 	 * @param alias12 
 	 * @param bmap3 
+	 * @param j controls even/odd transaction
 	 * @throws Exception
 	 */
-	public static void battery1AR7(TransactionId xid, Alias alias12, TransactionalMap bmap3) throws Exception {
-		int i = min;
+	public static void battery1AR7(TransactionId xid, Alias alias12, TransactionalMap bmap3, int j) throws Exception {
+		int i = min+j;
 		long tims = System.currentTimeMillis();
 		Iterator<?> its = bmap3.keySet(xid);
 		System.out.println(xid+" KV Battery1AR7 "+alias12);
@@ -207,8 +210,7 @@ public class BatteryKVTransactionAlias {
 			String nex = (String) its.next();
 			if(Integer.parseInt(nex) != i)
 				System.out.println("KV RANGE KEY MISMATCH:"+i+" - "+nex);
-			else
-				++i;
+			i+=2;
 		}
 		if( i != max ) {
 			System.out.println("KV BATTERY1AR7 unexpected number of keys "+i);
@@ -221,13 +223,14 @@ public class BatteryKVTransactionAlias {
 	 * @param xid
 	 * @param alias12 
 	 * @param bmap3 
+	 * @param k 
 	 * @throws Exception
 	 */
-	public static void battery1AR8(TransactionId xid, Alias alias12, TransactionalMap bmap3) throws Exception {
-		int i = min;
+	public static void battery1AR8(TransactionId xid, Alias alias12, TransactionalMap bmap3, int k) throws Exception {
+		int i = min+k;
 		System.out.println(xid+" KV Battery1AR8 "+alias12);
 		long tims = System.currentTimeMillis();
-		for(int j = min; j < max; j++) {
+		for(int j = min+k; j < max; j+=2) {
 			String fkey = alias12+String.format(uniqKeyFmt, j);
 			boolean bits = bmap3.contains(xid, fkey);
 			if( !bits ) {
@@ -237,7 +240,7 @@ public class BatteryKVTransactionAlias {
 		}
 		 System.out.println("KV BATTERY1AR8 FORWARD CONTAINS KEY TOOK "+(System.currentTimeMillis()-tims)+" ms.");
 		 tims = System.currentTimeMillis();
-		 for(int j = max-1; j > min; j--) {
+		 for(int j = (max-1)-k; j > min; j-=2) {
 				String fkey = alias12+String.format(uniqKeyFmt, j);
 				boolean bits = bmap3.contains(xid, fkey);
 				if( !bits ) {
@@ -248,7 +251,7 @@ public class BatteryKVTransactionAlias {
 			 System.out.println("KV BATTERY1AR8 REVERSE CONTAINS KEY TOOK "+(System.currentTimeMillis()-tims)+" ms." );
 		//i = max-1;
 		tims = System.currentTimeMillis();
-		for(int j = min; j < min+numLookupByValue; j++) {
+		for(int j = min+k; j < min+numLookupByValue; j+=2) {
 			// careful here, have to do the conversion explicitly
 			boolean bits = bmap3.containsValue(xid, (long)j);
 			if( !bits ) {
@@ -258,8 +261,8 @@ public class BatteryKVTransactionAlias {
 		}
 		System.out.println("KV BATTERY1AR8 FORWARD "+numLookupByValue+" CONTAINS VALUE TOOK "+(System.currentTimeMillis()-tims)+" ms.");
 		tims = System.currentTimeMillis();
-		for(int j = max; j > max-numLookupByValue ; j--) {
-				// careful here, have to do the conversion explicitly
+		for(int j = (max-1)-k; j > max-numLookupByValue ; j-=2) {
+				// have to do the conversion explicitly
 				boolean bits = bmap3.containsValue(xid, (long)j);
 				if( !bits ) {
 					System.out.println("KV BATTERY1AR8 cant find contains value "+j);
@@ -274,10 +277,11 @@ public class BatteryKVTransactionAlias {
 	 * @param xid
 	 * @param alias12 
 	 * @param bmap3 
+	 * @param j 
 	 * @throws Exception
 	 */
-	public static void battery1AR9(TransactionId xid, Alias alias12, TransactionalMap bmap3) throws Exception {
-		int i = min;
+	public static void battery1AR9(TransactionId xid, Alias alias12, TransactionalMap bmap3, int j) throws Exception {
+		int i = min+j;
 		long tims = System.currentTimeMillis();
 		Object k = bmap3.firstKey(xid); // first key
 		System.out.println(xid+" KV Battery1AR9 "+alias12);
@@ -298,10 +302,11 @@ public class BatteryKVTransactionAlias {
 	 * @param xid
 	 * @param alias12 
 	 * @param bmap3 
+	 * @param j 
 	 * @throws Exception
 	 */
-	public static void battery1AR10(TransactionId xid, Alias alias12, TransactionalMap bmap3) throws Exception {
-		int i = max-1;
+	public static void battery1AR10(TransactionId xid, Alias alias12, TransactionalMap bmap3, int j) throws Exception {
+		int i = (max-1)-j;
 		long tims = System.currentTimeMillis();
 		Object k = bmap3.lastKey(xid); // key
 		System.out.println(xid+" KV Battery1AR10 "+alias12);
@@ -321,10 +326,11 @@ public class BatteryKVTransactionAlias {
 	 * @param xid
 	 * @param alias12 
 	 * @param bmap3 
+	 * @param j 
 	 * @throws Exception
 	 */
-	public static void battery1AR101(TransactionId xid, Alias alias12, TransactionalMap bmap3) throws Exception {
-		int i = max;
+	public static void battery1AR101(TransactionId xid, Alias alias12, TransactionalMap bmap3, int j) throws Exception {
+		int i = max/2;
 		long tims = System.currentTimeMillis();
 		long bits = bmap3.size(xid);
 		System.out.println(xid+" KV Battery1AR101 "+alias12);
@@ -339,11 +345,12 @@ public class BatteryKVTransactionAlias {
 	 * @param xid
 	 * @param alias12 
 	 * @param bmap3 
+	 * @param j 
 	 * @throws Exception
 	 */
-	public static void battery1AR11(TransactionId xid, Alias alias12, TransactionalMap bmap3) throws Exception {
+	public static void battery1AR11(TransactionId xid, Alias alias12, TransactionalMap bmap3, int j) throws Exception {
 		long tims = System.currentTimeMillis();
-		int i = min;
+		int i = min+j;
 		String fkey = alias12+String.format(uniqKeyFmt, i);
 		Iterator<?> its = bmap3.tailMap(xid, fkey);
 		System.out.println(xid+" KV Battery1AR11 "+alias12);
@@ -353,7 +360,7 @@ public class BatteryKVTransactionAlias {
 				System.out.println("KV RANGE KEY MISMATCH:"+i+" - "+nex);
 				throw new Exception("KV RANGE KEY MISMATCH:"+i+" - "+nex);
 			}
-			++i;
+			i+=2;
 		}
 		 System.out.println("BATTERY1AR11 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
@@ -362,11 +369,12 @@ public class BatteryKVTransactionAlias {
 	 * @param xid
 	 * @param alias12 
 	 * @param bmap3 
+	 * @param j 
 	 * @throws Exception
 	 */
-	public static void battery1AR12(TransactionId xid, Alias alias12, TransactionalMap bmap3) throws Exception {
+	public static void battery1AR12(TransactionId xid, Alias alias12, TransactionalMap bmap3, int j) throws Exception {
 		long tims = System.currentTimeMillis();
-		int i = min;
+		int i = min+j;
 		String fkey = alias12+String.format(uniqKeyFmt, i);
 		Iterator its = bmap3.tailMapKV(xid, fkey);
 		System.out.println(xid+" KV Battery1AR12 "+alias12);
@@ -377,7 +385,7 @@ public class BatteryKVTransactionAlias {
 				System.out.println("KV RANGE KEY MISMATCH:"+i+" - "+nex);
 				throw new Exception("KV RANGE KEY MISMATCH:"+i+" - "+nex);
 			}
-			++i;
+			i+=2;
 		}
 		 System.out.println("BATTERY1AR12 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
@@ -387,16 +395,17 @@ public class BatteryKVTransactionAlias {
 	 * @param xid
 	 * @param alias12 
 	 * @param bmap3 
+	 * @param j 
 	 * @throws Exception
 	 */
-	public static void battery1AR13(TransactionId xid, Alias alias12, TransactionalMap bmap3) throws Exception {
+	public static void battery1AR13(TransactionId xid, Alias alias12, TransactionalMap bmap3, int j) throws Exception {
 		long tims = System.currentTimeMillis();
 		int i = max;
 		String fkey = alias12+String.format(uniqKeyFmt, i);
 		Iterator its = bmap3.headMap(xid, fkey);
 		System.out.println(xid+" KV Battery1AR13 "+alias12);
 		// with i at max, should catch them all
-		i = min;
+		i = min+j;
 		while(its.hasNext()) {
 			String nex = (String) its.next();
 			if(Integer.parseInt(nex.substring(alias12.getAlias().length())) != i) {
@@ -404,7 +413,7 @@ public class BatteryKVTransactionAlias {
 				System.out.println("KV RANGE 1AR13 KEY MISMATCH:"+i+" - "+nex);
 				throw new Exception("KV RANGE 1AR13 KEY MISMATCH:"+i+" - "+nex);
 			}
-			++i;
+			i+=2;
 		}
 		 System.out.println("BATTERY1AR13 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
@@ -414,15 +423,16 @@ public class BatteryKVTransactionAlias {
 	 * @param xid
 	 * @param alias12 
 	 * @param bmap3 
+	 * @param j 
 	 * @throws Exception
 	 */
-	public static void battery1AR14(TransactionId xid, Alias alias12, TransactionalMap bmap3) throws Exception {
+	public static void battery1AR14(TransactionId xid, Alias alias12, TransactionalMap bmap3, int j) throws Exception {
 		long tims = System.currentTimeMillis();
 		int i = max;
 		String fkey = alias12+String.format(uniqKeyFmt, i);
 		Iterator<?> its = bmap3.headMapKV(xid, fkey);
 		System.out.println(xid+" KV Battery1AR14 "+alias12);
-		i = min;
+		i = min+j;
 		while(its.hasNext()) {
 			Comparable nex = (Comparable) its.next();
 			Map.Entry<String, Long> nexe = (Map.Entry<String,Long>)nex;
@@ -430,7 +440,7 @@ public class BatteryKVTransactionAlias {
 				System.out.println("KV RANGE KEY MISMATCH:"+i+" - "+nex);
 				throw new Exception("KV RANGE KEY MISMATCH:"+i+" - "+nex);
 			}
-			++i;
+			i+=2;
 		}
 		 System.out.println("BATTERY1AR14 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
@@ -440,25 +450,25 @@ public class BatteryKVTransactionAlias {
 	 * @param xid
 	 * @param alias12 
 	 * @param bmap3 
+	 * @param k 
 	 * @throws Exception
 	 */
-	public static void battery1AR15(TransactionId xid, Alias alias12, TransactionalMap bmap3) throws Exception {
+	public static void battery1AR15(TransactionId xid, Alias alias12, TransactionalMap bmap3, int k) throws Exception {
 		long tims = System.currentTimeMillis();
-		int i = min;
+		int i = min+k;
 		int j = max;
 		String fkey = alias12+String.format(uniqKeyFmt, i);
 		// with j at max, should get them all since we stored to max -1
 		String tkey = alias12+String.format(uniqKeyFmt, j);
 		Iterator<?> its = bmap3.subMap(xid, fkey, tkey);
 		System.out.println(xid+" KV Battery1AR15 "+alias12);
-		// with i at max, should catch them all
 		while(its.hasNext()) {
 			String nex = (String) its.next();
 			if(Integer.parseInt(nex.substring((alias12.getAlias().length()))) != i) {
 				System.out.println("KV RANGE 1AR15 KEY MISMATCH:"+i+" - "+nex);
 				throw new Exception("KV RANGE 1AR15 KEY MISMATCH:"+i+" - "+nex);
 			}
-			++i;
+			i+=2;
 		}
 		 System.out.println("BATTERY1AR15 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
@@ -468,11 +478,12 @@ public class BatteryKVTransactionAlias {
 	 * @param xid
 	 * @param alias12 
 	 * @param bmap3 
+	 * @param k 
 	 * @throws Exception
 	 */
-	public static void battery1AR16(TransactionId xid, Alias alias12, TransactionalMap bmap3) throws Exception {
+	public static void battery1AR16(TransactionId xid, Alias alias12, TransactionalMap bmap3, int k) throws Exception {
 		long tims = System.currentTimeMillis();
-		int i = min;
+		int i = min+k;
 		int j = max;
 		String fkey = alias12+String.format(uniqKeyFmt, i);
 		// with j at max, should get them all since we stored to max -1
@@ -487,7 +498,7 @@ public class BatteryKVTransactionAlias {
 				System.out.println("KV RANGE 1AR16 KEY MISMATCH:"+i+" - "+nexe);
 				throw new Exception("KV RANGE 1AR16 KEY MISMATCH:"+i+" - "+nexe);
 			}
-			++i;
+			i+=2;
 		}
 		 System.out.println("BATTERY1AR16 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
@@ -496,9 +507,10 @@ public class BatteryKVTransactionAlias {
 	 * @param xid
 	 * @param alias12 
 	 * @param bmap3 
+	 * @param j 
 	 * @throws Exception
 	 */
-	public static void battery1AR17(TransactionId xid, Alias alias12, TransactionalMap bmap3) throws Exception {
+	public static void battery1AR17(TransactionId xid, Alias alias12, TransactionalMap bmap3, int j) throws Exception {
 		long tims = System.currentTimeMillis();
 		TransactionId xid2 = DatabaseManager.getTransactionId();
 		TransactionalMap bmap2 = DatabaseManager.getTransactionalMap(String.class, xid2);
@@ -506,7 +518,7 @@ public class BatteryKVTransactionAlias {
 		//String tkey = String.format(uniqKeyFmt, j);
 		System.out.println(xid+" KV Battery1AR17 "+alias12);
 		// with i at max, should catch them all
-		for(int i = min; i < max; i++) {
+		for(int i = min+j; i < max; i+=2) {
 			String fkey = alias12+String.format(uniqKeyFmt, i);
 			bmap2.remove(xid2, fkey);
 			if(bmap2.contains(xid2, fkey)) { 
@@ -536,24 +548,25 @@ public class BatteryKVTransactionAlias {
 	 * @param xid
 	 * @param alias12 
 	 * @param bmap3 
+	 * @param j 
 	 * @throws Exception
 	 */
-	public static void battery18(TransactionId xid, Alias alias12, TransactionalMap bmap3) throws Exception {
+	public static void battery18(TransactionId xid, Alias alias12, TransactionalMap bmap3, int j) throws Exception {
 		System.out.println(xid+" KV Battery18 "+alias12);
 		TransactionId xid2 = DatabaseManager.getTransactionId();
 		TransactionalMap bmap2 = DatabaseManager.getTransactionalMap(alias12, String.class, xid2);
-		int max1 = max - (max/2);
+		int max1 = max - (max/2) + j;
 		long tims = System.currentTimeMillis();
 		int recs = 0;
 		String fkey = null;
-		for(int i = min; i < max1; i++) {
+		for(int i = min; i < max1; i+=2) {
 			fkey = alias12+String.format(uniqKeyFmt, i);
 			bmap2.put(xid2, fkey, new Long(i));
 			++recs;
 		}
 		System.out.println(xid2+" Checkpointing..");
 		DatabaseManager.checkpointTransaction(xid2);
-		for(int i = max1; i < max; i++) {
+		for(int i = max1; i < max; i+=2) {
 			fkey = alias12+String.format(uniqKeyFmt, i);
 			bmap2.put(xid2, fkey, new Long(i));
 			++recs;
