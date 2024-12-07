@@ -681,7 +681,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 
 	@Override
 	public String toString() {
-		return (session == null ? "TransactionalMap Session NULL" : session.toString());
+		return (session == null ? "TransactionalMap Session NULL" : session.toString()+" ClassName:"+className+" ColumnFamily:"+columnFamilyDescriptor.toString());
 	}
 
 }

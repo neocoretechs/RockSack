@@ -1,5 +1,6 @@
 package com.neocoretechs.rocksack.session;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
@@ -112,16 +113,24 @@ public class DatabaseManager {
 	 * Set the tablespace for a given alias
 	 * @param alias
 	 * @param tableSpaceDir
+	 * @throws IOException 
 	 */
-	public static void setTableSpaceDir(Alias alias, String tableSpaceDir) {
-		VolumeManager.createAlias(alias, tableSpaceDir);
+	public static void setTableSpaceDir(Alias alias, String path) throws IOException {
+		File p = new File(path);
+		if(!new File(p.getParent()).isDirectory())
+			throw new IOException("Cannot set alias for tablespace directory using fileset "+path+" to allocate persistent storage.");
+		VolumeManager.createAlias(alias, path);
 	}
 	/**
 	 * Set the default tablespace for operations not using alias
 	 * @param tableSpaceDir
+	 * @throws IOException 
 	 */
-	public static void setTableSpaceDir(String tableSpaceDir) {
-		DatabaseManager.tableSpaceDir = tableSpaceDir;
+	public static void setTableSpaceDir(String path) throws IOException {
+		File p = new File(path);
+		if(!new File(p.getParent()).isDirectory())
+			throw new IOException("Cannot set tablespace directory for fileset "+path+" to allocate persistent storage.");
+		DatabaseManager.tableSpaceDir = path;
 	}
 	/**
 	 * Remove the given alias.
@@ -722,7 +731,7 @@ public class DatabaseManager {
 					TransactionalMap def = (TransactionalMap) v.classToIsoTransaction.get(xClass);
 					// have we already opened the main database?
 					if(def == null) {
-						TransactionSession ts = SessionManager.ConnectTransaction(tableSpaceDir+xClass, options, dClass);
+						TransactionSession ts = SessionManager.ConnectTransaction(VolumeManager.getAliasToPath(alias)+xClass, options, dClass);
 						// put the main class default ColumnFamily, its not there
 						TransactionalMap tm = new TransactionalMap(ts, dClass);
 						v.classToIsoTransaction.put(xClass, tm);
@@ -734,12 +743,12 @@ public class DatabaseManager {
 					}
 					v.classToIsoTransaction.put(dClass, ret);
 					if(DEBUG)
-						System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return DERIVED map:"+ret+" for dir:"+tableSpaceDir+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
+						System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return DERIVED map:"+ret+" for dir:"+VolumeManager.getAliasToPath(alias)+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
 				} else {
-					ret =  new TransactionalMap(SessionManager.ConnectTransaction(tableSpaceDir+xClass, options), xClass);
+					ret =  new TransactionalMap(SessionManager.ConnectTransaction(VolumeManager.getAliasToPath(alias)+xClass, options), xClass);
 					v.classToIsoTransaction.put(xClass, ret);
 					if(DEBUG)
-						System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return BASE map:"+ret+" for dir:"+tableSpaceDir+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
+						System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return BASE map:"+ret+" for dir:"+VolumeManager.getAliasToPath(alias)+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
 				}
 			} catch (RocksDBException e) {
 				throw new IOException(e);

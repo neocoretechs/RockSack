@@ -41,22 +41,29 @@ public class BatteryKVTransactionAlias {
 			System.out.println("Usage: java com.neocoretechs.relatrix.test.kv.BatteryKVTransactionAlias <path>");
 			System.exit(1);
 		}
-		DatabaseManager.setTableSpaceDir(argv[0]);
+		String tablespace = argv[0];
+		if(!tablespace.endsWith("/"))
+			tablespace += "/";
+		System.out.println("Tablespace:"+tablespace);
+		DatabaseManager.setTableSpaceDir(alias1,tablespace+alias1);
+		DatabaseManager.setTableSpaceDir(alias2,tablespace+alias2);
 		TransactionId xid = DatabaseManager.getTransactionId();
 		TransactionId xid0 = DatabaseManager.getTransactionId();
 		bmap = DatabaseManager.getTransactionalMap(alias1, String.class, xid);
+		System.out.println(bmap);
 		DatabaseManager.associateSession(alias1, xid0, bmap);
 		battery1(xid, xid0, alias1, bmap);
 		// Test 1 commits the transaction id's xid xid0
 		// expand these transactions to the next database
 		bmap2 = DatabaseManager.getTransactionalMap(alias2, String.class, xid);
+		System.out.println(bmap2);
 		DatabaseManager.associateSession(alias2, xid0, bmap2);
 		battery1(xid, xid0, alias2, bmap2);
 		TransactionId xid2 = DatabaseManager.getTransactionId();
-		bmap2 = DatabaseManager.getTransactionalMap(alias2, String.class, xid2);
+		DatabaseManager.associateSession(alias2, xid2, bmap2);
 		// xid2 will be rolled back then removed
 		battery11(xid2, alias2, bmap2);
-		// xid, and xid0 shoudl still be valid
+		// xid, and xid0 should still be valid
 		battery1AR6(xid, alias1, bmap);
 		battery1AR6(xid0, alias2, bmap2);
 		battery1AR7(xid, alias1, bmap);
@@ -118,7 +125,7 @@ public class BatteryKVTransactionAlias {
 			bmap3.put(xid, fkey, new Long(i));
 			fkey = alias12+String.format(uniqKeyFmt, i+1);
 			bmap3.put(xid0, fkey, new Long(i+1));
-			++recs;
+			recs+=2;
 		}
 		DatabaseManager.commitTransaction(alias12,xid);
 		DatabaseManager.commitTransaction(alias12,xid0);

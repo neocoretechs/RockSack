@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.Transaction;
 
+import com.neocoretechs.rocksack.Alias;
 import com.neocoretechs.rocksack.TransactionId;
 import com.neocoretechs.rocksack.session.VolumeManager.Volume;
 
@@ -161,10 +162,11 @@ public class TransactionManager {
 	 */
 	static List<Transaction> getOutstandingTransactionsByAliasAndId(String alias, String uid) {
 		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
+		Alias a = new Alias(alias);
 		for(Entry<TransactionId, TransactionSession> sessions : idToSession.entrySet()) {
 			// Get all the TransactionalMaps for the session
 			if(sessions.getKey().getTransactionId().equals(uid)) {
-				for(Entry<String, Transaction> transMaps: sessions.getValue().getTransactions(alias)) {
+				for(Entry<String, Transaction> transMaps: sessions.getValue().getTransactions(a)) {
 					// Get all the transactions active for each TransactionalMap
 					//if(!transact.getState().equals(TransactionState.COMMITED) &&
 					//	!transact.getState().equals(TransactionState.COMMITTED) &&
