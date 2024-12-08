@@ -59,7 +59,7 @@ public class BatteryKVStream {
 		battery1AR16(argv);
 		battery1AR17(argv);
 		battery18(argv);
-		System.out.println("BatterybmapStream TEST BATTERY COMPLETE.");
+		System.out.println("BatteryKVStream TEST BATTERY COMPLETE.");
 	}
 	/**
 	 * Loads up on keys, should be 0 to max-1, or min, to max -1
