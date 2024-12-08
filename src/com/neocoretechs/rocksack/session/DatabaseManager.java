@@ -875,7 +875,7 @@ public final class DatabaseManager {
 	public static synchronized void removeTransaction(Alias alias, TransactionId xid) throws NoSuchElementException, IOException {
 		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), xid.getTransactionId());
 		if(tx != null && !tx.isEmpty()) {
-				TransactionManager.removeTransaction(xid.getTransactionId());
+				TransactionManager.removeTransaction(alias,xid.getTransactionId());
 		} else
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}

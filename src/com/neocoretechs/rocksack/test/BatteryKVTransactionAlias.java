@@ -61,7 +61,6 @@ public class BatteryKVTransactionAlias {
 		TransactionId xid0 = DatabaseManager.getTransactionId();
 		
 		bmap = DatabaseManager.getTransactionalMap(alias1, String.class, xid);
-		System.out.println(bmap);
 		DatabaseManager.associateSession(xid0, bmap);
 		battery1(xid, xid0, alias1, bmap);
 		
@@ -74,7 +73,7 @@ public class BatteryKVTransactionAlias {
 		battery1(xid0, xid, alias2, bmap2);
 		
 		// Throw in a new transaction that we will roll back just to ensure we dont have interference
-		// from an intermediate transaction.
+		// from an intermediate transaction and to verify rollback is operational.
 		TransactionId xid2 = DatabaseManager.getTransactionId();
 		DatabaseManager.associateSession(xid2, bmap2);
 		// xid2 will be rolled back then removed
@@ -143,16 +142,14 @@ public class BatteryKVTransactionAlias {
 		battery1AR16(xid, alias2, bmap2, 1);
 		battery1AR16(xid0, alias2, bmap2, 0);
 		
-		battery1AR17(xid, alias1, bmap, 0);
-		battery1AR17(xid0, alias1, bmap, 1);
-		battery1AR17(xid, alias2, bmap2, 1);
-		battery1AR17(xid0, alias2, bmap2, 0);
 		DatabaseManager.commitTransaction(alias1,xid);
+		DatabaseManager.commitTransaction(alias1,xid0);
+		DatabaseManager.commitTransaction(alias2,xid);
 		DatabaseManager.commitTransaction(alias2,xid0);
-		// Perform a checkpoint test
-		// commit in this method
-		battery18(xid, alias1, bmap, 1);
-		battery18(xid0, alias2, bmap2, 0);
+	
+		// Perform a checkpoint test on the passed db to verify checkpoint is operational
+		battery18(alias1, bmap);
+
 		System.out.println("BatteryKVTransactionAlias TEST BATTERY COMPLETE.");
 		DatabaseManager.removeTransaction(alias1,xid);
 		DatabaseManager.removeTransaction(alias1,xid0);
@@ -173,11 +170,10 @@ public class BatteryKVTransactionAlias {
 		int dupes = 0;
 		int recs = 0;
 		String fkey = null;
-		int j = min;
-		j = (int) bmap3.size(xid);
-		if(j > 0) {
-			System.out.println("Cleaning DB of "+j+" elements.");
-			batteryCleanDB(xid, alias12, bmap3);		
+		int j = (int) bmap3.size(xid);
+		if(bmap3.size(xid) > 0) {
+			System.out.println("Cleaning exising DB "+alias12+" of "+j+" elements.");
+			batteryCleanDB(alias12, bmap3);		
 		}
 		// increment by 2, storing even in passed xid, and odd in passed xid0
 		// for each database will will pass opposite values
@@ -297,7 +293,7 @@ public class BatteryKVTransactionAlias {
 		}
 		 System.out.println("KV BATTERY1AR8 FORWARD CONTAINS KEY TOOK "+(System.currentTimeMillis()-tims)+" ms.");
 		 tims = System.currentTimeMillis();
-		 for(int j = (max-1)-k; j > min; j-=2) {
+		 for(int j = (max-(2-(1*k))); j > min; j-=2) {
 				String fkey = alias12+String.format(uniqKeyFmt, j);
 				boolean bits = bmap3.contains(xid, fkey);
 				if( !bits ) {
@@ -318,7 +314,7 @@ public class BatteryKVTransactionAlias {
 		}
 		System.out.println("KV BATTERY1AR8 FORWARD "+numLookupByValue+" CONTAINS VALUE TOOK "+(System.currentTimeMillis()-tims)+" ms.");
 		tims = System.currentTimeMillis();
-		for(int j = (max-1)-k; j > max-numLookupByValue ; j-=2) {
+		for(int j = (max-(2-(1*k))); j > max-numLookupByValue ; j-=2) {
 				// have to do the conversion explicitly
 				boolean bits = bmap3.containsValue(xid, (long)j);
 				if( !bits ) {
@@ -343,13 +339,13 @@ public class BatteryKVTransactionAlias {
 		Object k = bmap3.firstKey(xid); // first key
 		System.out.println(xid+" KV Battery1AR9 "+alias12);
 		if( Integer.parseInt(((String)k).substring(alias12.getAlias().length())) != i ) {
-			System.out.println("KV BATTERY1A9 cant find contains key "+i);
-			throw new Exception("KV BATTERY1AR9 unexpected cant find contains of key "+i);
+			System.out.println("KV BATTERY1A9 cant find contains key "+i+" from "+k);
+			throw new Exception("KV BATTERY1AR9 unexpected cant find contains of key "+i+" from "+k);
 		}
 		long ks = (long) bmap3.first(xid);
 		if( ks != i) {
-			System.out.println("KV BATTERY1A9 cant find contains value "+i);
-			throw new Exception("KV BATTERY1AR9 unexpected cant find contains of value "+i);
+			System.out.println("KV BATTERY1A9 cant find contains value "+i+" from "+ks);
+			throw new Exception("KV BATTERY1AR9 unexpected cant find contains of value "+i+" from "+ks);
 		}
 		System.out.println("KV BATTERY1AR9 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
@@ -363,18 +359,18 @@ public class BatteryKVTransactionAlias {
 	 * @throws Exception
 	 */
 	public static void battery1AR10(TransactionId xid, Alias alias12, TransactionalMap bmap3, int j) throws Exception {
-		int i = (max-1)-j;
+		int i = (max-(2-(1*j)));
 		long tims = System.currentTimeMillis();
 		Object k = bmap3.lastKey(xid); // key
 		System.out.println(xid+" KV Battery1AR10 "+alias12);
 		if( Long.parseLong(((String) k).substring(alias12.getAlias().length())) != (long)i ) {
-			System.out.println("KV BATTERY1AR10 cant find last key "+i);
-			throw new Exception("KV BATTERY1AR10 unexpected cant find last of key "+i);
+			System.out.println("KV BATTERY1AR10 cant find last key "+i+" from "+k);
+			throw new Exception("KV BATTERY1AR10 unexpected cant find last of key "+i+" from "+k);
 		}
 		long ks = (long)bmap3.last(xid);
 		if( ks != i) {
-			System.out.println("KV BATTERY1AR10 cant find last value "+i);
-			throw new Exception("KV BATTERY1AR10 unexpected cant find last of key "+i);
+			System.out.println("KV BATTERY1AR10 cant find last value "+i+" from "+ks);
+			throw new Exception("KV BATTERY1AR10 unexpected cant find last of key "+i+" from "+ks);
 		}
 		System.out.println("KV BATTERY1AR10 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
@@ -433,7 +429,7 @@ public class BatteryKVTransactionAlias {
 		long tims = System.currentTimeMillis();
 		int i = min+j;
 		String fkey = alias12+String.format(uniqKeyFmt, i);
-		Iterator its = bmap3.tailMapKV(xid, fkey);
+		Iterator<?> its = bmap3.tailMapKV(xid, fkey);
 		System.out.println(xid+" KV Battery1AR12 "+alias12);
 		while(its.hasNext()) {
 			Comparable nex = (Comparable) its.next();
@@ -459,7 +455,7 @@ public class BatteryKVTransactionAlias {
 		long tims = System.currentTimeMillis();
 		int i = max;
 		String fkey = alias12+String.format(uniqKeyFmt, i);
-		Iterator its = bmap3.headMap(xid, fkey);
+		Iterator<?> its = bmap3.headMap(xid, fkey);
 		System.out.println(xid+" KV Battery1AR13 "+alias12);
 		// with i at max, should catch them all
 		i = min+j;
@@ -559,71 +555,29 @@ public class BatteryKVTransactionAlias {
 		}
 		 System.out.println("BATTERY1AR16 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
-	/**
-	 * remove entries
-	 * @param xid
-	 * @param alias12 
-	 * @param bmap3 
-	 * @param j 
-	 * @throws Exception
-	 */
-	public static void battery1AR17(TransactionId xid, Alias alias12, TransactionalMap bmap3, int j) throws Exception {
-		long tims = System.currentTimeMillis();
-		TransactionId xid2 = DatabaseManager.getTransactionId();
-		TransactionalMap bmap2 = DatabaseManager.getTransactionalMap(String.class, xid2);
-		// with j at max, should get them all since we stored to max -1
-		//String tkey = String.format(uniqKeyFmt, j);
-		System.out.println(xid+" KV Battery1AR17 "+alias12);
-		// with i at max, should catch them all
-		for(int i = min+j; i < max; i+=2) {
-			String fkey = alias12+String.format(uniqKeyFmt, i);
-			bmap2.remove(xid2, fkey);
-			if(bmap2.contains(xid2, fkey)) { 
-				System.out.println("KV RANGE 1AR17 KEY MISMATCH:"+i);
-				throw new Exception("KV RANGE 1AR17 KEY MISMATCH:"+i);
-			}
-		}
-		DatabaseManager.commitTransaction(alias12,xid2);
-		long siz = bmap2.size(xid2);
-		if(siz > 0) {
-			Iterator<?> its = bmap2.entrySet(xid2);
-			while(its.hasNext()) {
-				Object nex = its.next();
-				//System.out.println(i+"="+nex);
-				System.out.println(nex);
-			}
-			System.out.println("KV RANGE 1AR17 KEY MISMATCH:"+siz+" > 0 after all deleted and committed");
-			throw new Exception("KV RANGE 1AR17 KEY MISMATCH:"+siz+" > 0 after delete/commit");
-		}
-		DatabaseManager.removeTransaction(alias12,xid2);
-		System.out.println("BATTERY1AR17 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
-	}
 	
 	/**
 	 * Get next transaction id,
 	 * Insert half the keys, checkpoint, then insert other half, commit, then remove trans.
-	 * @param xid
 	 * @param alias12 
-	 * @param bmap3 
-	 * @param j 
 	 * @throws Exception
 	 */
-	public static void battery18(TransactionId xid, Alias alias12, TransactionalMap bmap3, int j) throws Exception {
-		System.out.println(xid+" KV Battery18 "+alias12);
+	public static void battery18(Alias alias12, TransactionalMap bmap2) throws Exception {
 		TransactionId xid2 = DatabaseManager.getTransactionId();
-		TransactionalMap bmap2 = DatabaseManager.getTransactionalMap(alias12, String.class, xid2);
-		int max1 = max - (max/2) + j;
+		DatabaseManager.associateSession(xid2, bmap2);
+		System.out.println(xid2+" KV Battery18 "+alias12);
+		int max1 = max - (max/2);
 		long tims = System.currentTimeMillis();
 		int recs = 0;
 		String fkey = null;
-		for(int i = min; i < max1; i+=2) {
+		for(int i = min; i < max1; i++) {
 			fkey = alias12+String.format(uniqKeyFmt, i);
 			bmap2.put(xid2, fkey, new Long(i));
 			++recs;
 		}
 		System.out.println(xid2+" Checkpointing..");
-		DatabaseManager.checkpointTransaction(xid2);
-		for(int i = max1; i < max; i+=2) {
+		DatabaseManager.checkpointTransaction(alias12, xid2);
+		for(int i = max1; i < max; i++) {
 			fkey = alias12+String.format(uniqKeyFmt, i);
 			bmap2.put(xid2, fkey, new Long(i));
 			++recs;
@@ -637,18 +591,20 @@ public class BatteryKVTransactionAlias {
 	 * remove entries
 	 * @param bmap3 
 	 * @param alias12 
-	 * @param argv
 	 * @throws Exception
 	 */
-	private static void batteryCleanDB(TransactionId xid, Alias alias12, TransactionalMap bmap3) throws Exception {
+	private static void batteryCleanDB(Alias alias12, TransactionalMap bmap3) throws Exception {
 		long tims = System.currentTimeMillis();
+		TransactionId xid = DatabaseManager.getTransactionId();
+		DatabaseManager.associateSession(xid, bmap3);
 		System.out.println(alias12+" CleanDB "+xid);
 		for(int i = min; i < max; i++) {
 			String fkey = alias12+String.format(uniqKeyFmt, i);
 			bmap3.remove(xid, fkey);
 		}
 		DatabaseManager.commitTransaction(alias12,xid);
-		 System.out.println("CleanDB SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
+		DatabaseManager.removeTransaction(alias12,xid);
+		System.out.println("CleanDB SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
 	
 }

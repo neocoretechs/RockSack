@@ -452,9 +452,12 @@ public final class TransactionManager {
 	}
 	
 	/**
-	 * Remove the transaction from all volumes that had an idToTransaction table entry with this transaction id.
+	 * Remove the transaction from the session linkage. This will remove all transactions prefixed with
+	 * this transactionid, so if you use this in an alias context, it will remove the transaction from all aliased
+	 * references as well. When using aliases, use the form that qualifies the alias unless your intent is to remove
+	 * all aliased references. 
 	 * @param uid The target transaction id
-	 * @throws IOException If transaction state was not STARTED, COMMITTED, or ROLLEDBACK
+	 * @throws IOException if we encounter extreme corruption
 	 */
 	static void removeTransaction(String uid) throws IOException {
 		TransactionId tid = new TransactionId(uid);
@@ -478,6 +481,36 @@ public final class TransactionManager {
 			}
 			idToNameToSessionAndTransaction.remove(tid);
 		}
+	}
+	/**
+	 * Remove transaction from session linkage. This form ensures that only the references that refer to aliased entries will be removed.
+	 * @param alias
+	 * @param uid
+	 * @throws IOException
+	 */
+	static void removeTransaction(Alias alias, String uid) throws IOException {
+		TransactionId tid = new TransactionId(uid);
+		ConcurrentHashMap<String, SessionAndTransaction> tis = idToNameToSessionAndTransaction.get(tid);
+		List<String> ts = new ArrayList<String>();
+		for(Entry<String, SessionAndTransaction> s : tis.entrySet()) {
+			if(DEBUG) {
+				System.out.printf("TransactionManager.removeTransaction xid:%s name:%s%n", uid, s.getValue());
+			}
+			// sanity check
+			if(!s.getKey().startsWith(uid))
+				throw new IOException("Encountered corrupt idToNameToSessionAndTransaction entry");
+			if(s.getKey().endsWith(alias.getAlias()))
+				ts.add(s.getKey());
+		}
+		for(String s : ts) {
+			tis.remove(s);
+		}
+		if(tis.isEmpty()) {
+			if(DEBUG) {
+				System.out.printf("TransactionManager.removeTransaction removing empty idToNameToSessionAndTransaction map entry for xid:%s%n", tid);
+			}
+			idToNameToSessionAndTransaction.remove(tid);
+		}	
 	}
 
 }
