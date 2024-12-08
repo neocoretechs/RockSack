@@ -23,7 +23,7 @@ import com.neocoretechs.rocksack.session.VolumeManager.Volume;
  *
  */
 public final class TransactionManager {
-	private static boolean DEBUG = true;
+	private static boolean DEBUG = false;
 	private static ConcurrentHashMap<TransactionId, ConcurrentHashMap<String, SessionAndTransaction>> idToNameToSessionAndTransaction = new ConcurrentHashMap<TransactionId,ConcurrentHashMap<String, SessionAndTransaction>>();
 	// Multithreaded double check Singleton setups:
 	// 1.) privatized constructor; no other class can call
@@ -101,13 +101,17 @@ public final class TransactionManager {
 	static Collection<ConcurrentHashMap<String, SessionAndTransaction>> getTransactionSessions() {
 		return idToNameToSessionAndTransaction.values();
 	}
-	
+	/**
+	 * Get the submap of mangled name to {@link SessionAndTransaction} instances
+	 * @param xid
+	 * @return
+	 */
 	static ConcurrentHashMap<String, SessionAndTransaction> getTransactionSession(TransactionId xid) {
-		if(DEBUG) {
-			System.out.printf("TransactionManager.getTransactionSession %s%n", xid);
-			System.out.printf("TransactionManager.getTransactionSession size:%s%n",idToNameToSessionAndTransaction.size());
-			System.out.printf("TransactionManager.getTransactionSession will return:%s%n",idToNameToSessionAndTransaction.get(xid));
-		}
+		//if(DEBUG) {
+		//	System.out.printf("TransactionManager.getTransactionSession %s%n", xid);
+		//	System.out.printf("TransactionManager.getTransactionSession size:%s%n",idToNameToSessionAndTransaction.size());
+		//	System.out.printf("TransactionManager.getTransactionSession will return:%s%n",idToNameToSessionAndTransaction.get(xid));
+		//}
 		return idToNameToSessionAndTransaction.get(xid);
 	}
 	/**

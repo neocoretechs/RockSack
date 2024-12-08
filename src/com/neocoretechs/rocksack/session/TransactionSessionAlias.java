@@ -33,7 +33,7 @@ import com.neocoretechs.rocksack.session.TransactionManager.SessionAndTransactio
  *
  */
 public class TransactionSessionAlias extends TransactionSession {
-	private static boolean DEBUG = true;
+	private static boolean DEBUG = false;
 	private Alias alias;
 	
 	protected TransactionSessionAlias(TransactionDB kvStore, Options options, ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor, List<ColumnFamilyHandle> columnFamilyHandles, Alias alias) {

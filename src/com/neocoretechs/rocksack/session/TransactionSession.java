@@ -34,7 +34,7 @@ import com.neocoretechs.rocksack.session.TransactionManager.SessionAndTransactio
  *
  */
 public class TransactionSession extends Session implements TransactionInterface {
-	private static boolean DEBUG = true;
+	private static boolean DEBUG = false;
 	ReadOptions ro;
 	WriteOptions wo;
 
@@ -115,7 +115,6 @@ public class TransactionSession extends Session implements TransactionInterface 
 				throw new RuntimeException(e);
 		}
 	}
-
 
 	/**
 	 * Generate a mangled name identifier of transaction id, classname, and optionally the alias,
