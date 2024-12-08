@@ -77,12 +77,28 @@ import com.neocoretechs.rocksack.session.VolumeManager.Volume;
  * @author Jonathan Groff Copyright (C) NeoCoreTechs 2014,2015,2021,2022,2024
  *
  */
-public class DatabaseManager {
+public final class DatabaseManager {
 	private static boolean DEBUG = true;
 	private static String tableSpaceDir = "/";
 	private static final char[] ILLEGAL_CHARS = { '[', ']', '!', '+', '=', '|', ';', '?', '*', '\\', '<', '>', '|', '\"', ':' };
 	private static final char[] OK_CHARS = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E' };
 	private static Options options = null;
+	
+	// Multithreaded double check Singleton setups:
+	// 1.) privatized constructor; no other class can call
+	private DatabaseManager() {
+	}
+	// 2.) volatile instance
+	private static volatile DatabaseManager instance = null;
+	// 3.) lock class, assign instance if null
+	public static DatabaseManager getInstance() {
+		synchronized(DatabaseManager.class) {
+			if(instance == null) {
+				instance = new DatabaseManager();
+			}
+		}
+		return instance;
+	}	
 	
 	static {
 		RocksDB.loadLibrary();

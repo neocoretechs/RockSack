@@ -675,9 +675,6 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 		return session.tailSetKVStream(txn, columnFamilyHandle, fkey);
 	}
 
-	//public void BeginTransaction() throws IOException {
-	//	txn = getSession().getKVStore().beginTransaction(wo);	
-	//}
 
 	@Override
 	public String toString() {

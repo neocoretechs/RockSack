@@ -22,7 +22,7 @@ import com.neocoretechs.rocksack.session.VolumeManager.Volume;
  * @author Jonathan Groff Copyright (C) NeoCoreTechs 2024
  *
  */
-public class TransactionManager {
+public final class TransactionManager {
 	private static boolean DEBUG = true;
 	private static ConcurrentHashMap<TransactionId, ConcurrentHashMap<String, SessionAndTransaction>> idToNameToSessionAndTransaction = new ConcurrentHashMap<TransactionId,ConcurrentHashMap<String, SessionAndTransaction>>();
 	// Multithreaded double check Singleton setups:

@@ -50,6 +50,13 @@ public class TransactionSession extends Session implements TransactionInterface 
 	}
 	
 	@Override
+	public Transaction BeginTransaction(String transactionName) throws RocksDBException {
+		Transaction t = getKVStore().beginTransaction(new WriteOptions());
+		t.setName(transactionName);
+		return t;
+	}
+	
+	@Override
 	public Transaction BeginTransaction() {
 		return getKVStore().beginTransaction(new WriteOptions());
 	}
@@ -97,8 +104,7 @@ public class TransactionSession extends Session implements TransactionInterface 
 			if(!exists && create) {
 				if(DEBUG)
 					System.out.printf("%s.getTransaction Creating Transaction id:%s Transaction name:%s%n",this.getClass().getName(),transactionId,name);
-				transaction = BeginTransaction();
-				transaction.setName(name);
+				transaction = BeginTransaction(name);
 				transLink = new SessionAndTransaction(this, transaction);
 				transSession.put(name, transLink);
 			}
@@ -126,7 +132,12 @@ public class TransactionSession extends Session implements TransactionInterface 
 		String name = xid.getTransactionId()+tm.getClassName();
 		if(tLink.contains(name))
 			return true;
-		SessionAndTransaction sLink = new SessionAndTransaction(tm.getSession(), BeginTransaction());
+		SessionAndTransaction sLink;
+		try {
+			sLink = new SessionAndTransaction(tm.getSession(), BeginTransaction(name));
+		} catch (RocksDBException e) {
+			throw new IOException(e);
+		}
 		tLink.put(name, sLink);
 		return false;
 	}

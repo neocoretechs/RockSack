@@ -21,10 +21,26 @@ import com.neocoretechs.rocksack.Alias;
  * @author Jonathan Groff Copyright (C) NeoCoreTechs 2023
  *
  */
-public class VolumeManager {
+public final class VolumeManager {
 	private static boolean DEBUG = false;
 	private static ConcurrentHashMap<String, Volume> pathToVolume = new ConcurrentHashMap<String,Volume>();
 	private static ConcurrentHashMap<Alias, String> aliasToPath = new ConcurrentHashMap<Alias,String>();
+	
+	// Multithreaded double check Singleton setups:
+	// 1.) privatized constructor; no other class can call
+	private VolumeManager() {
+	}
+	// 2.) volatile instance
+	private static volatile VolumeManager instance = null;
+	// 3.) lock class, assign instance if null
+	public static VolumeManager getInstance() {
+		synchronized(VolumeManager.class) {
+			if(instance == null) {
+				instance = new VolumeManager();
+			}
+		}
+		return instance;
+	}
 	/**
 	 * Index by tablespaceDir
 	 */

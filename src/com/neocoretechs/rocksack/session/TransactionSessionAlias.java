@@ -50,7 +50,12 @@ public class TransactionSessionAlias extends TransactionSession {
 		String name = xid.getTransactionId()+tm.getClassName()+alias.getAlias();
 		if(tLink.contains(name))
 			return true;
-		SessionAndTransaction sLink = new SessionAndTransaction(tm.getSession(), BeginTransaction());
+		SessionAndTransaction sLink;
+		try {
+			sLink = new SessionAndTransaction(tm.getSession(), BeginTransaction(name));
+		} catch (RocksDBException e) {
+			throw new IOException(e);
+		}
 		tLink.put(name, sLink);
 		return false;
 	}
@@ -110,8 +115,7 @@ public class TransactionSessionAlias extends TransactionSession {
 			if(!exists && create) {
 				if(DEBUG)
 					System.out.printf("%s.getTransaction Creating Transaction id:%s Transaction name:%s%n",this.getClass().getName(),transactionId,name);
-				transaction = BeginTransaction();
-				transaction.setName(name);
+				transaction = BeginTransaction(name);
 				transLink = new SessionAndTransaction(this, transaction);
 				transSession.put(name, transLink);
 			}
