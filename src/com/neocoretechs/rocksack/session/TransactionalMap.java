@@ -55,34 +55,25 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	private String className;
 	ColumnFamilyHandle columnFamilyHandle = null;
 	ColumnFamilyDescriptor columnFamilyDescriptor = null;
-	
-	/**
-	 * Calls processColumnFamily
-	 * @param session
-	 * @param xid
-	 * @throws IOException
-	 * @throws IllegalAccessException
-	 * @throws RocksDBException
-	 */
-	public TransactionalMap(TransactionSession session, Class mainClassName) throws IOException, IllegalAccessException, RocksDBException {
-		this.session = session;
-		this.className = mainClassName.getName();
-		processColumnFamily();
-	}
 
 	/**
-	 * Calls processColumnFamily with derivedClassName and starts a transaction with the given id.
-	 * @param session
-	 * @param xid
-	 * @param derivedClassName
+	 * Calls processColumnFamily with derivedClassName if derived is true, no args otherwise.
+	 * @param session The TransactionSession that manages this instance
+	 * @param className The class name this map represents. Used to form transaction name and derived column family info
+	 * @param isDerived true if this is to represent a derived class, such that the column family handle and descriptor can be properly identified
 	 * @throws IOException
 	 * @throws IllegalAccessException
 	 * @throws RocksDBException
 	 */
-	public TransactionalMap(TransactionSession session, String derivedClassName) throws IOException, IllegalAccessException, RocksDBException {
+	public TransactionalMap(TransactionSession session, String className, boolean isDerived) throws IOException, IllegalAccessException, RocksDBException {
 		this.session = session;
-		this.className = derivedClassName;
-		processColumnFamily(derivedClassName);
+		this.className = className;
+		if(DEBUG)
+			System.out.printf("%s %s %b%n", this.getClass().getName(), className, isDerived);
+		if(isDerived)
+			processColumnFamily(className);
+		else
+			processColumnFamily();
 	}
 
 	/**

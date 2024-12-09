@@ -9,9 +9,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.Options;
+import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.Transaction;
 import org.rocksdb.TransactionDB;
+import org.rocksdb.WriteOptions;
 
 import com.neocoretechs.rocksack.Alias;
 import com.neocoretechs.rocksack.TransactionId;
@@ -23,10 +25,8 @@ import com.neocoretechs.rocksack.session.TransactionManager.SessionAndTransactio
  * and the name must be unique. To enforce uniqueness considering these constraints, the name
  * formed will be a concatenation of Transaction Id, which is a UUID, the class name, which is also
  * a column family or the default column family, and the Alias, or none, which is the default database path.<p/>
- * The nameToTransaction map contains this mangled name as key, and a RocksDb TransactionDb Transaction instance
- * as value. From the {@link TransactionManager} we link the transaction Id's to an instance of this, and from here, we get
- * the set of associated transactions, identified by their mangled names. This class handles the aliased instances of 
- * TransactionSessions.
+ * From the {@link TransactionManager} we link the transaction Id's to an instance of this, and associated transaction.
+ * This class handles the aliased instances of TransactionSessions.
  * @author Jonathan Groff Copyright (C) NeoCoreTechs 2023,2024
  *
  */
@@ -37,14 +37,22 @@ public class TransactionSessionAlias extends TransactionSession {
 	protected TransactionSessionAlias(TransactionDB kvStore, Options options, ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor, List<ColumnFamilyHandle> columnFamilyHandles, Alias alias) {
 		super(kvStore, options, columnFamilyDescriptor, columnFamilyHandles);
 		this.alias = alias;
+		ro = new ReadOptions();
+		wo = new WriteOptions();
 	}
 	
 	public Alias getAlias() {
 		return alias;
 	}
 	
+	/**
+	 * Called from associateSession and setTransaction to link a new mangled name to a new SessionAndTransaction instance
+	 * to populate the passed tLink map .
+	 */
 	@Override
 	public boolean linkSessionAndTransaction(TransactionId xid, TransactionalMap tm, ConcurrentHashMap<String, SessionAndTransaction> tLink) throws IOException {
+		if(DEBUG)
+			System.out.printf("%s.linkSessionAndTransaction %s%n",this.getClass().getName(), tm);
 		String name = xid.getTransactionId()+tm.getClassName()+alias.getAlias();
 		if(tLink.contains(name))
 			return true;

@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
-import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.rocksdb.ColumnFamilyDescriptor;
@@ -17,7 +15,6 @@ import org.rocksdb.Transaction;
 import org.rocksdb.TransactionDB;
 import org.rocksdb.WriteOptions;
 
-import com.neocoretechs.rocksack.Alias;
 import com.neocoretechs.rocksack.TransactionId;
 import com.neocoretechs.rocksack.session.TransactionManager.SessionAndTransaction;
 /**
@@ -27,11 +24,8 @@ import com.neocoretechs.rocksack.session.TransactionManager.SessionAndTransactio
  * and the name must be unique. To enforce uniqueness considering these constraints, the name
  * formed will be a concatenation of Transaction Id, which is a UUID, the class name, which is also
  * a column family or the default column family, and the Alias, or none, which is the default database path.<p/>
- * The nameToTransaction map contains this mangled name as key, and a RocksDb TransactionDb Transaction instance
- * as value. From the {@link TransactionManager} we link the transaction Id's to an instance of this, and from here, we get
- * the set of associated transactions, identified by their mangled names.
+ * From the {@link TransactionManager} we link the transaction Id's to an instance of this and associated transaction.
  * @author Jonathan Groff Copyright (C) NeoCoreTechs 2023,2024
- *
  */
 public class TransactionSession extends Session implements TransactionInterface {
 	private static boolean DEBUG = false;
@@ -52,12 +46,16 @@ public class TransactionSession extends Session implements TransactionInterface 
 	@Override
 	public Transaction BeginTransaction(String transactionName) throws RocksDBException {
 		Transaction t = getKVStore().beginTransaction(new WriteOptions());
+		if(DEBUG)
+			System.out.printf("%s.BeginTransaction transaction name %s%n",this.getClass().getName(),transactionName);
 		t.setName(transactionName);
 		return t;
 	}
 	
 	@Override
 	public Transaction BeginTransaction() {
+		if(DEBUG)
+			System.out.printf("%s.BeginTransaction transaction name undefined%n",this.getClass().getName());
 		return getKVStore().beginTransaction(new WriteOptions());
 	}
 	/**
@@ -128,6 +126,8 @@ public class TransactionSession extends Session implements TransactionInterface 
 	 * @throws IOException
 	 */
 	public boolean linkSessionAndTransaction(TransactionId xid, TransactionalMap tm, ConcurrentHashMap<String, SessionAndTransaction> tLink) throws IOException {
+		if(DEBUG)
+			System.out.printf("%s.linkSessionAndTransaction %s%n",this.getClass().getName(), tm);
 		String name = xid.getTransactionId()+tm.getClassName();
 		if(tLink.contains(name))
 			return true;

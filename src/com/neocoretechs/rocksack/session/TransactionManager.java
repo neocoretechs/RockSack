@@ -127,6 +127,8 @@ public final class TransactionManager {
 		if(idToNameToSessionAndTransaction.contains(xid))
 			throw new IOException("Transaction id table already contains "+xid);
 		ConcurrentHashMap<String, SessionAndTransaction> newLink = new ConcurrentHashMap<String, SessionAndTransaction>();
+		// if map of mangled name to SessionAndTransaction instances exists already, this returns true
+		// however, since we are creating it anew, the check is irrelevant here
 		tm.getSession().linkSessionAndTransaction(xid, tm, newLink);
 		idToNameToSessionAndTransaction.put(xid, newLink);
 	}
