@@ -54,7 +54,7 @@ public class TransactionSessionAlias extends TransactionSession {
 		if(DEBUG)
 			System.out.printf("%s.linkSessionAndTransaction %s%n",this.getClass().getName(), tm);
 		String name = xid.getTransactionId()+tm.getClassName()+alias.getAlias();
-		if(tLink.contains(name))
+		if(tLink.containsKey(name))
 			return true;
 		SessionAndTransaction sLink;
 		try {

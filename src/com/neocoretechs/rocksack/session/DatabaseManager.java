@@ -677,6 +677,24 @@ public final class DatabaseManager {
 	}
 	
 	/**
+	 * TransactionalMap contains a {@link Session} or its subclasses {@link TransactionSession} or {@link TransactionSessionAlias}.
+	 * Purpose here is to determine whether a transaction id {@link TransactionId} with a mangled name and
+	 * 'session to transaction' in SessionTransaction in {@link TransactionManager}. 
+	 * contains a mangled name and a Transaction.
+	 * @param xid
+	 * @param tm
+	 * @return true if transaction id is associated to a {@link TransactionalMap}
+	 * @throws IOException
+	 */
+	public static boolean isSessionAssociated(TransactionId xid, TransactionalMap tm) throws IOException {
+		ConcurrentHashMap<String, SessionAndTransaction> ts = TransactionManager.getTransactionSession(xid);
+		if(DEBUG)
+			System.out.printf("DatabaseManager.isSessionAssociated %s %s %s%n",xid,tm.getClassName(),ts);
+		// does map of mangled name to SessionAndTransaction instances exist?
+		return tm.getSession().isTransactionLinked(xid, tm, ts);
+	}
+	
+	/**
 	 * Remove the given TransactionalMap from active DB/transaction collection
 	 * @param tmap the TransactionalMap for a given transaction Id
 	 */

@@ -69,7 +69,7 @@ public class BatteryKVTransactionStream {
 	 * @throws Exception
 	 */
 	public static void battery1(TransactionId xid) throws Exception {
-		System.out.println("KV Battery1 ");
+		System.out.println("KV Battery1 "+xid);
 		long tims = System.currentTimeMillis();
 		int dupes = 0;
 		int recs = 0;
@@ -95,12 +95,13 @@ public class BatteryKVTransactionStream {
 	 * @throws Exception
 	 */
 	public static void battery11(TransactionId xid) throws Exception {
-		System.out.println("KV Battery11 ");
+		System.out.println("KV Battery11 "+xid);
 		long tims = System.currentTimeMillis();
 		int recs = 0;
 		String fkey = null;
 		TransactionId xid2 = DatabaseManager.getTransactionId();
-		TransactionalMap bmap2 = DatabaseManager.getTransactionalMap(String.class, xid2);
+		DatabaseManager.associateSession(xid2, bmap);
+		TransactionalMap bmap2 = bmap;
 		for(int i = max; i < max*2; i++) {
 			fkey = String.format(uniqKeyFmt, i);
 			bmap2.put(xid2, fkey, new Long(fkey));
@@ -132,7 +133,7 @@ public class BatteryKVTransactionStream {
 		i = min;
 		long tims = System.currentTimeMillis();
 		Stream stream = bmap.entrySetStream(xid);
-		System.out.println("KV Battery1AR6");
+		System.out.println("KV Battery1AR6 "+xid);
 		stream.forEach(e ->{
 			if(((Map.Entry<String,Long>)e).getValue() != i) {
 				System.out.println("RANGE KEY MISMATCH:"+i+" - "+e);
@@ -154,7 +155,7 @@ public class BatteryKVTransactionStream {
 		i = min;
 		long tims = System.currentTimeMillis();
 		Stream stream = bmap.keySetStream(xid);
-		System.out.println("KV Battery1AR7");
+		System.out.println("KV Battery1AR7 "+xid);
 		stream.forEach(e ->{
 			if(Integer.parseInt((String)e) != i) {
 				System.out.println("KV RANGE KEY MISMATCH:"+i+" - "+e);
@@ -174,7 +175,7 @@ public class BatteryKVTransactionStream {
 	 */
 	public static void battery1AR8(TransactionId xid) throws Exception {
 		i = min;
-		System.out.println("KV Battery1AR8");
+		System.out.println("KV Battery1AR8 "+xid);
 		long tims = System.currentTimeMillis();
 		for(int j = min; j < max; j++) {
 			String fkey = String.format(uniqKeyFmt, j);
@@ -227,7 +228,7 @@ public class BatteryKVTransactionStream {
 		int i = min;
 		long tims = System.currentTimeMillis();
 		Object k = bmap.firstKey(xid); // first key
-		System.out.println("KV Battery1AR9");
+		System.out.println("KV Battery1AR9 "+xid);
 		if( Integer.parseInt((String)k) != i ) {
 			System.out.println("KV BATTERY1A9 cant find contains key "+i);
 			throw new Exception("KV BATTERY1AR9 unexpected cant find contains of key "+i);
@@ -249,7 +250,7 @@ public class BatteryKVTransactionStream {
 		int i = max-1;
 		long tims = System.currentTimeMillis();
 		Object k = bmap.lastKey(xid); // key
-		System.out.println("KV Battery1AR10");
+		System.out.println("KV Battery1AR10 "+xid);
 		if( Long.parseLong((String) k) != (long)i ) {
 			System.out.println("KV BATTERY1AR10 cant find last key "+i);
 			throw new Exception("KV BATTERY1AR10 unexpected cant find last of key "+i);
@@ -270,7 +271,7 @@ public class BatteryKVTransactionStream {
 		int i = max;
 		long tims = System.currentTimeMillis();
 		long bits = bmap.size(xid);
-		System.out.println("KV Battery1AR101");
+		System.out.println("KV Battery1AR101 "+xid);
 		if( bits != i ) {
 			System.out.println("KV BATTERY1AR101 size mismatch "+bits+" should be:"+i);
 			throw new Exception("KV BATTERY1AR101 size mismatch "+bits+" should be "+i);
@@ -287,7 +288,7 @@ public class BatteryKVTransactionStream {
 		i = min;
 		String fkey = String.format(uniqKeyFmt, i);
 		Stream stream = bmap.tailMapStream(xid, fkey);
-		System.out.println("KV Battery1AR11");
+		System.out.println("KV Battery1AR11 "+xid);
 		stream.forEach(e ->{
 			if(Integer.parseInt((String)e) != i) {
 				System.out.println("KV RANGE KEY MISMATCH:"+i+" - "+e);
@@ -307,7 +308,7 @@ public class BatteryKVTransactionStream {
 		i = min;
 		String fkey = String.format(uniqKeyFmt, i);
 		Stream stream = bmap.tailMapKVStream(xid, fkey);
-		System.out.println("KV Battery1AR12");
+		System.out.println("KV Battery1AR12 "+xid);
 		stream.forEach(e ->{
 			if(Integer.parseInt(((Map.Entry<String,Long>)e).getKey()) != i) {
 			// Map.Entry
@@ -329,7 +330,7 @@ public class BatteryKVTransactionStream {
 		i = max;
 		String fkey = String.format(uniqKeyFmt, i);
 		Stream stream = bmap.headMapStream(xid, fkey);
-		System.out.println("KV Battery1AR13");
+		System.out.println("KV Battery1AR13 "+xid);
 		// with i at max, should catch them all
 		i = min;
 		stream.forEach(e ->{
@@ -353,7 +354,7 @@ public class BatteryKVTransactionStream {
 		i = max;
 		String fkey = String.format(uniqKeyFmt, i);
 		Stream stream = bmap.headMapKVStream(xid, fkey);
-		System.out.println("KV Battery1AR14");
+		System.out.println("KV Battery1AR14 "+xid);
 		i = min;
 		stream.forEach(e ->{
 			if(Integer.parseInt(((Map.Entry<String,Long>)e).getKey()) != i) {
@@ -379,7 +380,7 @@ public class BatteryKVTransactionStream {
 		// with j at max, should get them all since we stored to max -1
 		String tkey = String.format(uniqKeyFmt, j);
 		Stream stream = bmap.subMapStream(xid, fkey, tkey);
-		System.out.println("KV Battery1AR15");
+		System.out.println("KV Battery1AR15 "+xid);
 		// with i at max, should catch them all
 		stream.forEach(e ->{
 			if(Integer.parseInt((String) e) != i) {
@@ -405,7 +406,7 @@ public class BatteryKVTransactionStream {
 		// with j at max, should get them all since we stored to max -1
 		String tkey = String.format(uniqKeyFmt, j);
 		Stream stream = bmap.subMapKVStream(xid, fkey, tkey);
-		System.out.println("KV Battery1AR16");
+		System.out.println("KV Battery1AR16 "+xid);
 		// with i at max, should catch them all
 		stream.forEach(e ->{
 			if(Integer.parseInt(((Map.Entry<String,Long>)e).getKey()) != i) {
@@ -427,10 +428,11 @@ public class BatteryKVTransactionStream {
 		//int i = min;
 		//int j = max;
 		TransactionId xid2 = DatabaseManager.getTransactionId();
-		TransactionalMap bmap2 = DatabaseManager.getTransactionalMap(String.class, xid2);
+		DatabaseManager.associateSession(xid2, bmap);
+		TransactionalMap bmap2 = bmap;
 		// with j at max, should get them all since we stored to max -1
 		//String tkey = String.format(uniqKeyFmt, j);
-		System.out.println("KV Battery1AR17");
+		System.out.println("KV Battery1AR17 "+xid);
 		// with i at max, should catch them all
 		for(int i = min; i < max; i++) {
 			String fkey = String.format(uniqKeyFmt, i);
@@ -466,9 +468,10 @@ public class BatteryKVTransactionStream {
 	 * @throws Exception
 	 */
 	public static void battery18(TransactionId xid) throws Exception {
-		System.out.println("KV Battery18 ");
+		System.out.println("KV Battery18 "+xid);
 		TransactionId xid2 = DatabaseManager.getTransactionId();
-		TransactionalMap bmap2 = DatabaseManager.getTransactionalMap(String.class, xid2);
+		DatabaseManager.associateSession(xid2, bmap);
+		TransactionalMap bmap2 = bmap;
 		int max1 = max - 50000;
 		long tims = System.currentTimeMillis();
 		int recs = 0;
@@ -478,7 +481,7 @@ public class BatteryKVTransactionStream {
 			bmap2.put(xid2, fkey, new Long(i));
 			++recs;
 		}
-		System.out.println("Checkpointing..");
+		System.out.println("Checkpointing.."+xid2);
 		DatabaseManager.checkpointTransaction(xid2);
 		for(int i = max1; i < max; i++) {
 			fkey = String.format(uniqKeyFmt, i);
@@ -502,7 +505,7 @@ public class BatteryKVTransactionStream {
 		//int j = max;
 		// with j at max, should get them all since we stored to max -1
 		//String tkey = String.format(uniqKeyFmt, j);
-		System.out.println("CleanDB");
+		System.out.println("CleanDB "+xid);
 		// with i at max, should catch them all
 		for(int i = min; i < max; i++) {
 			String fkey = String.format(uniqKeyFmt, i);

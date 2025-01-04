@@ -49,7 +49,8 @@ public class BatteryKVTransaction {
 		battery1(xid);
 		// Test 1 commits the transaction id xid
 		TransactionId xid2 = DatabaseManager.getTransactionId();
-		bmap2 = DatabaseManager.getTransactionalMap(String.class, xid2);
+		DatabaseManager.associateSession(xid2, bmap);
+		bmap2 = bmap;
 		battery11(xid2);
 		battery1AR6(xid);
 		battery1AR7(xid);
@@ -437,7 +438,8 @@ public class BatteryKVTransaction {
 	public static void battery1AR17(TransactionId xid) throws Exception {
 		long tims = System.currentTimeMillis();
 		TransactionId xid2 = DatabaseManager.getTransactionId();
-		TransactionalMap bmap2 = DatabaseManager.getTransactionalMap(String.class, xid2);
+		DatabaseManager.associateSession(xid2, bmap);
+		bmap2 = bmap;
 		System.out.println(xid+" KV Battery1AR17");
 		for(int i = min; i < max; i++) {
 			String fkey = String.format(uniqKeyFmt, i);
@@ -472,7 +474,8 @@ public class BatteryKVTransaction {
 	public static void battery18(TransactionId xid) throws Exception {
 		System.out.println(xid+" KV Battery18 ");
 		TransactionId xid2 = DatabaseManager.getTransactionId();
-		TransactionalMap bmap2 = DatabaseManager.getTransactionalMap(String.class, xid2);
+		DatabaseManager.associateSession(xid2, bmap);
+		bmap2 = bmap;
 		int max1 = max - (max/2);
 		long tims = System.currentTimeMillis();
 		int recs = 0;
