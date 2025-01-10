@@ -67,6 +67,29 @@ public class TransactionSessionAlias extends TransactionSession {
 	}
 	
 	/**
+	 * Check the mangled name identifier of transaction id, classname, and optionally the alias,
+	 * to identify this entry in the mapping of mangled name to SessionAndTransaction
+	 * instances from the passed map.
+	 * @param xid the TransactionId
+	 * @param tm the TransactionalMap we want to use for classname and sesssion
+	 * @param tLink The map entry from TransactionManager idToNameToSessionAndTransaction from key xid
+	 * @return true if passed map contains mangled name
+	 * @throws IOException
+	 */
+	@Override
+	public boolean isTransactionLinked(TransactionId xid, TransactionalMap tm, ConcurrentHashMap<String, SessionAndTransaction> tLink) throws IOException {
+		if(DEBUG)
+			System.out.printf("%s.isTransactionLinked %s %s%n",this.getClass().getName(), tm, tLink);
+		if(tLink == null)
+			return false;
+		String name = xid.getTransactionId()+tm.getClassName()+alias.getAlias();
+		if(DEBUG)
+			System.out.printf("%s.isTransactionLinked %s returning %b%n",this.getClass().getName(), name, tLink.containsKey(name));
+		if(tLink.containsKey(name))
+			return true;
+		return false;
+	}
+	/**
 	 * Get the Transaction object formed from id and class. If the transaction
 	 * id is in use for another class in this, the aliased db, use the existing transaction.
 	 * We assume can associate with another transaction in the same DB if necessary since

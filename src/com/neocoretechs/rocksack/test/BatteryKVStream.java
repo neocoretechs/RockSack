@@ -55,6 +55,7 @@ public class BatteryKVStream {
 		battery1AR12(argv);
 		battery1AR13(argv);
 		battery1AR14(argv);
+		battery1AR14A(argv);
 		battery1AR15(argv);
 		battery1AR16(argv);
 		battery1AR17(argv);
@@ -138,7 +139,7 @@ public class BatteryKVStream {
 		});
 		if( i != max ) {
 			System.out.println("BATTERY1AR6 unexpected number of keys "+i);
-			//throw new Exception("BATTERY1AR6 unexpected number of keys "+i);
+			throw new Exception("BATTERY1AR6 unexpected number of keys "+i);
 		}
 		 System.out.println("BATTERY1AR6 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
@@ -160,7 +161,7 @@ public class BatteryKVStream {
 		});
 		if( i != max ) {
 			System.out.println("KV BATTERY1AR7 unexpected number of keys "+i);
-			//throw new Exception("KV BATTERY1AR7 unexpected number of keys "+i);
+			throw new Exception("KV BATTERY1AR7 unexpected number of keys "+i);
 		}
 		 System.out.println("KV BATTERY1AR7 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
@@ -177,17 +178,17 @@ public class BatteryKVStream {
 			boolean bits = bmap.contains(fkey);
 			if( !bits ) {
 				System.out.println("KV BATTERY1A8 cant find contains key "+j);
-				//throw new Exception("KV BATTERY1AR8 unexpected cant find contains of key "+fkey);
+				throw new Exception("KV BATTERY1AR8 unexpected cant find contains of key "+fkey);
 			}
 		}
 		 System.out.println("KV BATTERY1AR8 FORWARD CONTAINS KEY TOOK "+(System.currentTimeMillis()-tims)+" ms.");
 		 tims = System.currentTimeMillis();
-		 for(int j = max; j > min; j--) {
+		 for(int j = max-1; j > min; j--) {
 				String fkey = String.format(uniqKeyFmt, j);
 				boolean bits = bmap.contains(fkey);
 				if( !bits ) {
 					System.out.println("KV BATTERY1A8 cant find contains key "+j);
-					//throw new Exception("KV BATTERY1AR8 unexpected cant find contains of key "+fkey);
+					throw new Exception("KV BATTERY1AR8 unexpected cant find contains of key "+fkey);
 				}
 			}
 			 System.out.println("KV BATTERY1AR8 REVERSE CONTAINS KEY TOOK "+(System.currentTimeMillis()-tims)+" ms.");
@@ -198,17 +199,17 @@ public class BatteryKVStream {
 			boolean bits = bmap.containsValue((long)j);
 			if( !bits ) {
 				System.out.println("KV BATTERY1AR8 cant find contains value "+j);
-				//throw new Exception("KV BATTERY1AR8 unexpected number cant find contains of value "+i);
+				throw new Exception("KV BATTERY1AR8 unexpected number cant find contains of value "+i);
 			}
 		}
 		System.out.println("KV BATTERY1AR8 FORWARD "+numLookupByValue+" CONTAINS VALUE TOOK "+(System.currentTimeMillis()-tims)+" ms.");
 		tims = System.currentTimeMillis();
-		for(int j = max; j > max-numLookupByValue; j--) {
+		for(int j = max-1; j > max-numLookupByValue; j--) {
 				// careful here, have to do the conversion explicitly
 				boolean bits = bmap.containsValue((long)j);
 				if( !bits ) {
 					System.out.println("KV BATTERY1AR8 cant find contains value "+j);
-					//throw new Exception("KV BATTERY1AR8 unexpected number cant find contains of value "+i);
+					throw new Exception("KV BATTERY1AR8 unexpected number cant find contains of value "+i);
 				}
 		}
 		System.out.println("KV BATTERY1AR8 REVERSE "+numLookupByValue+" CONTAINS VALUE TOOK "+(System.currentTimeMillis()-tims)+" ms.");
@@ -226,12 +227,12 @@ public class BatteryKVStream {
 		System.out.println("KV Battery1AR9");
 		if( Integer.parseInt((String)k) != i ) {
 			System.out.println("KV BATTERY1A9 cant find contains key "+i);
-			//throw new Exception("KV BATTERY1AR9 unexpected cant find contains of key "+i);
+			throw new Exception("KV BATTERY1AR9 unexpected cant find contains of key "+i);
 		}
 		long ks = (long) bmap.first();
 		if( ks != i) {
 			System.out.println("KV BATTERY1A9 cant find contains value "+i);
-			//throw new Exception("KV BATTERY1AR9 unexpected cant find contains of value "+i);
+			throw new Exception("KV BATTERY1AR9 unexpected cant find contains of value "+i);
 		}
 		System.out.println("KV BATTERY1AR9 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
@@ -248,12 +249,12 @@ public class BatteryKVStream {
 		System.out.println("KV Battery1AR10");
 		if( Long.parseLong((String) k) != (long)i ) {
 			System.out.println("KV BATTERY1AR10 cant find last key "+i);
-			//throw new Exception("KV BATTERY1AR10 unexpected cant find last of key "+i);
+			throw new Exception("KV BATTERY1AR10 unexpected cant find last of key "+i);
 		}
 		long ks = (long)bmap.last();
 		if( ks != i) {
 			System.out.println("KV BATTERY1AR10 cant find last value "+i);
-			//throw new Exception("KV BATTERY1AR10 unexpected cant find last of key "+i);
+			throw new Exception("KV BATTERY1AR10 unexpected cant find last of key "+i);
 		}
 		System.out.println("KV BATTERY1AR10 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
@@ -269,7 +270,7 @@ public class BatteryKVStream {
 		System.out.println("KV Battery1AR101");
 		if( bits != i ) {
 			System.out.println("KV BATTERY1AR101 size mismatch "+bits+" should be:"+i);
-			//throw new Exception("KV BATTERY1AR101 size mismatch "+bits+" should be "+i);
+			throw new Exception("KV BATTERY1AR101 size mismatch "+bits+" should be "+i);
 		}
 		System.out.println("BATTERY1AR101 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
@@ -287,7 +288,7 @@ public class BatteryKVStream {
 		stream.forEach(e ->{
 			if(Integer.parseInt((String)e) != i) {
 				System.out.println("KV RANGE KEY MISMATCH:"+i+" - "+e);
-				//throw new Exception("KV RANGE KEY MISMATCH:"+i+" - "+e);
+				throw new RuntimeException("KV RANGE KEY MISMATCH:"+i+" - "+e);
 			}
 			++i;
 		});
@@ -306,9 +307,8 @@ public class BatteryKVStream {
 		System.out.println("KV Battery1AR12");
 		stream.forEach(e ->{
 			if(Integer.parseInt(((Map.Entry<String,Long>)e).getKey()) != i) {
-			// Map.Entry
 				System.out.println("KV RANGE KEY MISMATCH:"+i+" - "+e);
-				//throw new Exception("KV RANGE KEY MISMATCH:"+i+" - "+e);
+				throw new RuntimeException("KV RANGE KEY MISMATCH:"+i+" - "+e);
 			}
 			++i;
 		});
@@ -330,9 +330,8 @@ public class BatteryKVStream {
 		i = min;
 		stream.forEach(e ->{
 			if(Integer.parseInt((String)e) != i) {
-			// Map.Entry
 				System.out.println("KV RANGE 1AR13 KEY MISMATCH:"+i+" - "+e);
-				//throw new Exception("KV RANGE 1AR13 KEY MISMATCH:"+i+" - "+e);
+				throw new RuntimeException("KV RANGE 1AR13 KEY MISMATCH:"+i+" - "+e);
 			}
 			++i;
 		});
@@ -353,15 +352,32 @@ public class BatteryKVStream {
 		i = min;
 		stream.forEach(e ->{
 			if(Integer.parseInt(((Map.Entry<String,Long>)e).getKey()) != i) {
-			// Map.Entry
 				System.out.println("KV RANGE KEY MISMATCH:"+i+" - "+e);
-				//throw new Exception("KV RANGE KEY MISMATCH:"+i+" - "+e);
+				throw new RuntimeException("KV RANGE KEY MISMATCH:"+i+" - "+e);
 			}
 			++i;
 		});
 		 System.out.println("BATTERY1AR14 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
 	
+	/**
+	 * headMapKVStream with minimum check
+	 * @param argv
+	 * @throws Exception
+	 */
+	public static void battery1AR14A(String[] argv) throws Exception {
+		long tims = System.currentTimeMillis();
+		i = min;
+		String fkey = String.format(uniqKeyFmt, i);
+		Stream stream = bmap.headMapKVStream(fkey);
+		System.out.println("KV Battery1AR14A");
+		// should get none
+		stream.forEach(e ->{
+				System.out.println("KV RANGE KEY MISMATCH:"+i+" - "+e);
+				throw new RuntimeException("KV RANGE KEY MISMATCH:"+i+" - "+e);
+		});
+		System.out.println("BATTERY1AR14 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
+	}
 	/**
 	 * subMapStream - Returns a view of the portion of this map whose keys range from fromKey, inclusive, to toKey, exclusive.
 	 * @param argv
