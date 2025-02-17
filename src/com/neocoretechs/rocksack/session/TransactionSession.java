@@ -39,12 +39,12 @@ public class TransactionSession extends Session implements TransactionInterface 
 	}
 	
 	@Override
-	public TransactionDB getKVStore() {
+	public synchronized TransactionDB getKVStore() {
 		return (TransactionDB) kvStore;
 	}
 	
 	@Override
-	public Transaction BeginTransaction(String transactionName) throws RocksDBException {
+	public synchronized Transaction BeginTransaction(String transactionName) throws RocksDBException {
 		Transaction t = getKVStore().beginTransaction(new WriteOptions());
 		if(DEBUG)
 			System.out.printf("%s.BeginTransaction transaction name %s%n",this.getClass().getName(),transactionName);
@@ -53,7 +53,7 @@ public class TransactionSession extends Session implements TransactionInterface 
 	}
 	
 	@Override
-	public Transaction BeginTransaction() {
+	public synchronized Transaction BeginTransaction() {
 		if(DEBUG)
 			System.out.printf("%s.BeginTransaction transaction name undefined%n",this.getClass().getName());
 		return getKVStore().beginTransaction(new WriteOptions());
@@ -66,7 +66,7 @@ public class TransactionSession extends Session implements TransactionInterface 
 	 * @param create true to create if not existing
 	 * @return The RocksDb Transaction object or null if not found and create was false
 	 */
-	public Transaction getTransaction(TransactionId transactionId, String clazz, boolean create) {
+	public synchronized Transaction getTransaction(TransactionId transactionId, String clazz, boolean create) {
 		try {
 			String name = transactionId.getTransactionId()+clazz;
 			if(DEBUG)
@@ -125,7 +125,7 @@ public class TransactionSession extends Session implements TransactionInterface 
 	 * @return true if passed map contains mangled name
 	 * @throws IOException
 	 */
-	public boolean linkSessionAndTransaction(TransactionId xid, TransactionalMap tm, ConcurrentHashMap<String, SessionAndTransaction> tLink) throws IOException {
+	public synchronized boolean linkSessionAndTransaction(TransactionId xid, TransactionalMap tm, ConcurrentHashMap<String, SessionAndTransaction> tLink) throws IOException {
 		if(DEBUG)
 			System.out.printf("%s.linkSessionAndTransaction %s%n",this.getClass().getName(), tm);
 		String name = xid.getTransactionId()+tm.getClassName();
@@ -151,7 +151,7 @@ public class TransactionSession extends Session implements TransactionInterface 
 	 * @return true if passed map contains mangled name
 	 * @throws IOException
 	 */
-	public boolean isTransactionLinked(TransactionId xid, TransactionalMap tm, ConcurrentHashMap<String, SessionAndTransaction> tLink) throws IOException {
+	public synchronized boolean isTransactionLinked(TransactionId xid, TransactionalMap tm, ConcurrentHashMap<String, SessionAndTransaction> tLink) throws IOException {
 		if(DEBUG)
 			System.out.printf("%s.isTransactionLinked %s %s%n",this.getClass().getName(), tm, tLink);
 		if(tLink == null)

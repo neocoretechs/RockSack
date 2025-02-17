@@ -1,21 +1,15 @@
 package com.neocoretechs.rocksack.session;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.Transaction;
 import org.rocksdb.TransactionDB;
-import org.rocksdb.WriteOptions;
 
-import com.neocoretechs.rocksack.Alias;
 import com.neocoretechs.rocksack.TransactionId;
 
 /*
@@ -175,7 +169,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public boolean put(TransactionId transactionId, Comparable tkey, Object tvalue) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.put(txn, columnFamilyHandle, tkey, tvalue);
 	}
 	/**
@@ -189,7 +183,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public boolean putViaBytes(TransactionId transactionId, byte[] tkey, Object tvalue) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.putViaBytes(txn, columnFamilyHandle, tkey, tvalue);
 	}
 	/**
@@ -203,7 +197,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Object get(TransactionId transactionId, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return getSession().get(txn, columnFamilyHandle, session.ro, tkey);
 	}
 	/**
@@ -215,7 +209,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Object getViaBytes(TransactionId transactionId, byte[] tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return getSession().getViaBytes(txn, columnFamilyHandle, session.ro, tkey);
 	}
 	/**
@@ -230,7 +224,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Object getValue(TransactionId transactionId, Object tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.getValue(txn, columnFamilyHandle, session.ro, tkey);
 	}	
 
@@ -243,7 +237,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public long size(TransactionId transactionId) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.size(txn, columnFamilyHandle);
 	}
 
@@ -256,7 +250,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Iterator<?> entrySet(TransactionId transactionId) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.entrySet(txn, columnFamilyHandle);
 	}
 	
@@ -264,7 +258,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Stream<?> entrySetStream(TransactionId transactionId) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.entrySetStream(txn, columnFamilyHandle);
 	}
 	
@@ -277,7 +271,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Iterator<?> keySet(TransactionId transactionId) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.keySet(txn, columnFamilyHandle);
 	}
 	
@@ -285,7 +279,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Stream<?> keySetStream(TransactionId transactionId) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.keySetStream(txn, columnFamilyHandle);
 	}
 	
@@ -300,7 +294,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public boolean containsKey(TransactionId transactionId, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.contains(txn, columnFamilyHandle, session.ro, tkey);
 	}
 	/**
@@ -314,7 +308,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public boolean containsValue(TransactionId transactionId, Object value) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.containsValue(txn, columnFamilyHandle, session.ro, value);
 	}
 	/**
@@ -328,7 +322,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Object remove(TransactionId transactionId, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.remove(txn, columnFamilyHandle, session.ro, tkey);
 	}
 	/**
@@ -339,7 +333,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Comparable firstKey(TransactionId transactionId) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.firstKey(txn, columnFamilyHandle);
 	}
 	/**
@@ -350,7 +344,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Comparable lastKey(TransactionId transactionId) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.lastKey(txn, columnFamilyHandle);
 
 	}
@@ -363,7 +357,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Object last(TransactionId transactionId) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.last(txn, columnFamilyHandle);
 	}
 	/**
@@ -375,7 +369,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Object first(TransactionId transactionId) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.first(txn, columnFamilyHandle);
 	}
 	/**
@@ -387,7 +381,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Object nearest(TransactionId transactionId, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.nearest(txn, columnFamilyHandle, tkey);
 	}
 	/**
@@ -400,7 +394,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Iterator<?> headMap(TransactionId transactionId, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.headSet(txn, columnFamilyHandle, tkey);
 	}
 	
@@ -409,7 +403,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Stream<?> headMapStream(TransactionId transactionId, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.headSetStream(txn, columnFamilyHandle, tkey);
 	}
 	/**
@@ -422,7 +416,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Iterator<?> headMapKV(TransactionId transactionId, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.headSetKV(txn, columnFamilyHandle, tkey);
 	}
 	
@@ -431,7 +425,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Stream<?> headMapKVStream(TransactionId transactionId, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.headSetKVStream(txn, columnFamilyHandle, tkey);
 	}
 	/**
@@ -444,7 +438,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Iterator<?> tailMap(TransactionId transactionId, Comparable fkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.tailSet(txn, columnFamilyHandle, fkey);
 	}
 	
@@ -453,7 +447,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Stream<?> tailMapStream(TransactionId transactionId, Comparable fkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.tailSetStream(txn, columnFamilyHandle, fkey);
 	}
 	/**
@@ -466,7 +460,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Iterator<?> tailMapKV(TransactionId transactionId, Comparable fkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.tailSetKV(txn, columnFamilyHandle, fkey);
 	}
 	
@@ -475,7 +469,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Stream<?> tailMapKVStream(TransactionId transactionId, Comparable fkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.tailSetKVStream(txn, columnFamilyHandle, fkey);
 	}
 	/**
@@ -489,7 +483,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Iterator<?> subMap(TransactionId transactionId, Comparable fkey, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.subSet(txn, columnFamilyHandle, fkey, tkey);
 	}
 	
@@ -498,7 +492,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Stream<?> subMapStream(TransactionId transactionId, Comparable fkey, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.subSetStream(txn, columnFamilyHandle, fkey, tkey);
 	}
 	
@@ -513,7 +507,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Iterator<?> subMapKV(TransactionId transactionId, Comparable fkey, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.subSetKV(txn, columnFamilyHandle, fkey, tkey);
 	}
 	
@@ -522,7 +516,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Stream<?> subMapKVStream(TransactionId transactionId, Comparable fkey, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.subSetKVStream(txn, columnFamilyHandle, fkey, tkey);
 	}
 	
@@ -535,7 +529,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public boolean isEmpty(TransactionId transactionId) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.isEmpty(txn, columnFamilyHandle);
 	}
 	
@@ -558,7 +552,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Iterator<?> iterator(TransactionId transactionId) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.keySet(txn, columnFamilyHandle);
 	}
 
@@ -566,7 +560,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public boolean contains(TransactionId transactionId, Comparable o) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.contains(txn, columnFamilyHandle, session.ro, o);
 	}
 
@@ -574,7 +568,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Iterator<?> subSet(TransactionId transactionId, Comparable fkey, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.subSet(txn, columnFamilyHandle, fkey, tkey);
 	}
 
@@ -582,7 +576,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Stream<?> subSetStream(TransactionId transactionId, Comparable fkey, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.subSetStream(txn, columnFamilyHandle, fkey, tkey);
 	}
 
@@ -590,7 +584,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Iterator<?> headSet(TransactionId transactionId, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.headSet(txn, columnFamilyHandle, tkey);
 	}
 
@@ -598,7 +592,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Stream<?> headSetStream(TransactionId transactionId, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.headSetStream(txn, columnFamilyHandle, tkey);
 	}
 
@@ -606,7 +600,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Iterator<?> tailSet(TransactionId transactionId, Comparable fkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.tailSet(txn, columnFamilyHandle, fkey);
 	}
 
@@ -614,7 +608,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Stream<?> tailSetStream(TransactionId transactionId, Comparable fkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.tailSetStream(txn, columnFamilyHandle, fkey);
 	}
 
@@ -622,7 +616,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Iterator<?> subSetKV(TransactionId transactionId, Comparable fkey, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.subSetKV(txn, columnFamilyHandle, fkey, tkey);
 	}
 
@@ -630,7 +624,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Stream<?> subSetKVStream(TransactionId transactionId, Comparable fkey, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.subSetKVStream(txn, columnFamilyHandle, fkey, tkey);
 	}
 
@@ -638,7 +632,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Iterator<?> headSetKV(TransactionId transactionId, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.headSetKV(txn, columnFamilyHandle, tkey);
 	}
 
@@ -646,7 +640,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Stream<?> headSetKVStream(TransactionId transactionId, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.headSetKVStream(txn, columnFamilyHandle, tkey);
 	}
 
@@ -654,7 +648,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Iterator<?> tailSetKV(TransactionId transactionId, Comparable fkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.tailSetKV(txn, columnFamilyHandle, fkey);
 	}
 
@@ -662,14 +656,14 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Stream<?> tailSetKVStream(TransactionId transactionId, Comparable fkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
-			throw new IOException("Transaction "+transactionId+" not found.");
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.tailSetKVStream(txn, columnFamilyHandle, fkey);
 	}
 
 
 	@Override
 	public String toString() {
-		return (session == null ? "TransactionalMap Session NULL" : session.toString()+" ClassName:"+className+" ColumnFamily:"+columnFamilyDescriptor.toString());
+		return (session == null ? "TransactionalMap Session NULL" : session.toString()+" ClassName:"+className+" ColumnFamily:"+new String(columnFamilyDescriptor.getName()));
 	}
 
 }
