@@ -654,40 +654,19 @@ public final class SessionManager {
 		    System.out.format("[ERROR] caught the unexpected exception -- %s\n", e);
 		}
 	    return txnDb;
-	    	/*
-	          try (final WriteOptions writeOptions = new WriteOptions();
-	               final ReadOptions readOptions = new ReadOptions()) {
-
-	            ////////////////////////////////////////////////////////
-	            //
-	            // Simple Transaction Example ("Read Committed")
-	            //
-	            ////////////////////////////////////////////////////////
-	            readCommitted(txnDb, writeOptions, readOptions);
-
-
-	            ////////////////////////////////////////////////////////
-	            //
-	            // "Repeatable Read" (Snapshot Isolation) Example
-	            //   -- Using a single Snapshot
-	            //
-	            ////////////////////////////////////////////////////////
-	            repeatableRead(txnDb, writeOptions, readOptions);
-
-
-	            ////////////////////////////////////////////////////////
-	            //
-	            // "Read Committed" (Monotonic Atomic Views) Example
-	            //   --Using multiple Snapshots
-	            //
-	            ////////////////////////////////////////////////////////
-	            readCommitted_monotonicAtomicViews(txnDb, writeOptions, readOptions);
-	          }
-	          */
 	}
 /**
  * Demonstrates "Read Committed" isolation
- 
+ *           try (final WriteOptions writeOptions = new WriteOptions();
+ *	               final ReadOptions readOptions = new ReadOptions()) {
+ *
+ *	            ////////////////////////////////////////////////////////
+ *	            //
+ *	            // Simple Transaction Example ("Read Committed")
+ *	            //
+ *	            ////////////////////////////////////////////////////////
+ *	            readCommitted(txnDb, writeOptions, readOptions);
+ *			}
 private static void readCommitted(final TransactionDB txnDb,
     final WriteOptions writeOptions, final ReadOptions readOptions)
     throws RocksDBException {
@@ -721,7 +700,16 @@ private static void readCommitted(final TransactionDB txnDb,
 }
 
  * Demonstrates "Repeatable Read" (Snapshot Isolation) isolation
- 
+ *           try (final WriteOptions writeOptions = new WriteOptions();
+ *	               final ReadOptions readOptions = new ReadOptions()) {
+ * 	           ////////////////////////////////////////////////////////
+ *	            //
+ *	            // "Repeatable Read" (Snapshot Isolation) Example
+ *	            //   -- Using a single Snapshot
+ *	            //
+ *	            ////////////////////////////////////////////////////////
+ *	            repeatableRead(txnDb, writeOptions, readOptions);
+ *			}
 private static void repeatableRead(final TransactionDB txnDb,
     final WriteOptions writeOptions, final ReadOptions readOptions)
     throws RocksDBException {
@@ -758,9 +746,17 @@ private static void repeatableRead(final TransactionDB txnDb,
   }
 }
 
-
  * Demonstrates "Read Committed" (Monotonic Atomic Views) isolation
- *
+ *           try (final WriteOptions writeOptions = new WriteOptions();
+ *	               final ReadOptions readOptions = new ReadOptions()) {
+ *             ////////////////////////////////////////////////////////
+ *	            //
+ *	            // "Read Committed" (Monotonic Atomic Views) Example
+ *	            //   --Using multiple Snapshots
+ *	            //
+ *	            ////////////////////////////////////////////////////////
+ *	            readCommitted_monotonicAtomicViews(txnDb, writeOptions, readOptions);
+ *			}
  * In this example, we set the snapshot multiple times.  This is probably
  * only necessary if you have very strict isolation requirements to
  * implement.

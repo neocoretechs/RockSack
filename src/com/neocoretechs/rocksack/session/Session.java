@@ -75,7 +75,13 @@ public class Session {
 	//
 	List<ColumnFamilyDescriptor> columnFamilyDescriptor = null;
 	List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
-
+	/**
+	 * 
+	 * @param kvStore
+	 * @param options
+	 * @param columnFamilyDescriptor
+	 * @param columnFamilyHandles
+	 */
 	public Session(RocksDB kvStore, Options options, ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor, List<ColumnFamilyHandle> columnFamilyHandles) {
 		this.kvStore = kvStore;
 		this.options = options;
@@ -126,6 +132,7 @@ public class Session {
 
 	/**
 	 * Call the put method of KeyValueMain.
+	 * @param cfh ColumnFamilyHandle
 	 * @param key The key value to attempt add
 	 * @param o The value for the key to add
 	 * @return true
@@ -143,6 +150,7 @@ public class Session {
 	/**
 	 * Call the put method of KeyValueMain.
 	 * @param txn The transaction context
+	 * @param cfh ColumnFamilyHandle
 	 * @param key The key value to attempt add
 	 * @param o The value for the key to add
 	 * @return true
@@ -159,6 +167,7 @@ public class Session {
 
 	/**
 	 * Call the put method of KeyValueMain.
+	 * @param cfh ColumnFamilyHandle
 	 * @param key The key value to attempt add, raw bytes which will not be serialized beforehand
 	 * @param o The value for the key to add
 	 * @return true
@@ -176,6 +185,7 @@ public class Session {
 	/**
 	 * Call the put method of KeyValueMain.
 	 * @param txn The transaction context
+	 * @param cfh ColumnFamilyHandle
 	 * @param key The key value to attempt add, raw bytes unserialized beforehand
 	 * @param o The value for the key to add
 	 * @return true
@@ -192,6 +202,7 @@ public class Session {
 
 	/**
 	 * Cause the KvStore to seekKey for the Comparable type.
+	 * @param cfh ColumnFamilyHandle
 	 * @param o the Comparable object to seek.
 	 * @return the Key/Value object from the retrieved node
 	 * @throws IOException
@@ -212,6 +223,7 @@ public class Session {
 	/**
 	 * Cause the KvStore to seekKey for the Comparable type.
 	 * @param txn Transaction context
+	 * @param cfh ColumnFamilyHandle
 	 * @param ro The ReadOptions
 	 * @param o the Comparable object to seek.
 	 * @return the Key/Value object from the retrieved node
@@ -230,7 +242,32 @@ public class Session {
 			throw new IOException(e);
 		}
 	}
-
+	
+	/**
+	 * getForUpdate() to read a key and make the read value a precondition for transaction commit.
+	 * Currently, GetForUpdate() is the only way to establish Read-Write conflicts, 
+	 * so it can be used in combination with iterators, for example.
+	 * @param txn Transaction context
+	 * @param cfh ColumnFamilyHandle
+	 * @param ro The ReadOptions
+	 * @param o the Comparable object to seek.
+	 * @param exclusive - true if the transaction should have exclusive access to the key, otherwise false for shared access.
+	 * @return the Key/Value object from the retrieved node
+	 * @throws IOException
+	 */
+	@SuppressWarnings("rawtypes")
+	protected Object getForUpdate(Transaction txn, ColumnFamilyHandle cfh, ReadOptions ro, Comparable o, boolean exclusive) throws IOException {
+		if(DEBUG)
+			System.out.printf("%s.get(%s, %s, %s)%n", this.getClass().getName(), txn, ro, o);
+		   try {
+			   byte[] b = txn.getForUpdate(ro,cfh,SerializedComparator.serializeObject(o), exclusive);
+			   if(b == null)
+				   return null;
+			   return new KeyValue(o,SerializedComparator.deserializeObject(b));
+		} catch (RocksDBException | IOException e) {
+			throw new IOException(e);
+		}
+	}
 	/**
 	 * Cause the KvStore to seekKey for the raw byte array.
 	 * @param o the byte array to seek.
@@ -253,6 +290,7 @@ public class Session {
 	/**
 	 * Cause the KvStore to seekKey for the Comparable type.
 	 * @param txn Transaction context
+	 * @param cfh ColumnFamilyHandle
 	 * @param ro The ReadOptions
 	 * @param o the byte array to seek.
 	 * @return the Value object from the retrieved node
@@ -274,6 +312,7 @@ public class Session {
 
 	/**
 	 * Retrieve an object with this value for first key found to have it.
+	 * @param cfh ColumnFamilyHandle
 	 * @param o the object value to seek
 	 * @return element for the key, null if not found of type {@link com.neocoretechs.rocksack.iterator.Entry}
 	 * @throws IOException
@@ -292,6 +331,7 @@ public class Session {
 	/**
 	 * Retrieve an object with this value for first key found to have it. {@link com.neocoretechs.rocksack.iterator.EntrySetIterator}
 	 * @param txn Transaction context
+	 * @param cfh ColumnFamilyHandle
 	 * @param ro The ReadOptions
 	 * @param o the object value to seek
 	 * @return element for the key, null if not found of type {@link com.neocoretechs.rocksack.iterator.Entry}
@@ -311,6 +351,7 @@ public class Session {
 	/**
 	 * Return the key/value pair of Map.Entry implementation of the closest key to the passed key template.
 	 * May be exact match Up to user. Essentially starts a tailSet iterator seeking nearest key.
+	 * @param cfh ColumnFamilyHandle
 	 * @param key target key template
 	 * @return null if no next for initial iteration
 	 * @throws IOException
@@ -324,7 +365,8 @@ public class Session {
 	/**
 	 * Return the key/value pair of Map.Entry implementation of the closest key to the passed key template.
 	 * May be exact match Up to user. Essentially starts a tailSet iterator seeking nearest key.
-	 * @param alias the database alias
+	 * @param txn the transaction
+	 * @param cfh ColumnFamilyHandle
 	 * @param key target key template
 	 * @return null if no next for initial iteration
 	 * @throws IOException
@@ -339,6 +381,7 @@ public class Session {
 	/**
 	* Returns iterator vs actual subset. {@link com.neocoretechs.rocksack.iterator.SubSetIterator}
 	* 'from' element inclusive, 'to' element exclusive
+	* @param cfh ColumnFamilyHandle
 	* @param fkey Return from fkey
 	* @param tkey Return from fkey to strictly less than tkey
 	* @return The Iterator over the subSet {@link com.neocoretechs.rocksack.iterator.SubSetIterator}
@@ -352,6 +395,7 @@ public class Session {
 	* Returns iterator vs actual subset. {@link com.neocoretechs.rocksack.iterator.SubSetIterator}
 	* 'from' element inclusive, 'to' element exclusive
 	* @param txn Transaction
+	* @param cfh ColumnFamilyHandle
 	* @param fkey Return from fkey
 	* @param tkey Return from fkey to strictly less than tkey
 	* @return The Iterator over the subSet
@@ -364,6 +408,7 @@ public class Session {
 
 	/**
 	 * Return a Stream that delivers the subset of fkey to tkey. {@link com.neocoretechs.rocksack.stream.SubSetStream}
+	 * @param cfh ColumnFamilyHandle
 	 * @param fkey the from key
 	 * @param tkey the to key
 	 * @return the stream from which the lambda expression can be utilized
@@ -375,6 +420,7 @@ public class Session {
 	/**
 	 * Return a Stream that delivers the subset of fkey to tkey. {@link com.neocoretechs.rocksack.stream.SubSetStream}
 	 * @param txn Transaction
+	 * @param cfh ColumnFamilyHandle
 	 * @param fkey the from key
 	 * @param tkey the to key
 	 * @return the stream from which the lambda expression can be utilized
@@ -387,6 +433,7 @@ public class Session {
 	/**
 	* Not a real subset, returns iterator vs set. {@link com.neocoretechs.rocksack.iterator.SubSetKVIterator}
 	* 'from' element inclusive, 'to' element exclusive
+	* @param cfh ColumnFamilyHandle
 	* @param fkey Return from fkey
 	* @param tkey Return from fkey to strictly less than tkey
 	* @return The KeyValuePair Iterator over the subSet, implementation of Map.Entry
@@ -401,6 +448,7 @@ public class Session {
 	* Not a real subset, returns iterator vs set. {@link com.neocoretechs.rocksack.iterator.SubSetKVIterator}
 	* 'from' element inclusive, 'to' element exclusive
 	* @param txn Transaction
+	* @param cfh ColumnFamilyHandle
 	* @param fkey Return from fkey
 	* @param tkey Return from fkey to strictly less than tkey
 	* @return The KeyValuePair Iterator over the subSet, implementation of Map.Entry
@@ -413,6 +461,7 @@ public class Session {
 
 	/**
 	 * Return a Streamof key/value pairs that delivers the subset of fkey to tkey. {@link com.neocoretechs.rocksack.stream.SubSetKVStream}
+	 * @param cfh ColumnFamilyHandle
 	 * @param fkey the from key
 	 * @param tkey the to key
 	 * @return the stream from which the lambda expression can be utilized
@@ -424,6 +473,7 @@ public class Session {
 	/**
 	 * Return a Streamof key/value pairs that delivers the subset of fkey to tkey. {@link com.neocoretechs.rocksack.stream.SubSetKVStream}
 	 * @param txn Transaction
+	 * @param cfh ColumnFamilyHandle
 	 * @param fkey the from key
 	 * @param tkey the to key
 	 * @return the stream from which the lambda expression can be utilized
@@ -435,6 +485,7 @@ public class Session {
 
 	/**
 	* Not a real subset, returns iterator. {@link com.neocoretechs.rocksack.iterator.EntrySetIterator}
+	* @param cfh ColumnFamilyHandle
 	* @return The Iterator over the entrySet
 	* @exception IOException If we cannot obtain the iterator
 	*/
@@ -444,6 +495,7 @@ public class Session {
 	/**
 	* Not a real subset, returns iterator. {@link com.neocoretechs.rocksack.iterator.EntrySetIterator}
 	* @param txn Transaction
+	* @param cfh ColumnFamilyHandle
 	* @return The Iterator over the entrySet
 	* @exception IOException If we cannot obtain the iterator
 	*/
@@ -452,17 +504,19 @@ public class Session {
 	}
 
 	/**
-	 * Get a stream of entry set. {@link com.neocoretechs.rocksack.stream.EntrySetStream}
-	 * @return
+	 * Get a stream of entry set. {@link com.neocoretechs.rocksack.stream.EntrySetStream} consisting of Map.Entry
+	 * @param cfh ColumnFamilyHandle
+	 * @return The Map.Entry Stream of EntrySet
 	 * @throws IOException
 	 */
 	protected Stream<?> entrySetStream(ColumnFamilyHandle cfh) throws IOException {
 		return new EntrySetStream(kvStore, cfh);
 	}
 	/**
-	 * Get a stream of entry set. {@link com.neocoretechs.rocksack.stream.EntrySetStream}
+	 * Get a Map.Entry stream of entry set. {@link com.neocoretechs.rocksack.stream.EntrySetStream}
 	 * @param txn Transaction
-	 * @return
+	 * @param cfh ColumnFamilyHandle
+	 * @return Map.Entry stream over EntrySet
 	 * @throws IOException
 	 */
 	protected Stream<?> entrySetStream(Transaction txn, ColumnFamilyHandle cfh) throws IOException {
@@ -471,6 +525,7 @@ public class Session {
 
 	/**
 	* Not a real subset, returns Iterator. {@link com.neocoretechs.rocksack.iterator.HeadSetIterator}
+	* @param cfh ColumnFamilyHandle
 	* @param tkey return from head to strictly less than tkey
 	* @return The Iterator over the headSet
 	* @exception IOException If we cannot obtain the iterator
@@ -482,6 +537,7 @@ public class Session {
 	/**
 	* Not a real subset, returns Iterator. {@link com.neocoretechs.rocksack.iterator.HeadSetIterator}
 	* @param Transaction txn
+	* @param cfh ColumnFamilyHandle
 	* @param tkey return from head to strictly less than tkey
 	* @return The Iterator over the headSet
 	* @exception IOException If we cannot obtain the iterator
@@ -493,6 +549,7 @@ public class Session {
 
 	/**
 	 * Get a stream of headset. {@link com.neocoretechs.rocksack.stream.HeadSetStream}
+	 * @param cfh ColumnFamilyHandle
 	 * @param tkey
 	 * @return
 	 * @throws IOException
@@ -503,6 +560,7 @@ public class Session {
 	/**
 	 * Get a stream of headset. {@link com.neocoretechs.rocksack.stream.HeadSetStream}
 	 * @param txn Transaction
+	 * @param cfh ColumnFamilyHandle
 	 * @param tkey
 	 * @return
 	 * @throws IOException
@@ -513,6 +571,7 @@ public class Session {
 
 	/**
 	* Not a real subset, returns Iterator. {@link com.neocoretechs.rocksack.iterator.HeadSetKVIterator}
+	* @param cfh ColumnFamilyHandle
 	* @param tkey return from head to strictly less than tkey
 	* @return The KeyValuePair Iterator over the headSet
 	* @exception IOException If we cannot obtain the iterator
@@ -524,6 +583,7 @@ public class Session {
 	/**
 	* Not a real subset, returns Iterator. {@link com.neocoretechs.rocksack.iterator.HeadSetKVIterator}
 	* @param txn Transaction
+	* @param cfh ColumnFamilyHandle
 	* @param tkey return from head to strictly less than tkey
 	* @return The KeyValuePair Iterator over the headSet
 	* @exception IOException If we cannot obtain the iterator
@@ -535,6 +595,7 @@ public class Session {
 
 	/**
 	 * Get a stream of head set. {@link com.neocoretechs.rocksack.stream.HeadSetKVStream}
+	 * @param cfh ColumnFamilyHandle
 	 * @param tkey
 	 * @return
 	 * @throws IOException
@@ -545,6 +606,7 @@ public class Session {
 	/**
 	 * Get a stream of head set. {@link com.neocoretechs.rocksack.stream.HeadSetKVStream}
 	 * @param txn Transaction
+	 * @param cfh ColumnFamilyHandle
 	 * @param tkey
 	 * @return The Stream over KV elements
 	 * @throws IOException
@@ -555,6 +617,7 @@ public class Session {
 
 	/**
 	* Return the keyset Iterator over all elements. {@link com.neocoretechs.rocksack.iterator.KeySetIterator}
+	* @param cfh ColumnFamilyHandle
 	* @return The Iterator over the keySet
 	* @exception IOException If we cannot obtain the iterator
 	*/
@@ -564,6 +627,7 @@ public class Session {
 	/**
 	* Return the keyset Iterator over all elements. {@link com.neocoretechs.rocksack.iterator.KeySetIterator}
 	* @param txn Transaction
+	* @param cfh ColumnFamilyHandle
 	* @return The Iterator over the keySet
 	* @exception IOException If we cannot obtain the iterator
 	*/
@@ -573,7 +637,8 @@ public class Session {
 
 	/**
 	 * Get a keyset stream. {@link com.neocoretechs.rocksack.stream.KeySetStream}
-	 * @return
+	 * @param cfh ColumnFamilyHandle
+	 * @return Stream over KeySet
 	 * @throws IOException
 	 */
 	protected Stream<?> keySetStream(ColumnFamilyHandle cfh) throws IOException {
@@ -582,7 +647,8 @@ public class Session {
 	/**
 	 * Get a keyset stream.  {@link com.neocoretechs.rocksack.stream.KeySetStream}
 	 * @param txn Transaction
-	 * @return
+	 * @param cfh ColumnFamilyHandle
+	 * @return Stream over KeySet
 	 * @throws IOException
 	 */
 	protected Stream<?> keySetStream(Transaction txn, ColumnFamilyHandle cfh) throws IOException {
@@ -591,6 +657,7 @@ public class Session {
 
 	/**
 	* Not a real subset, returns Iterator, {@link com.neocoretechs.rocksack.iterator.TailSetIterator}
+	* @param cfh ColumnFamilyHandle
 	* @param fkey return from value to end
 	* @return The Iterator over the tailSet
 	* @exception IOException If we cannot obtain the iterator
@@ -602,6 +669,7 @@ public class Session {
 	/**
 	* Not a real subset, returns Iterator. {@link com.neocoretechs.rocksack.iterator.TailSetIterator}
 	* @param txn Transaction
+	* @param cfh ColumnFamilyHandle
 	* @param fkey return from value to end
 	* @return The Iterator over the tailSet
 	* @exception IOException If we cannot obtain the iterator
@@ -623,6 +691,7 @@ public class Session {
 	/**
 	 * Return a tail set stream. {@link com.neocoretechs.rocksack.stream.TailSetStream}
 	 * @param txn Transaction
+	 * @param cfh ColumnFamilyHandle
 	 * @param fkey
 	 * @return
 	 * @throws IOException
@@ -633,6 +702,7 @@ public class Session {
 
 	/**
 	* Not a real subset, returns Iterator. {@link com.neocoretechs.rocksack.iterator.TailSetKVIterator}
+	* @param cfh ColumnFamilyHandle
 	* @param fkey return from value to end
 	* @return The KeyValuePair Iterator over the tailSet
 	* @exception IOException If we cannot obtain the iterator
@@ -644,6 +714,7 @@ public class Session {
 	/**
 	* Not a real subset, returns Iterator. {@link com.neocoretechs.rocksack.iterator.TailSetKVIterator}
 	* @param txn Transaction
+	* @param cfh ColumnFamilyHandle
 	* @param fkey return from value to end
 	* @return The KeyValuePair Iterator over the tailSet
 	* @exception IOException If we cannot obtain the iterator
@@ -655,6 +726,7 @@ public class Session {
 
 	/**
 	 * Return a tail set key/value stream. {@link com.neocoretechs.rocksack.stream.TailSetKVStream}
+	 * @param cfh ColumnFamilyHandle
 	 * @param fkey from key of tailset
 	 * @return the stream from which the lambda can be utilized
 	 * @throws IOException
@@ -666,6 +738,7 @@ public class Session {
 	/**
 	 * Return a tail set key/value stream. {@link com.neocoretechs.rocksack.stream.TailSetKVStream}
 	 * @param txn Transaction
+	 * @param cfh ColumnFamilyHandle
 	 * @param fkey from key of tailset
 	 * @return the stream from which the lambda can be utilized
 	 * @throws IOException
@@ -675,6 +748,7 @@ public class Session {
 	}
 	/**
 	 * Contains a value object
+	 * @param cfh ColumnFamilyHandle
 	 * @param o
 	 * @return boolean if the value object is found
 	 * @throws IOException
@@ -686,6 +760,7 @@ public class Session {
 	/**
 	 * Contains a value object
 	 * @param txn Transaction
+	 * @param cfh ColumnFamilyHandle
 	 * @param ro ReadOptions
 	 * @param o
 	 * @return boolean if the value object is found
@@ -699,6 +774,7 @@ public class Session {
 
 	/**
 	 * Contains a value object
+	 * @param cfh ColumnFamilyHandle
 	 * @param o
 	 * @return boolean if the value object is found
 	 * @throws IOException
@@ -711,6 +787,7 @@ public class Session {
 	/**
 	 * Contains a value object. Does a get since RocksDB doesnt seem to have keymayexist in trans context
 	 * @param txn Transaction
+	 * @param cfh ColumnFamilyHandle
 	 * @param ro readOptions
 	 * @param o
 	 * @return boolean if the value object is found
@@ -724,6 +801,8 @@ public class Session {
 
 	/**
 	* Remove the key and value of the parameter.
+	* @param cfh ColumnFamilyHandle
+	* @param o The object to remove
 	* @return null or previous value object
 	*/
 	@SuppressWarnings("rawtypes")
@@ -742,6 +821,8 @@ public class Session {
 	}
 	/**
 	* Remove the key and value of the parameter.
+	* @param txn The Transaction
+	* @param cfh ColumnFamilyHandle
 	* @return null or previous object
 	*/
 	@SuppressWarnings("rawtypes")
@@ -761,6 +842,7 @@ public class Session {
 
 	/**
 	 * Get the value of the object associated with first key
+	 * @param cfh ColumnFamilyHandle
 	 * @return Object from first key
 	 * @throws IOException
 	 */
@@ -774,6 +856,7 @@ public class Session {
 	/**
 	 * Get the value of the object associated with first key
 	 * @param txn Transaction
+	 * @param cfh ColumnFamilyHandle
 	 * @return Object from first key
 	 * @throws IOException
 	 */
@@ -787,6 +870,7 @@ public class Session {
 
 	/**
 	 * Get the first key
+	 * @param cfh ColumnFamilyHandle
 	 * @return The Comparable first key in the KVStore
 	 * @throws IOException
 	 */
@@ -803,6 +887,7 @@ public class Session {
 	/**
 	 * Get the first key
 	 * @param txn Transaction
+	 * @param cfh ColumnFamilyHandle
 	 * @return The Comparable first key in the KVStore
 	 * @throws IOException
 	 */
@@ -819,6 +904,7 @@ public class Session {
 
 	/**
 	 * Get the last object associated with greatest valued key in the KVStore
+	 * @param cfh ColumnFamilyHandle
 	 * @return The value of the Object of the greatest key
 	 * @throws IOException
 	 */
@@ -836,6 +922,7 @@ public class Session {
 	/**
 	 * Get the last object associated with greatest valued key in the KVStore
 	 * @param txn Transaction
+	 * @param cfh ColumnFamilyHandle
 	 * @return The value of the Object of the greatest key
 	 * @throws IOException
 	 */
@@ -853,6 +940,7 @@ public class Session {
 
 	/**
 	 * Get the last key in the KVStore
+	 * @param cfh ColumnFamilyHandle
 	 * @return The last, greatest valued key in the KVStore.
 	 * @throws IOException
 	 */
@@ -871,6 +959,7 @@ public class Session {
 	/**
 	 * Get the last key in the KVStore
 	 * @param txn Transaction
+	 * @param cfh ColumnFamilyHandle
 	 * @return The last, greatest valued key in the KVStore.
 	 * @throws IOException
 	 */
@@ -889,6 +978,7 @@ public class Session {
 
 	/**
 	 * Get the number of keys total.
+	 * @param cfh ColumnFamilyHandle
 	 * @return The size of the KVStore.
 	 * @throws IOException
 	 */
@@ -904,6 +994,7 @@ public class Session {
 	/**
 	 * Get the number of keys total.
 	 * @param txn Transaction
+	 * @param cfh ColumnFamilyHandle
 	 * @return The size of the KVStore.
 	 * @throws IOException
 	 */
@@ -919,6 +1010,7 @@ public class Session {
 
 	/**
 	 * Is the KVStore empty?
+	 * @param cfh ColumnFamilyHandle
 	 * @return true if it is empty.
 	 * @throws IOException
 	 */
@@ -930,6 +1022,13 @@ public class Session {
 		return false;
 	}
 	
+	/**
+	 * Is map empty?
+	 * @param txn the Transaction
+	 * @param cfh ColumnFamilyHandle
+	 * @return
+	 * @throws IOException
+	 */
 	protected boolean isEmpty(Transaction txn, ColumnFamilyHandle cfh) throws IOException {
 		Iterator it = new KeySetIterator(txn, cfh);
 		if(it.hasNext()) {
@@ -939,6 +1038,8 @@ public class Session {
 	}
 	
 	/**
+	 * Drop the column family
+	 * @param cfh ColumnFamilyHandle
 	 * @throws IOException
 	 */
 	protected void dropColumn(ColumnFamilyHandle cfh) throws IOException {
@@ -959,13 +1060,17 @@ public class Session {
 	}
 	/**
 	* Close this session.
-	* @param rollback true to roll back, false to commit
+	* @param db The database transaction
 	* @exception IOException For low level failure
 	*/
 	public void Close(Transaction db) throws IOException {
 		db.close();
 	}
 	
+	/**
+	 * 
+	 * @return The RocksDB kvStore
+	 */
 	protected RocksDB getKVStore() { return kvStore; }
 	
 	@Override
