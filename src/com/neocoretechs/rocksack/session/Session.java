@@ -269,6 +269,19 @@ public class Session {
 		}
 	}
 	/**
+	 * Tell the transaction that it no longer needs to do any conflict checking for this key.
+	 * @param txn The transaction
+	 * @param cfh ColumnFamilyhandle
+	 * @param o key
+	 * @throws IOException
+	 */
+	@SuppressWarnings("rawtypes")
+	protected void undoGetForUpdate(Transaction txn, ColumnFamilyHandle cfh, Comparable o) throws IOException {
+		if(DEBUG)
+			System.out.printf("%s.get(%s, %s, %s)%n", this.getClass().getName(), txn, cfh, o);
+		txn.undoGetForUpdate(cfh,SerializedComparator.serializeObject(o));
+	}
+	/**
 	 * Cause the KvStore to seekKey for the raw byte array.
 	 * @param o the byte array to seek.
 	 * @return the Value object from the retrieved node
