@@ -59,6 +59,7 @@ import com.neocoretechs.rocksack.stream.TailSetStream;
 */
 /**
 * Session object. Returned by SessionManager.Connect().
+* The user will access these methods through the subclassed implementations such as {@link BufferedMap} and {@link TransactionalMap}.
 * Responsible for providing access to Deep Store key/value interface implementations
 * Operations include
 * handing out iterators, inserting and deleting objects, size, navigation, clearing,
@@ -369,7 +370,7 @@ public class Session {
 	 * @return null if no next for initial iteration
 	 * @throws IOException
 	 */
-	public Object nearest(ColumnFamilyHandle cfh, Comparable key) throws IOException {
+	protected Object nearest(ColumnFamilyHandle cfh, Comparable key) throws IOException {
 		Iterator<?> it = new TailSetKVIterator(cfh, key, kvStore);
 		if(!it.hasNext())
 			return null;
@@ -384,7 +385,7 @@ public class Session {
 	 * @return null if no next for initial iteration
 	 * @throws IOException
 	 */
-	public Object nearest(Transaction txn, ColumnFamilyHandle cfh, Comparable key) throws IOException {
+	protected Object nearest(Transaction txn, ColumnFamilyHandle cfh, Comparable key) throws IOException {
 		Iterator<?> it = new TailSetKVIterator(cfh, key, txn);
 		if(!it.hasNext())
 			return null;

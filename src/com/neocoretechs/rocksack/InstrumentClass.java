@@ -1,7 +1,6 @@
 package com.neocoretechs.rocksack;
 
 import java.io.IOException;
-import java.io.ObjectInput;
 import java.io.ObjectStreamClass;
 
 import java.lang.reflect.AccessibleObject;
