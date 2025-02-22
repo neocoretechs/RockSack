@@ -10,6 +10,7 @@ import org.rocksdb.RocksDBException;
 import org.rocksdb.Transaction;
 import org.rocksdb.TransactionDB;
 
+import com.neocoretechs.rocksack.KeyValue;
 import com.neocoretechs.rocksack.TransactionId;
 
 /*
@@ -36,7 +37,7 @@ import com.neocoretechs.rocksack.TransactionId;
 *
 */
 /**
-* TransactionalMapDerived. The same underlying session objects are used here but the user has access to the transactional
+* TransactionalMap. The same underlying session objects are used here but the user has access to the transactional
 * Semantics underlying the recovery protocol. Thread safety is enforced on the session at this level.
 * We add an additional constructor to use a previously created {@link TransactionSession} and instantiate an new Transaction instance.
 * In the adapter, we retrieve an existing map, extract the session, and instantiate a new {@link TransactionalMap}
@@ -158,7 +159,8 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	}
 	
 	/**
-	* Put a  key/value pair to main cache and pool.
+	* Put a key/value pair to backing store.
+	* @param transactionId Transaction Id
 	* @param tkey The key for the pair
 	* @param tvalue The value for the pair
 	* @return true if key previously existed and was not added
@@ -173,7 +175,8 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 		return session.put(txn, columnFamilyHandle, tkey, tvalue);
 	}
 	/**
-	* Put a  key/value pair to main cache and pool. 
+	* Put a  key/value pair to main cache and pool.
+	* @param transactionId Transaction Id
 	* @param tkey The key for the pair, will not be serialized
 	* @param tvalue The value for the pair
 	* @return true if key previously existed and was not added
@@ -188,6 +191,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	}
 	/**
 	* Get a value from backing store if not in cache.
+	* @param transactionId Transaction Id
 	* @param tkey The key for the value
 	* @return The value for the key
 	* @exception IOException if get from backing store fails
@@ -202,6 +206,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	}
 	/**
 	* Get a value from backing store if not in cache.
+	* @param transactionId Transaction Id
 	* @param tkey The key for the value
 	* @return The value for the key
 	* @exception IOException if get from backing store fails
@@ -214,7 +219,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	}
 	/**
 	* Get a value from backing store if not in cache.
-	* We may toss out one to make room if size surpasses objectCacheSize
+	* @param transactionId Transaction Id
 	* @param tkey The key for the value
 	* @return The {@link Entry} from RockSack iterator Entry derived from Map.Entry for the key
 	* @exception IOException if get from backing store fails
@@ -226,10 +231,42 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 		if(txn == null)
 			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.getValue(txn, columnFamilyHandle, session.ro, tkey);
-	}	
-
+	}
+	/**
+	 * Read a key and make the key value a precondition for commit. Used for optimistic concurrency control
+	 * @param transactionId Transaction Id
+	 * @param o key to get
+	 * @param exclusive true to get exclusive access
+	 * @return the key/value object retrieved
+	 * @throws IOException
+	 */
+	@SuppressWarnings("rawtypes")
+	protected Object getForUpdate(TransactionId transactionId, Comparable o, boolean exclusive) throws IOException {
+		if(DEBUG)
+			System.out.printf("%s.get(%s, %s, %s)%n", this.getClass().getName(), transactionId, session.ro, o);
+		Transaction txn = session.getTransaction(transactionId, className, false);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
+		return session.getForUpdate(txn, columnFamilyHandle, session.ro, o, exclusive);
+	}
+	/**
+	 * Tell the transaction that it no longer needs to do any conflict checking for this key.
+	 * @param transactionId Transaction Id
+	 * @param o key to undo
+	 * @throws IOException
+	 */
+	@SuppressWarnings("rawtypes")
+	protected void undoGetForUpdate(TransactionId transactionId, Comparable o) throws IOException {
+		if(DEBUG)
+			System.out.printf("%s.get(%s, %s, %s)%n", this.getClass().getName(), transactionId, session.ro, o);
+		Transaction txn = session.getTransaction(transactionId, className, false);
+		if(txn == null)
+			throw new IOException("Transaction "+transactionId+" not found for session "+this);
+		session.undoGetForUpdate(txn, columnFamilyHandle, o);
+	}
 	/**
 	* Return the number of elements in the backing store
+	* @param transactionId Transaction Id
  	* @return A long value of number of elements
 	* @exception IOException If backing store retrieval failure
 	*/
@@ -243,6 +280,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 
 	/**
 	* Obtain iterator over the entrySet. Retrieve from backing store if not in cache.
+	* @param transactionId Transaction Id
 	* @return The Iterator for all elements
 	* @exception IOException if get from backing store fails
 	*/
@@ -253,7 +291,10 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.entrySet(txn, columnFamilyHandle);
 	}
-	
+	/**
+	 * Return the stream over the entry set
+	 * @param transactionId Transaction Id
+	 */
 	@Override
 	public Stream<?> entrySetStream(TransactionId transactionId) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
@@ -264,6 +305,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	
 	/**
 	* Get a keySet iterator. Get from backing store if not in cache.
+	* @param transactionId Transaction Id
 	* @return The iterator for the keys
 	* @exception IOException if get from backing store fails
 	*/
@@ -274,7 +316,10 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.keySet(txn, columnFamilyHandle);
 	}
-	
+	/**
+	 * Return the stream over the keyset
+	 * @param transactionId Transaction Id
+	 */
 	@Override
 	public Stream<?> keySetStream(TransactionId transactionId) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
@@ -285,6 +330,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	
 	/**
 	* Returns true if the collection contains the given key
+	* @param transactionId Transaction Id
 	* @param tkey The key to match
 	* @return true if in, or false if absent
 	* @exception IOException If backing store fails
@@ -299,6 +345,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	}
 	/**
 	* Returns true if the collection contains the given value object
+	* @param transactionId Transaction Id
 	* @param value The value to match
 	* @return true if in, false if absent
 	* @exception IOException If backing store fails
@@ -313,6 +360,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	}
 	/**
 	* Remove object from cache and backing store.
+	* @param transactionId Transaction Id
 	* @param tkey The key to match
 	* @return The removed object
 	* @exception IOException If backing store fails
@@ -326,6 +374,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 		return session.remove(txn, columnFamilyHandle, session.ro, tkey);
 	}
 	/**
+	* @param transactionId Transaction Id
 	* @return First key in set
 	* @exception IOException If backing store retrieval failure
 	*/
@@ -337,6 +386,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 		return session.firstKey(txn, columnFamilyHandle);
 	}
 	/**
+	* @param transactionId Transaction Id
 	* @return Last key in set
 	* @exception IOException If backing store retrieval failure
 	*/
@@ -350,6 +400,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	}
 	/**
 	* Return the last value in the set
+	* @param transactionId Transaction Id
 	* @return The last element in the set
 	* @exception IOException If backing store retrieval failure
 	*/
@@ -362,6 +413,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	}
 	/**
 	* Return the first element
+	* @param transactionId Transaction Id
 	* @return The value of the Object of the first key
 	* @exception IOException If backing store retrieval failure
 	*/
@@ -374,7 +426,8 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	}
 	/**
 	 * Return the element nearest to given key
-	 * @param tkey the key to sear for
+	 * @param transactionId Transaction Id
+	 * @param tkey the key to search for
 	 * @return the key/value of closest element to tkey
 	 * @throws IOException
 	 */
@@ -385,6 +438,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 		return session.nearest(txn, columnFamilyHandle, tkey);
 	}
 	/**
+	* @param transactionId Transaction Id
 	* @param tkey Strictly less than 'to' this element
 	* @return Iterator of first to tkey
 	* @exception IOException If backing store retrieval failure
@@ -397,7 +451,11 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.headSet(txn, columnFamilyHandle, tkey);
 	}
-	
+	/**
+	 * Return the stream over the headmap. From beginning to strictly less than 'to' element.
+	 * @param transactionId Transaction Id
+	 * @param tkey 'to' element
+	 */
 	@Override
 	@SuppressWarnings("rawtypes")
 	public Stream<?> headMapStream(TransactionId transactionId, Comparable tkey) throws IOException {
@@ -407,6 +465,8 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 		return session.headSetStream(txn, columnFamilyHandle, tkey);
 	}
 	/**
+	* Return iterator over headmap
+	* @param transactionId Transaction Id
 	* @param tkey Strictly less than 'to' this element
 	* @return Iterator of first to tkey returning KeyValuePairs
 	* @exception IOException If backing store retrieval failure
@@ -419,7 +479,12 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.headSetKV(txn, columnFamilyHandle, tkey);
 	}
-	
+	/**
+	 * @param transactionId Transaction Id
+	 * @param tkey Strictly less than 'to' this element
+	 * @return Stream of first to tkey returning KeyValuePairs
+	 * @exception IOException If backing store retrieval failure
+	 */
 	@Override
 	@SuppressWarnings("rawtypes")
 	public Stream<?> headMapKVStream(TransactionId transactionId, Comparable tkey) throws IOException {
@@ -429,10 +494,12 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 		return session.headSetKVStream(txn, columnFamilyHandle, tkey);
 	}
 	/**
-	* @param fkey Greater or equal to 'from' element
-	* @return Iterator of objects from fkey to end
-	* @exception IOException If backing store retrieval failure
-	*/
+	 * Tailmap from starting element to end exclusive
+	 * @param transactionId Transaction Id 
+	 * @param fkey Greater or equal to 'from' element
+	 * @return Iterator of objects from fkey to end
+	 * @exception IOException If backing store retrieval failure
+	 */
 	@Override
 	@SuppressWarnings("rawtypes")
 	public Iterator<?> tailMap(TransactionId transactionId, Comparable fkey) throws IOException {
@@ -441,7 +508,13 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.tailSet(txn, columnFamilyHandle, fkey);
 	}
-	
+	/**
+	 * Tailmap from starting element to end exclusive
+	 * @param transactionId Transaction Id 
+	 * @param fkey Greater or equal to 'from' element
+	 * @return Stream of objects from fkey to end
+	 * @exception IOException If backing store retrieval failure
+	 */
 	@Override
 	@SuppressWarnings("rawtypes")
 	public Stream<?> tailMapStream(TransactionId transactionId, Comparable fkey) throws IOException {
@@ -451,6 +524,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 		return session.tailSetStream(txn, columnFamilyHandle, fkey);
 	}
 	/**
+	* @param transactionId Transaction Id  
 	* @param fkey Greater or equal to 'from' element
 	* @return Iterator of objects from fkey to end which are KeyValuePairs
 	* @exception IOException If backing store retrieval failure
@@ -463,7 +537,13 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.tailSetKV(txn, columnFamilyHandle, fkey);
 	}
-	
+	/**
+	 * Tailmap from starting element to end exclusive
+	 * @param transactionId Transaction Id 
+	 * @param fkey Greater or equal to 'from' element
+	 * @return Stream of key/value objects from fkey to end
+	 * @exception IOException If backing store retrieval failure
+	 */
 	@Override
 	@SuppressWarnings("rawtypes")
 	public Stream<?> tailMapKVStream(TransactionId transactionId, Comparable fkey) throws IOException {
@@ -473,6 +553,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 		return session.tailSetKVStream(txn, columnFamilyHandle, fkey);
 	}
 	/**
+	* @param transactionId Transaction Id  
 	* @param fkey 'from' element inclusive 
 	* @param tkey 'to' element exclusive
 	* @return Iterator of objects in subset from fkey to tkey
@@ -486,7 +567,13 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.subSet(txn, columnFamilyHandle, fkey, tkey);
 	}
-	
+	/**
+	* @param transactionId Transaction Id  
+	* @param fkey 'from' element inclusive 
+	* @param tkey 'to' element exclusive
+	* @return Stream of objects in subset from fkey to tkey
+	* @exception IOException If backing store retrieval failure
+	*/
 	@Override
 	@SuppressWarnings("rawtypes")
 	public Stream<?> subMapStream(TransactionId transactionId, Comparable fkey, Comparable tkey) throws IOException {
@@ -497,6 +584,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	}
 	
 	/**
+	* @param transactionId Transaction Id 
 	* @param fkey 'from' element inclusive 
 	* @param tkey 'to' element exclusive
 	* @return Iterator of objects in subset from fkey to tkey composed of KeyValuePairs
@@ -510,7 +598,13 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.subSetKV(txn, columnFamilyHandle, fkey, tkey);
 	}
-	
+	/**
+	* @param transactionId Transaction Id  
+	* @param fkey 'from' element inclusive 
+	* @param tkey 'to' element exclusive
+	* @return Stream of key/value objects in subset from fkey to tkey
+	* @exception IOException If backing store retrieval failure
+	*/	
 	@Override
 	@SuppressWarnings("rawtypes")
 	public Stream<?> subMapKVStream(TransactionId transactionId, Comparable fkey, Comparable tkey) throws IOException {
@@ -522,6 +616,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	
 	/**
 	* Return boolean value indicating whether the map is empty
+	* @param transactionId Transaction Id
 	* @return true if empty
 	* @exception IOException If backing store retrieval failure
 	*/
@@ -532,12 +627,17 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.isEmpty(txn, columnFamilyHandle);
 	}
-	
+	/**
+	 * Drop the column encapsulated by this session
+	 * @throws IOException
+	 */
 	public void dropColumn() throws IOException {
 		session.dropColumn(columnFamilyHandle);
 	}
 	
-
+	/**
+	 * @return the database name used to initiate the session
+	 */
 	@Override
 	public String getDBName() {
 		return session.getDBname();
@@ -547,7 +647,10 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	public Object getMutexObject() {
 		return session.getMutexObject();
 	}
-	
+	/**
+	 * @param transactionId Transaction Id
+	 * @return the Iterator over the key set for this session column family
+	 */
 	@Override
 	public Iterator<?> iterator(TransactionId transactionId) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
@@ -555,7 +658,11 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.keySet(txn, columnFamilyHandle);
 	}
-
+	/**
+	 * @param transactionId Transaction Id
+	 * @param o the object in question
+	 * @return true if the object is contained in this column family
+	 */
 	@Override
 	public boolean contains(TransactionId transactionId, Comparable o) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
@@ -563,7 +670,13 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.contains(txn, columnFamilyHandle, session.ro, o);
 	}
-
+	/**
+	* @param transactionId Transaction Id  
+	* @param fkey 'from' element inclusive 
+	* @param tkey 'to' element exclusive
+	* @return Iterator of objects in subset from fkey to tkey
+	* @exception IOException If backing store retrieval failure
+	*/	
 	@Override
 	public Iterator<?> subSet(TransactionId transactionId, Comparable fkey, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
@@ -571,7 +684,13 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.subSet(txn, columnFamilyHandle, fkey, tkey);
 	}
-
+	/**
+	* @param transactionId Transaction Id  
+	* @param fkey 'from' element inclusive 
+	* @param tkey 'to' element exclusive
+	* @return Stream of objects in subset from fkey to tkey
+	* @exception IOException If backing store retrieval failure
+	*/	
 	@Override
 	public Stream<?> subSetStream(TransactionId transactionId, Comparable fkey, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
@@ -579,7 +698,13 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.subSetStream(txn, columnFamilyHandle, fkey, tkey);
 	}
-
+	/**
+	* Return iterator over headset
+	* @param transactionId Transaction Id
+	* @param tkey Strictly less than 'to' this element
+	* @return Iterator of first key to tkey exclusive
+	* @exception IOException If backing store retrieval failure
+	*/
 	@Override
 	public Iterator<?> headSet(TransactionId transactionId, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
@@ -587,7 +712,13 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.headSet(txn, columnFamilyHandle, tkey);
 	}
-
+	/**
+	* Return stream over headset
+	* @param transactionId Transaction Id
+	* @param tkey Strictly less than 'to' this element
+	* @return Stream of first key to tkey
+	* @exception IOException If backing store retrieval failure
+	*/
 	@Override
 	public Stream<?> headSetStream(TransactionId transactionId, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
@@ -595,7 +726,13 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.headSetStream(txn, columnFamilyHandle, tkey);
 	}
-
+	/**
+	 * Tailset from starting element to end exclusive
+	 * @param transactionId Transaction Id 
+	 * @param fkey Greater or equal to 'from' element
+	 * @return Iterator of objects from fkey to end
+	 * @exception IOException If backing store retrieval failure
+	 */
 	@Override
 	public Iterator<?> tailSet(TransactionId transactionId, Comparable fkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
@@ -603,7 +740,13 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.tailSet(txn, columnFamilyHandle, fkey);
 	}
-
+	/**
+	 * Tailset from starting element to end exclusive
+	 * @param transactionId Transaction Id 
+	 * @param fkey Greater or equal to 'from' element
+	 * @return Stream of objects from fkey to end
+	 * @exception IOException If backing store retrieval failure
+	 */
 	@Override
 	public Stream<?> tailSetStream(TransactionId transactionId, Comparable fkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
@@ -611,7 +754,13 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.tailSetStream(txn, columnFamilyHandle, fkey);
 	}
-
+	/**
+	* @param transactionId Transaction Id  
+	* @param fkey 'from' element inclusive 
+	* @param tkey 'to' element exclusive
+	* @return Iterator of key/value objects in subset from fkey to tkey
+	* @exception IOException If backing store retrieval failure
+	*/	
 	@Override
 	public Iterator<?> subSetKV(TransactionId transactionId, Comparable fkey, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
@@ -619,7 +768,13 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.subSetKV(txn, columnFamilyHandle, fkey, tkey);
 	}
-
+	/**
+	* @param transactionId Transaction Id  
+	* @param fkey 'from' element inclusive 
+	* @param tkey 'to' element exclusive
+	* @return Stream of key/value objects in subset from fkey to tkey
+	* @exception IOException If backing store retrieval failure
+	*/	
 	@Override
 	public Stream<?> subSetKVStream(TransactionId transactionId, Comparable fkey, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
@@ -627,7 +782,13 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.subSetKVStream(txn, columnFamilyHandle, fkey, tkey);
 	}
-
+	/**
+	* Return Iterator over headset
+	* @param transactionId Transaction Id
+	* @param tkey Strictly less than 'to' this element
+	* @return Iterator of first to tkey returning {@link KeyValue}
+	* @exception IOException If backing store retrieval failure
+	*/
 	@Override
 	public Iterator<?> headSetKV(TransactionId transactionId, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
@@ -635,7 +796,13 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.headSetKV(txn, columnFamilyHandle, tkey);
 	}
-
+	/**
+	* Return stream over headset
+	* @param transactionId Transaction Id
+	* @param tkey Strictly less than 'to' this element
+	* @return Stream of first to tkey returning KeyValuePairs
+	* @exception IOException If backing store retrieval failure
+	*/
 	@Override
 	public Stream<?> headSetKVStream(TransactionId transactionId, Comparable tkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
@@ -643,7 +810,13 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.headSetKVStream(txn, columnFamilyHandle, tkey);
 	}
-
+	/**
+	 * Tailset from starting element to end exclusive
+	 * @param transactionId Transaction Id 
+	 * @param fkey Greater or equal to 'from' element
+	 * @return Iterator of key/value objects from fkey to end
+	 * @exception IOException If backing store retrieval failure
+	 */
 	@Override
 	public Iterator<?> tailSetKV(TransactionId transactionId, Comparable fkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
@@ -651,7 +824,13 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.tailSetKV(txn, columnFamilyHandle, fkey);
 	}
-
+	/**
+	 * Tailset from starting element to end exclusive
+	 * @param transactionId Transaction Id 
+	 * @param fkey Greater or equal to 'from' element
+	 * @return Stream of key/value of objects from fkey to end
+	 * @exception IOException If backing store retrieval failure
+	 */
 	@Override
 	public Stream<?> tailSetKVStream(TransactionId transactionId, Comparable fkey) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);

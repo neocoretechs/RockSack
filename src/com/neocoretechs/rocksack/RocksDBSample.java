@@ -96,8 +96,8 @@ try (final Options options = new Options();
       .setFilterPolicy(bloomFilter)
       .setBlockSizeDeviation(5)
       .setBlockRestartInterval(10)
-      .setCacheIndexAndFilterBlocks(true)
-      .setBlockCacheCompressed(new LRUCache(64 * 1000, 10));
+      .setCacheIndexAndFilterBlocks(true);
+      //.setBlockCacheCompressed(new LRUCache(64 * 1000, 10));
 
   assert (table_options.blockSizeDeviation() == 5);
   assert (table_options.blockRestartInterval() == 10);

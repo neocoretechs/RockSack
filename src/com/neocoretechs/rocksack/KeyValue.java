@@ -4,9 +4,7 @@ import java.io.IOException;
 import java.util.Map;
 
 /**
- * Class representing a key/value pair with associated state and deep store pointers.<p/>
- * Attempt to maintain state is only used where patently obvious, in getKey and getValue, where key or value is null, pointer is not empty
- * and state is mustRead. The default state of a new entry is mustRead, as the assumption is the deep store page will populate the pointer fields.
+ * Class representing a key/value pair.
  * @author Jonathan Groff Copyright (C) NeoCoreTechs 2021
  */
 public class KeyValue<K extends Comparable, V> implements Map.Entry{
