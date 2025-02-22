@@ -11,12 +11,12 @@ import com.neocoretechs.rocksack.session.TransactionalMap;
 
 
 /**
- * Transaction KV test battery with alias interleaved operations.<p/>
+ * Transaction KV test battery with alias interleaved operations.<p>
  * We will operate with 2 main transactions on 2 aliased databases. We will also toss in
- * some operations on an intermediate transaction that will be rolled back and discarded.<p/>
+ * some operations on an intermediate transaction that will be rolled back and discarded.<p>
  * The 2 main transactions will contain even and odd records. In one database it will represent
  * the set of even records, in the other, the set of odd records. We will verify that on each
- * occasion the transactions are faithfully maintained.<p/>
+ * occasion the transactions are faithfully maintained.<p>
  * RockSack transactions are a bit more flexible and encompass a larger domain than RocksDb
  * transactions, but still preserve the concepts of isolation, durability and atomicity.
  * RockSack transactions can span multiple classes and databases. RocksSack transactions
@@ -213,7 +213,7 @@ public class BatteryKVTransactionAlias {
 	
 	/**
 	 * Test the higher level functions in the RelatrixKV.
-	 * public Set<Map.Entry<K,V>> entrySet()
+	 * public Set entrySet()
 	 * Returns a Set view of the mappings contained in this map. 
 	 * The set's iterator returns the entries in ascending key order. 
 	 * The set is backed by the map, so changes to the map are reflected in the set, and vice-versa.
@@ -247,7 +247,7 @@ public class BatteryKVTransactionAlias {
 		 System.out.println("BATTERY1AR6 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
 	/**
-	 * Testing of Iterator<?> its = RelatrixKV.keySet;
+	 * Testing of Iterator its = RelatrixKV.keySet;
 	 * @param xid
 	 * @param alias12 
 	 * @param bmap3 

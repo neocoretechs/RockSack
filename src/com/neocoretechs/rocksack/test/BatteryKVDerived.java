@@ -109,7 +109,7 @@ public class BatteryKVDerived {
 	
 	/**
 	 * Test the higher level functions in the map.
-	 * public Set<Map.Entry<K,V>> entrySet()
+	 * public Set entrySet()
 	 * Returns a Set view of the mappings contained in this map. 
 	 * The set's iterator returns the entries in ascending key order. 
 	 * The set is backed by the map, so changes to the map are reflected in the set, and vice-versa.
@@ -157,7 +157,7 @@ public class BatteryKVDerived {
 		 System.out.println("BATTERY1AR6 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
 	/**
-	 * Testing of Iterator<?> its = keySet;
+	 * Testing of Iterator its = keySet;
 	 * @param argv
 	 * @throws Exception
 	 */

@@ -26,12 +26,12 @@ import java.util.stream.StreamSupport;
 
 /**
  * Lynchpin superclass of all RockSack streams that wraps the Iterator with Spliterator using:
- * (Spliterator<T>) Spliterators.spliteratorUnknownSize(esi, characteristics) <p/>
+ * (Spliterator) Spliterators.spliteratorUnknownSize(esi, characteristics) <p>
  * Once wrapped, the system supplied StreamSupport class provides the actual stream using:
- * (Stream<T>) StreamSupport.stream(spliterator, parallel) <p/>
+ * (Stream) StreamSupport.stream(spliterator, parallel) <p>
  * Before calling 'of()', call 'parallel()' , 'setParallel(true | false)', 'sequential()' or 
- * 'unordered()' to change the characteristics of the stream.<p/>
- * The default characteristics are Spliterator.DISTINCT | Spliterator.SORTED | Spliterator.ORDERED<p/>
+ * 'unordered()' to change the characteristics of the stream.<p>
+ * The default characteristics are Spliterator.DISTINCT | Spliterator.SORTED | Spliterator.ORDERED<p>
  * @author Jonathan Groff Copyright (C) NeoCoreTechs 2021
  *
  */

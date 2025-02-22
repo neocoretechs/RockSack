@@ -30,8 +30,10 @@ public class InstrumentClass {
 	/**
 	 * Does it implement Serializable and Comparable already? Does it extend a Comparable such
 	 * that super() needs called on new compareTo? Do instrumented fields implement Comparable?
-	 * @param object
-	 * @return
+	 * @param javaFile
+	 * @param clazz
+	 * @param callSuperCompareTo
+	 * @return List of elements
 	 * @throws IOException
 	 * @throws IllegalArgumentException
 	 * @throws IllegalAccessException

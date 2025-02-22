@@ -39,14 +39,14 @@ import com.neocoretechs.rocksack.session.VolumeManager.Volume;
 
 /**
  * This factory class enforces a strong typing for the RockSack using the database naming convention linked to the
- * class name of the class stored there.<p/>
- * In almost all cases, this is the main entry point to obtain a BufferedMap or a TransactionalMap.<p/>
- * The DatabaseManager coordinates the {@link VolumeManager} the {@link SessionManager} and the {@link TransactionManager}.<p/>
+ * class name of the class stored there.<p>
+ * In almost all cases, this is the main entry point to obtain a BufferedMap or a TransactionalMap.<p>
+ * The DatabaseManager coordinates the {@link VolumeManager} the {@link SessionManager} and the {@link TransactionManager}.<p>
  * To override options call setDatabaseOptions(Options). If options are not set in this manner the default options will be used.
- * <p/>
- * The main function of this adapter is to ensure that the appropriate map is instantiated.<br/>
- * A map can be obtained by instance of Comparable to impart ordering.<br/>
- * A Buffered map has atomic transactions bounded automatically with each insert/delete.<br/>
+ * <p>
+ * The main function of this adapter is to ensure that the appropriate map is instantiated.<br>
+ * A map can be obtained by instance of Comparable to impart ordering.<br>
+ * A Buffered map has atomic transactions bounded automatically with each insert/delete.<br>
  * A transactional map requires commit/rollback and can be checkpointed.
  * The database name is the full path of the top level tablespace and log directory, i.e.
  * /home/db/test would create a 'test' database in the /home/db directory consisting of a series of RocksDB files
@@ -56,18 +56,18 @@ import com.neocoretechs.rocksack.session.VolumeManager.Volume;
  * The class name is translated into the appropriate file name via a simple translation table to give us a
  * database/class tablespace identifier for each file used.
  * BufferedMap returns one instance of the class for each call to get the map. Transactional maps create a new instance with a new
- * transaction context using the originally opened database, and so must be maintained in another context for each transaction.<p/>
+ * transaction context using the originally opened database, and so must be maintained in another context for each transaction.<p>
  * 
  * Full control over placement of instances can be achieved with the {@link DatabaseClass} annotation on a class to be stored in the RockSack.
  * This annotation controls storage in a particular tablespace, and column. RocksDB uses the 'ColumnFamily' concept to represent 'columns' or collections
- * of data than can be grouped together under a common set of attributes defined in the options upon opening.<p/>
+ * of data than can be grouped together under a common set of attributes defined in the options upon opening.<p>
  * It is analogous to separate databases stored under a unified set of files and directories.  
  * It can be considered separate columns or tablespaces or other
- * logical divisions in other systems. Here, we can store different class instances such as subclasses.<p/>
+ * logical divisions in other systems. Here, we can store different class instances such as subclasses.<p>
  * As described above, the database is stored under the tablespace directory which has the database name concatenated with the class name 
- * and is used to obtain the Map. This tablespace directory will then contain the RocksDB files and logs etc.</>
+ * and is used to obtain the Map. This tablespace directory will then contain the RocksDB files and logs etc.<p>
  * Using one of the methods in the class below, such as 'getMap', and transparent to
- * the user, DatabaseClass annotation then controls whether instances are stored in a different tablespace and internal column of that tablespace.<p/>
+ * the user, DatabaseClass annotation then controls whether instances are stored in a different tablespace and internal column of that tablespace.<p>
  * Looking at the example in {@link com.neocoretechs.rocksack.test.BatteryKVDerived} we see that if we want to store subclass
  * instances with a superclass, we have just the 'column' attribute with the fully qualified name of the superclass. This will
  * ensure that sets retrieved include both subclasses and superclasses. If we want to store the subclass in a different column within the same
@@ -130,8 +130,8 @@ public final class DatabaseManager {
 	}
 	/**
 	 * Set the tablespace for a given alias
-	 * @param alias
-	 * @param tableSpaceDir
+	 * @param alias the alias name, which will be appended to tablespace path to create a database name, that class names will be then appended to.
+	 * @param path Tablespace path
 	 * @throws IOException 
 	 */
 	public static void setTableSpaceDir(Alias alias, String path) throws IOException {
@@ -142,7 +142,7 @@ public final class DatabaseManager {
 	}
 	/**
 	 * Set the default tablespace for operations not using alias
-	 * @param tableSpaceDir
+	 * @param path The path of the tablespace; which is a directory appended with a database name, which will then have class names appended. Such as /home/dir/data with database name being data.
 	 * @throws IOException 
 	 */
 	public static void setTableSpaceDir(String path) throws IOException {
@@ -152,7 +152,7 @@ public final class DatabaseManager {
 		DatabaseManager.tableSpaceDir = path;
 	}
 	/**
-	 * Remove the given alias.
+	 * Remove the given alias. Affects only the alias reference, nothing else.
 	 * @param alias
 	 */
 	public static void removeAlias(Alias alias) {
@@ -160,7 +160,7 @@ public final class DatabaseManager {
 	}
 	/**
 	 * Remove the given tablespace path.
-	 * @param alias
+	 * @param path The tablespace path, which is a directory with appended database name such as /home/dir/data with database name being data
 	 */
 	public static void remove(String path) {
 		VolumeManager.remove(path);
@@ -183,7 +183,7 @@ public final class DatabaseManager {
 		return tableSpaceDir+clazz;
 	}
 	/**
-	 * Get the tablespace path for the given alias {@link VolumeManager.getAliasToPath}
+	 * Get the tablespace path for the given alias {@link VolumeManager}
 	 * @param alias the database alias
 	 * @return the path for this alias or null if none
 	 */
@@ -572,7 +572,6 @@ public final class DatabaseManager {
 	 * @throws IllegalAccessException
 	 * @throws NoSuchElementException if The alias cant be located
 	 * @throws IOException
-	 * @throws RocksDBException 
 	 */
 	public static synchronized TransactionalMap getTransactionalMap(Alias alias, Comparable clazz, TransactionId xid) throws IllegalAccessException, IOException, NoSuchElementException {
 		return getMap(alias, clazz.getClass(), xid);

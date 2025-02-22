@@ -260,8 +260,8 @@ public final class SessionManager {
 	 * Start the DB with no logging for debugging purposes
 	 * or to run read only without logging for some reason
 	 * @param dbname the path to the database (path+dbname)
-	 * @param remoteDBName The remote path to database tablespace directories (tablespace prepended to endof path) or null
-	 * @return
+	 * @param options db options
+	 * @return The {@link Session}
 	 * @throws IOException
 	 * @throws IllegalAccessException
 	 */

@@ -72,7 +72,7 @@ public class BatteryKVTransaction {
 	/**
 	 * Loads up on keys, should be 0 to max-1, or min, to max -1
 	 * transaction is committed
-	 * @param argv
+	 * @param xid
 	 * @throws Exception
 	 */
 	public static void battery1(TransactionId xid) throws Exception {
@@ -120,7 +120,7 @@ public class BatteryKVTransaction {
 	
 	/**
 	 * Test the higher level functions in the RelatrixKV.
-	 * public Set<Map.Entry<K,V>> entrySet()
+	 * public Set entrySet()
 	 * Returns a Set view of the mappings contained in this map. 
 	 * The set's iterator returns the entries in ascending key order. 
 	 * The set is backed by the map, so changes to the map are reflected in the set, and vice-versa.
@@ -154,7 +154,7 @@ public class BatteryKVTransaction {
 		 System.out.println("BATTERY1AR6 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
 	/**
-	 * Testing of Iterator<?> its = RelatrixKV.keySet;
+	 * Testing of Iterator its = RelatrixKV.keySet;
 	 * @param xid
 	 * @throws Exception
 	 */
@@ -288,7 +288,7 @@ public class BatteryKVTransaction {
 	}
 	/**
 	 * tailMap returning keys
-	 * @param axid
+	 * @param xid
 	 * @throws Exception
 	 */
 	public static void battery1AR11(TransactionId xid) throws Exception {

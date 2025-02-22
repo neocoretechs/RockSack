@@ -65,7 +65,7 @@ public class BatteryKVTransactionStream {
 	}
 	/**
 	 * Loads up on keys, should be 0 to max-1, or min, to max -1
-	 * @param argv
+	 * @param xid
 	 * @throws Exception
 	 */
 	public static void battery1(TransactionId xid) throws Exception {
@@ -91,7 +91,7 @@ public class BatteryKVTransactionStream {
 	
 	/**
 	 * Store another transaction then roll it back.
-	 * @param argv
+	 * @param xid
 	 * @throws Exception
 	 */
 	public static void battery11(TransactionId xid) throws Exception {
@@ -116,7 +116,7 @@ public class BatteryKVTransactionStream {
 	
 	/**
 	 * Test the higher level functions in the map.
-	 * public Set<Map.Entry<K,V>> entrySet()
+	 * public Set entrySet()
 	 * Returns a Set view of the mappings contained in this map. 
 	 * The set's stream returns the entries in ascending key order. 
 	 * The set is backed by the map, so changes to the map are reflected in the set, and vice-versa.
@@ -147,7 +147,7 @@ public class BatteryKVTransactionStream {
 		 System.out.println("BATTERY1AR6 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms.");
 	}
 	/**
-	 * Testing of Stream<?> its = keySetStream;
+	 * Testing of Stream its = keySetStream;
 	 * @param xid
 	 * @throws Exception
 	 */
@@ -170,7 +170,7 @@ public class BatteryKVTransactionStream {
 	}
 	/**
 	 * Testing of contains
-	 * @param argv
+	 * @param xid
 	 * @throws Exception
 	 */
 	public static void battery1AR8(TransactionId xid) throws Exception {
@@ -420,7 +420,7 @@ public class BatteryKVTransactionStream {
 	}
 	/**
 	 * remove entries
-	 * @param argv
+	 * @param xid
 	 * @throws Exception
 	 */
 	public static void battery1AR17(TransactionId xid) throws Exception {
@@ -464,7 +464,7 @@ public class BatteryKVTransactionStream {
 
 	/**
 	 * Loads up on keys, should be 0 to max-1, or min, to max -1
-	 * @param argv
+	 * @param xid
 	 * @throws Exception
 	 */
 	public static void battery18(TransactionId xid) throws Exception {

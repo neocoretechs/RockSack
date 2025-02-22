@@ -59,7 +59,6 @@ public class BufferedMap implements OrderedKVMapInterface {
 	/**
 	* Get instance of RockSack session.
 	* @param session the {@link Session} instance
-	* @param derivedClassName the derived class for the ColumnFamily denoting subclasses stored in this database
 	* @exception IOException if global IO problem
 	* @exception IllegalAccessException if the database has been put offline
 	* @throws RocksDBException 

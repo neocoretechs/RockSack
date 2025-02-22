@@ -460,7 +460,7 @@ public class BatteryRockSack2 {
 
 	/**
 	 * remove entries
-	 * @param argv
+	 * @param bmap
 	 * @throws Exception
 	 */
 	public static void battery1AR17(BufferedMap bmap) throws Exception {

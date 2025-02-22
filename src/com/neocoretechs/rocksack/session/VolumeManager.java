@@ -11,13 +11,13 @@ import com.neocoretechs.rocksack.Alias;
  * last component of the volume refers to the prefix of a database name within the parent path. When forming filesets for RocksDb, the
  * volume, concatenated with the class name, form a RockDB database. For instance:
  * /Users/db/test would create a database test in the /Users/db path and resultant RocksDB database files for instances of the
- * String class would appear in the directory /Users/db/testjava.lang.String <p/>
+ * String class would appear in the directory /Users/db/testjava.lang.String <p>
  * A subsequent call to RockSackAdapter.setTableSpaceDir("/Users/db/test") would set the default tablespace and directory
- * to the test database in /Users/db and method calls lacking an alias would reference this default tablespace.<p/>
+ * to the test database in /Users/db and method calls lacking an alias would reference this default tablespace.<p>
  * In the case of an alias, one may use the calls to createAlias("alias","/Users/db/test") to establish an alias to that tablespace
  * for subsequent calls to methods that use an alias when working with multiple databases. One an alias has been established, the
  * tablespace CANNOT be assigned to another alias without first issuing calls to explicitly remove the alias first. 
- * An IllegalArgumentException will be thrown.<br/>
+ * An IllegalArgumentException will be thrown.<br>
  * @author Jonathan Groff Copyright (C) NeoCoreTechs 2023
  *
  */

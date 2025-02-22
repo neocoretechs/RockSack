@@ -63,7 +63,7 @@ import com.neocoretechs.rocksack.stream.TailSetStream;
 * Responsible for providing access to Deep Store key/value interface implementations
 * Operations include
 * handing out iterators, inserting and deleting objects, size, navigation, clearing,
-* and handling commit and rollback.<p/>
+* and handling commit and rollback.<p>
 * Session is the universal collection of transaction and non-transaction methods, subclasses encapsulate
 * specific transaction and non-transaction semantics. 
 * @author Jonathan Groff (C) NeoCoreTechs 2003, 2017, 2021, 2022
@@ -1066,7 +1066,6 @@ public class Session {
 	
 	/**
 	* Close this session.
-	* @param rollback true to roll back, false to commit
 	* @exception IOException For low level failure
 	*/
 	public void Close() throws IOException {

@@ -36,9 +36,9 @@ import javax.tools.ToolProvider;
  * {@link com.neocoretechs.rocksack.test.TestTooling2}
  * TODO: check to see if class extends class that implements compareTo, then call superclass compareTo if we
  * need to add Comparable interface.
- * If we generate a serialVersionUID we add a default constructor as well.<p/>
+ * If we generate a serialVersionUID we add a default constructor as well.<p>
  * Command line is java -cp rockcksdb.jar;rocksack.jar com.neocoretechs.rocksack.ClassTool yourjavaclass.java
- * <p/>
+ * <p>
  * You also need the correct directory structure to match your package naming convention as the tool relies on runtime
  * compilation of the source java. Easy way is to call your package com, create com directory, then specify com/yourjavaclass.java on
  * the command line. Later, change your package name. After running the tool you should see your original
