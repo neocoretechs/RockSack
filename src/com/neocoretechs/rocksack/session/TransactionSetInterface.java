@@ -3,8 +3,6 @@ package com.neocoretechs.rocksack.session;
 import java.io.IOException;
 import java.util.Iterator;
 
-import org.rocksdb.TransactionDB;
-
 import com.neocoretechs.rocksack.TransactionId;
 /**
  * Interface contract for the Set abstraction in a transaction context.<p>

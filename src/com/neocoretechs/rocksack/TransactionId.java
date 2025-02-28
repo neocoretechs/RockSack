@@ -3,7 +3,11 @@ package com.neocoretechs.rocksack;
 import java.io.Serializable;
 import java.util.Objects;
 import java.util.UUID;
-
+/**
+ * Encapsulates a transaction id guaranteed to be unique across all usage via UUID.
+ * Typically represented in string form and generated via TransactionId.generate() static factory method.
+ * @author Jonathan Groff Copyright (C) NeoCoreTechs 2024,2025
+ */
 public class TransactionId implements Serializable {
 	private static final long serialVersionUID = -4900917167930271807L;
 	private String transactionId;

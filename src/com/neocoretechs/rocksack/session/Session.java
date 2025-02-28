@@ -174,7 +174,6 @@ public class Session {
 	 * @return true
 	 * @throws IOException
 	 */
-	@SuppressWarnings("rawtypes")
 	protected boolean putViaBytes(ColumnFamilyHandle cfh, byte[] key, Object o) throws IOException {
 		try {
 			kvStore.put(cfh,key,SerializedComparator.serializeObject(o));
@@ -235,7 +234,7 @@ public class Session {
 		if(DEBUG)
 			System.out.printf("%s.get(%s, %s, %s)%n", this.getClass().getName(), txn, ro, o);
 		   try {
-			   byte[] b = txn.get(cfh,ro,SerializedComparator.serializeObject(o));
+			   byte[] b = txn.get(ro, cfh, SerializedComparator.serializeObject(o));
 			   if(b == null)
 				   return null;
 			   return new KeyValue(o,SerializedComparator.deserializeObject(b));
@@ -288,7 +287,6 @@ public class Session {
 	 * @return the Value object from the retrieved node
 	 * @throws IOException
 	 */
-	@SuppressWarnings("rawtypes")
 	protected Object getViaBytes(ColumnFamilyHandle cfh, byte[] o) throws IOException {
 		if(DEBUG)
 			System.out.printf("%s.get(%s)%n", this.getClass().getName(), o);
@@ -310,12 +308,11 @@ public class Session {
 	 * @return the Value object from the retrieved node
 	 * @throws IOException
 	 */
-	@SuppressWarnings("rawtypes")
 	protected Object getViaBytes(Transaction txn, ColumnFamilyHandle cfh, ReadOptions ro, byte[] o) throws IOException {
 		if(DEBUG)
 			System.out.printf("%s.get(%s, %s, %s)%n", this.getClass().getName(), txn, ro, o);
 		   try {
-			   byte[] b = txn.get(cfh,ro,o);
+			   byte[] b = txn.get(ro, cfh, o);
 			   if(b == null)
 				   return null;
 			   return SerializedComparator.deserializeObject(b);
@@ -767,7 +764,6 @@ public class Session {
 	 * @return boolean if the value object is found
 	 * @throws IOException
 	 */
-	@SuppressWarnings("rawtypes")
 	protected boolean containsValue(ColumnFamilyHandle cfh, Object o) throws IOException {
 		return (getValue(cfh, o) != null);
 	}
@@ -780,7 +776,6 @@ public class Session {
 	 * @return boolean if the value object is found
 	 * @throws IOException
 	 */
-	@SuppressWarnings("rawtypes")
 	protected boolean containsValue(Transaction txn, ColumnFamilyHandle cfh, ReadOptions ro, Object o) throws IOException {
 		return (getValue(txn, cfh, ro, o) != null);
 	}
@@ -843,7 +838,7 @@ public class Session {
 	protected Object remove(Transaction txn, ColumnFamilyHandle cfh, ReadOptions ro, Comparable o) throws IOException {
 		try {
 			byte[] b2 = SerializedComparator.serializeObject(o); // key
-			byte[] b = txn.get(cfh, ro, b2); // b = value
+			byte[] b = txn.get(ro, cfh, b2); // b = value
 			txn.delete(cfh, b2); // serial bytes of key, call to delete
 			if(b != null) {
 				return SerializedComparator.deserializeObject(b); // serialize previous value from retrieved bytes
@@ -861,7 +856,7 @@ public class Session {
 	 * @throws IOException
 	 */
 	protected Object first(ColumnFamilyHandle cfh) throws IOException {
-		Iterator it = new EntrySetIterator(kvStore, cfh);
+		Iterator<?> it = new EntrySetIterator(kvStore, cfh);
 		if(it.hasNext()) {
 			return ((Entry)it.next()).getValue();
 		}
@@ -875,7 +870,7 @@ public class Session {
 	 * @throws IOException
 	 */
 	protected Object first(Transaction txn, ColumnFamilyHandle cfh) throws IOException {
-		Iterator it = new EntrySetIterator(txn, new ReadOptions(), cfh);
+		Iterator<?> it = new EntrySetIterator(txn, new ReadOptions(), cfh);
 		if(it.hasNext()) {
 			return ((Entry)it.next()).getValue();
 		}
@@ -997,7 +992,7 @@ public class Session {
 	 * @throws IOException
 	 */
 	protected long size(ColumnFamilyHandle cfh) throws IOException {
-		Iterator it = new KeySetIterator(kvStore, cfh);
+		Iterator<?> it = new KeySetIterator(kvStore, cfh);
 		long cnt = 0;
 		while(it.hasNext()) {
 			it.next();
@@ -1013,7 +1008,7 @@ public class Session {
 	 * @throws IOException
 	 */
 	protected long size(Transaction txn, ColumnFamilyHandle cfh) throws IOException {
-		Iterator it = new KeySetIterator(txn, cfh);
+		Iterator<?> it = new KeySetIterator(txn, cfh);
 		long cnt = 0;
 		while(it.hasNext()) {
 			it.next();
@@ -1029,7 +1024,7 @@ public class Session {
 	 * @throws IOException
 	 */
 	protected boolean isEmpty(ColumnFamilyHandle cfh) throws IOException {
-		Iterator it = new KeySetIterator(kvStore, cfh);
+		Iterator<?> it = new KeySetIterator(kvStore, cfh);
 		if(it.hasNext()) {
 			return true;
 		}
@@ -1044,7 +1039,7 @@ public class Session {
 	 * @throws IOException
 	 */
 	protected boolean isEmpty(Transaction txn, ColumnFamilyHandle cfh) throws IOException {
-		Iterator it = new KeySetIterator(txn, cfh);
+		Iterator<?> it = new KeySetIterator(txn, cfh);
 		if(it.hasNext()) {
 			return true;
 		}

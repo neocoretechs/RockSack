@@ -37,17 +37,6 @@ public class OptimisticTransactionSession extends TransactionSession {
 	//	return ((OptimisticTransactionDB)kvStore).getBaseDB();
 	//}
 	
-	@Override
-	public synchronized Transaction BeginTransaction(String transactionName) throws RocksDBException {
-		optoOpts = new OptimisticTransactionOptions();
-		optoOpts.setComparator(new SerializedComparator());
-		optoOpts.setSetSnapshot(true);
-		Transaction t = ((OptimisticTransactionDB) getKVStore()).beginTransaction(new WriteOptions(), optoOpts);
-		if(DEBUG)
-			System.out.printf("%s.BeginTransaction transaction name %s%n",this.getClass().getName(),transactionName);
-		t.setName(transactionName);
-		return t;
-	}
 	
 	@Override
 	public synchronized Transaction BeginTransaction() {
@@ -58,4 +47,5 @@ public class OptimisticTransactionSession extends TransactionSession {
 		optoOpts.setSetSnapshot(true);
 		return ((OptimisticTransactionDB) getKVStore()).beginTransaction(new WriteOptions(), optoOpts);
 	}
+	
 }

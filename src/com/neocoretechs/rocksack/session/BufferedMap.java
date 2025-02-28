@@ -35,7 +35,6 @@ import org.rocksdb.RocksDBException;
 /**
 * BufferedMapDerived for subclasses of objects stored in a tablespace we use
 * a separate column family . Functions as a wrapper around {@link Session} and we call methods there using ColumnFamilyHandle.
-* Thread safety is with the session object using session.getMutexObject().
 * @author Jonathan Groff (C) NeoCoreTechs 2024
 */
 public class BufferedMap implements OrderedKVMapInterface {
@@ -45,7 +44,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	ColumnFamilyDescriptor columnFamilyDescriptor = null;
 
 	/**
-	* Get instance of RockSack session.
+	* Encapsulates a RockSack session. Calls processColumnFamily on derivedClassName.
 	* @param session the {@link Session} instance
 	* @param derivedClassName the derived class for the ColumnFamily denoting subclasses stored in this database
 	* @exception IOException if global IO problem
@@ -57,7 +56,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 		processColumnFamily(derivedClassName);
 	}
 	/**
-	* Get instance of RockSack session.
+	* Encapsulates a RockSack session. CAlls processColumnFamily on default.
 	* @param session the {@link Session} instance
 	* @exception IOException if global IO problem
 	* @exception IllegalAccessException if the database has been put offline
@@ -136,6 +135,9 @@ public class BufferedMap implements OrderedKVMapInterface {
 	    	throw new RocksDBException("columnFamilyHandle name "+(new String(this.columnFamilyHandle.getName()))+" or descriptor does not match target:"+derivedClassName);
 	}
 	
+	/**
+	 * @return the {@link Session} instance after ensuring the database is open and ready for processing.
+	 */
 	public Session getSession() throws IOException {
 		session.waitOpen();
 		return session;
@@ -148,10 +150,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public boolean put(Comparable tkey, Object tvalue) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-				// now put new
-				return session.put(columnFamilyHandle, tkey, tvalue);
-		//}
+		return session.put(columnFamilyHandle, tkey, tvalue);
 	}
 	/**
 	* Put a key/value pair to underlying store. {@link Session}
@@ -160,10 +159,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	* @exception IOException if put to backing store fails
 	*/
 	public boolean putViaBytes(byte[] tkey, Object tvalue) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-				// now put new
-				return session.putViaBytes(columnFamilyHandle, tkey, tvalue);
-		//}
+		return session.putViaBytes(columnFamilyHandle, tkey, tvalue);
 	}
 	/**
 	* call a get from {@link Session}
@@ -173,9 +169,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Object get(Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-				return getSession().get(columnFamilyHandle, tkey);
-		//}
+		return getSession().get(columnFamilyHandle, tkey);
 	}
 	/**
 	* Get a value from backing store. {@link Session}
@@ -183,11 +177,8 @@ public class BufferedMap implements OrderedKVMapInterface {
 	* @return The value for the key deserialized from RocksDB get
 	* @exception IOException if get from backing store fails
 	*/
-	@SuppressWarnings("rawtypes")
 	public Object getViaBytes(byte[] tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-				return getSession().getViaBytes(columnFamilyHandle, tkey);
-		//}
+		return getSession().getViaBytes(columnFamilyHandle, tkey);
 	}
 	/**
 	* Get a value from backing store. {@link Session}
@@ -196,9 +187,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	* @exception IOException if get from backing store fails
 	*/
 	public Object getValue(Object tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-				return session.getValue(columnFamilyHandle, tkey);
-		//}
+		return session.getValue(columnFamilyHandle, tkey);
 	}
 	/**
 	* Return the number of elements in the backing store. {@link Session}
@@ -206,9 +195,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	* @exception IOException If backing store retrieval failure
 	*/
 	public long size() throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-				return session.size(columnFamilyHandle);
-		//}
+		return session.size(columnFamilyHandle);
 	}
 
 	/**
@@ -217,18 +204,14 @@ public class BufferedMap implements OrderedKVMapInterface {
 	* @exception IOException if get from backing store fails
 	*/
 	public Iterator<?> entrySet() throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-				return session.entrySet(columnFamilyHandle);
-		//}
+		return session.entrySet(columnFamilyHandle);
 	}
 	
 	/**
 	 * Stream of all elements as Map.Entry {@link Session}
 	 */
 	public Stream<?> entrySetStream() throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-				return session.entrySetStream(columnFamilyHandle);
-		//}
+		return session.entrySetStream(columnFamilyHandle);
 	}
 	/**
 	* Get a keySet iterator. {@link Session}
@@ -236,17 +219,13 @@ public class BufferedMap implements OrderedKVMapInterface {
 	* @exception IOException if get from backing store fails
 	*/
 	public Iterator<?> keySet() throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-				return session.keySet(columnFamilyHandle);
-		//}
+		return session.keySet(columnFamilyHandle);
 	}
 	/**
 	 * Get a stream over keys {@link Session}
 	 */
 	public Stream<?> keySetStream() throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-				return session.keySetStream(columnFamilyHandle);
-		//}
+		return session.keySetStream(columnFamilyHandle);
 	}
 	/**
 	* Returns true if the collection contains the given key. {@link Session}
@@ -256,9 +235,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public boolean containsKey(Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.contains(columnFamilyHandle, tkey);
-		//}
+		return session.contains(columnFamilyHandle, tkey);
 	}
 	/**
 	* Remove object from cache and backing store. {@link Session}
@@ -268,27 +245,21 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Object remove(Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.remove(columnFamilyHandle, tkey);
-		//}
+		return session.remove(columnFamilyHandle, tkey);
 	}
 	/**
 	* @return First key in set. {@link Session}
 	* @exception IOException If backing store retrieval failure
 	*/
 	public Comparable firstKey() throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.firstKey(columnFamilyHandle);
-		//}
+		return session.firstKey(columnFamilyHandle);
 	}
 	/**
 	* @return Last key in set. {@link Session}
 	* @exception IOException If backing store retrieval failure
 	*/
 	public Comparable lastKey() throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.lastKey(columnFamilyHandle);
-		//}
+		return session.lastKey(columnFamilyHandle);
 	}
 	/**
 	* Return the last element. {@link Session}
@@ -296,9 +267,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	* @exception IOException If backing store retrieval failure
 	*/
 	public Object last() throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-				return session.last(columnFamilyHandle);
-		//}
+		return session.last(columnFamilyHandle);
 	}
 	/**
 	* Return the first element. {@link Session}
@@ -306,9 +275,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	* @exception IOException If backing store retrieval failure
 	*/
 	public Object first() throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.first(columnFamilyHandle);
-		//}
+		return session.first(columnFamilyHandle);
 	}
 	/**
 	 * Find the entry nearest to given key
@@ -317,9 +284,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	 * @throws IOException
 	 */
 	public Object nearest(Comparable key) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.nearest(columnFamilyHandle, key);
-		//}
+		return session.nearest(columnFamilyHandle, key);
 	}
 	/**
 	* @param tkey Strictly less than 'to' this element. {@link Session}
@@ -328,9 +293,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Iterator<?> headMap(Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.headSet(columnFamilyHandle, tkey);
-		//}
+		return session.headSet(columnFamilyHandle, tkey);
 	}
 	
 	/**
@@ -341,9 +304,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	 */
 	@SuppressWarnings("rawtypes")
 	public Stream<?> headMapStream(Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.headSetStream(columnFamilyHandle, tkey);
-		//}
+		return session.headSetStream(columnFamilyHandle, tkey);
 	}
 	/**
 	* @param tkey Strictly less than 'to' this element. {@link Session}
@@ -352,9 +313,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Iterator<?> headMapKV(Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.headSetKV(columnFamilyHandle, tkey);
-		//}
+		return session.headSetKV(columnFamilyHandle, tkey);
 	}
 	/**
 	* @param tkey Strictly less than 'to' this element. {@link Session}
@@ -363,9 +322,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Stream<?> headMapKVStream(Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.headSetKVStream(columnFamilyHandle, tkey);
-		//}
+		return session.headSetKVStream(columnFamilyHandle, tkey);
 	}
 	/**
 	* @param fkey Greater or equal to 'from' element. {@link Session}
@@ -374,9 +331,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Iterator<?> tailMap(Comparable fkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.tailSet(columnFamilyHandle, fkey);
-		//}
+		return session.tailSet(columnFamilyHandle, fkey);
 	}
 	/**
 	* @param fkey Greater or equal to 'from' element. {@link Session}
@@ -385,9 +340,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Stream<?> tailMapStream(Comparable fkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.tailSetStream(columnFamilyHandle, fkey);
-		//}
+		return session.tailSetStream(columnFamilyHandle, fkey);
 	}
 	/**
 	* @param fkey Greater or equal to 'from' element. {@link Session}
@@ -396,9 +349,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Iterator<?> tailMapKV(Comparable fkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.tailSetKV(columnFamilyHandle, fkey);
-		//}
+		return session.tailSetKV(columnFamilyHandle, fkey);
 	}
 	/**
 	* @param fkey Greater or equal to 'from' element, {@link Session}
@@ -407,9 +358,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Stream<?> tailMapKVStream(Comparable fkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.tailSetKVStream(columnFamilyHandle, fkey);
-		//}
+		return session.tailSetKVStream(columnFamilyHandle, fkey);
 	}
 	/**
 	* @param fkey 'from' element inclusive. {@link Session}
@@ -419,9 +368,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Iterator<?> subMap(Comparable fkey, Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.subSet(columnFamilyHandle, fkey, tkey);
-		//}
+		return session.subSet(columnFamilyHandle, fkey, tkey);
 	}
 	/**
 	* @param fkey 'from' element inclusive. {@link Session} 
@@ -431,9 +378,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Stream<?> subMapStream(Comparable fkey, Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.subSetStream(columnFamilyHandle, fkey, tkey);
-		//}
+		return session.subSetStream(columnFamilyHandle, fkey, tkey);
 	}
 	/**
 	* @param fkey 'from' element inclusive. {@link Session}
@@ -443,9 +388,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Iterator<?> subMapKV(Comparable fkey, Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.subSetKV(columnFamilyHandle, fkey, tkey);
-		//}
+		return session.subSetKV(columnFamilyHandle, fkey, tkey);
 	}
 	/**
 	* @param fkey 'from' element inclusive. {@link Session}
@@ -455,19 +398,15 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	@SuppressWarnings("rawtypes")
 	public Stream<?> subMapKVStream(Comparable fkey, Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.subSetKVStream(columnFamilyHandle, fkey, tkey);
-		//}
+		return session.subSetKVStream(columnFamilyHandle, fkey, tkey);
 	}
 	/**
-	* Return boolean value indicating whether the map is empty
+	* Return boolean value indicating whether the map for the columnFamilyHandle encapsulated by this {@link Session} is empty
 	* @return true if empty
 	* @exception IOException If backing store retrieval failure
 	*/
 	public boolean isEmpty() throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-				return session.isEmpty(columnFamilyHandle);
-		//}
+		return session.isEmpty(columnFamilyHandle);
 	}
 	
 	@Override
@@ -490,19 +429,21 @@ public class BufferedMap implements OrderedKVMapInterface {
 
 	/**
 	 * {@link Session} equivalent of keySet fulfills {@link SetInterface}
+	 * @return Iterator over the keySet of elements in this map for the columnFAmilyhandle encapsulated by this {@link Session}
+	 * @throws IOException if backing store fails
 	 */
 	@Override
 	public Iterator<?> iterator() throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.keySet(columnFamilyHandle);
-		//}
+		return session.keySet(columnFamilyHandle);
 	}
-
+	/**
+	 * @param o the key to locate
+	 * @return true if map contains the designated key
+	 * @throws IOException if backing store fails
+	 */
 	@Override
 	public boolean contains(Comparable o) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.contains(columnFamilyHandle, o);
-		//}
+		return session.contains(columnFamilyHandle, o);
 	}
 
 	@Override
@@ -511,114 +452,138 @@ public class BufferedMap implements OrderedKVMapInterface {
 
 	@Override
 	public void Close() throws IOException {
-		//synchronized (getSession().getMutexObject()) {
 			session.getKVStore().close();
-		//}
 	}
 	/**
 	 * Return the RocksDB instance.
 	 */
 	@Override
 	public RocksDB getKVStore() {
-		//synchronized (getSession().getMutexObject()) {
 		return session.getKVStore();
-		//}
 	}
 	/**
 	 * {@link Session} containsValue
 	 */
 	@Override
 	public boolean containsValue(Object o) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
 			return session.containsValue(columnFamilyHandle, o);
-		//}
 	}
-
-
+	/**
+	* @param fkey 'from' element inclusive. {@link Session}
+	* @param tkey 'to' element exclusive
+	* @return Iterator of objects in subset from fkey to tkey
+	* @exception IOException If backing store retrieval failure
+	*/
 	@Override
 	public Iterator<?> subSet(Comparable fkey, Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.subSet(columnFamilyHandle, fkey, tkey);
-		//}
+		return session.subSet(columnFamilyHandle, fkey, tkey);
 	}
-
+	/**
+	* @param fkey 'from' element inclusive. {@link Session}
+	* @param tkey 'to' element exclusive
+	* @return Stream of objects in subset from fkey to tkey
+	* @exception IOException If backing store retrieval failure
+	*/
 	@Override
 	public Stream<?> subSetStream(Comparable fkey, Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.subSetStream(columnFamilyHandle, fkey, tkey);
-		//}
+		return session.subSetStream(columnFamilyHandle, fkey, tkey);
 	}
-
+	/**
+	* @param tkey Strictly less than 'to' this element. {@link Session}
+	* @return Iterator of first to tkey returning set of keys
+	* @exception IOException If backing store retrieval failure
+	*/
 	@Override
 	public Iterator<?> headSet(Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.headSet(columnFamilyHandle, tkey);
-		//}
+		return session.headSet(columnFamilyHandle, tkey);
 	}
-
+	/**
+	* @param tkey Strictly less than 'to' this element. {@link Session}
+	* @return Stream of first to tkey returning set of keys
+	* @exception IOException If backing store retrieval failure
+	*/
 	@Override
 	public Stream<?> headSetStream(Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.headSetStream(columnFamilyHandle, tkey);
-		//}
+		return session.headSetStream(columnFamilyHandle, tkey);
 	}
-
+	/**
+	* @param fkey Greater or equal to 'from' element. {@link Session}
+	* @return Iterator of objects from fkey to end which are set of keys
+	* @exception IOException If backing store retrieval failure
+	*/
 	@Override
 	public Iterator<?> tailSet(Comparable fkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.tailSet(columnFamilyHandle, fkey);
-		//}
+		return session.tailSet(columnFamilyHandle, fkey);
 	}
-
+	/**
+	* @param fkey Greater or equal to 'from' element. {@link Session}
+	* @return Stream of objects from fkey to end which are set of keys
+	* @exception IOException If backing store retrieval failure
+	*/
 	@Override
 	public Stream<?> tailSetStream(Comparable fkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.tailSetStream(columnFamilyHandle, fkey);
-		//}
+		return session.tailSetStream(columnFamilyHandle, fkey);
 	}
-
+	/**
+	* @param fkey 'from' element inclusive. {@link Session}
+	* @param tkey 'to' element exclusive
+	* @return Iterator of key/value objects in subset from fkey to tkey
+	* @exception IOException If backing store retrieval failure
+	*/
 	@Override
 	public Iterator<?> subSetKV(Comparable fkey, Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.subSetKV(columnFamilyHandle, fkey, tkey);
-		//}
+		return session.subSetKV(columnFamilyHandle, fkey, tkey);
 	}
-
+	/**
+	* @param fkey 'from' element inclusive. {@link Session}
+	* @param tkey 'to' element exclusive
+	* @return Stream of key/value objects in subset from fkey to tkey
+	* @exception IOException If backing store retrieval failure
+	*/
 	@Override
 	public Stream<?> subSetKVStream(Comparable fkey, Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.subSetKVStream(columnFamilyHandle, fkey, tkey);
-		//}
+		return session.subSetKVStream(columnFamilyHandle, fkey, tkey);
 	}
-
+	/**
+	* @param tkey Strictly less than 'to' this element. {@link Session}
+	* @return Iterator of first to tkey returning KeyValuePairs implementation of Map.Entry
+	* @exception IOException If backing store retrieval failure
+	*/
 	@Override
 	public Iterator<?> headSetKV(Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.headSetKV(columnFamilyHandle, tkey);
-		//}
+		return session.headSetKV(columnFamilyHandle, tkey);
 	}
-
+	/**
+	* @param tkey Strictly less than 'to' this element. {@link Session}
+	* @return Stream of first to tkey returning KeyValuePairs implementation of Map.Entry
+	* @exception IOException If backing store retrieval failure
+	*/
 	@Override
 	public Stream<?> headSetKVStream(Comparable tkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.headSetKVStream(columnFamilyHandle, tkey);
-		//}
+		return session.headSetKVStream(columnFamilyHandle, tkey);
 	}
-
+	/**
+	* @param fkey Greater or equal to 'from' element. {@link Session}
+	* @return Iterator of objects from fkey to end which are KeyValuePairs implementation of Map.Entry
+	* @exception IOException If backing store retrieval failure
+	*/
 	@Override
 	public Iterator<?> tailSetKV(Comparable fkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.tailSetKV(columnFamilyHandle, fkey);
-		//}
+		return session.tailSetKV(columnFamilyHandle, fkey);
 	}
-
+	/**
+	* @param fkey Greater or equal to 'from' element. {@link Session}
+	* @return Stream of objects from fkey to end which are KeyValuePairs implementation of Map.Entry
+	* @exception IOException If backing store retrieval failure
+	*/
 	@Override
 	public Stream<?> tailSetKVStream(Comparable fkey) throws IOException {
-		//synchronized (getSession().getMutexObject()) {
-			return session.tailSetKVStream(columnFamilyHandle, fkey);
-		//}
+		return session.tailSetKVStream(columnFamilyHandle, fkey);
 	}
-	
+	/**
+	 * Drop the column encapsulated by the session for this BufferedMap
+	 * @throws IOException
+	 */
 	public void dropColumn() throws IOException {
 		session.dropColumn(columnFamilyHandle);
 	}

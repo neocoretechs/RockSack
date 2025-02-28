@@ -23,7 +23,7 @@ import com.neocoretechs.rocksack.session.TransactionManager.SessionAndTransactio
 /**
  * Extends the {@link Session} class to include transaction semantics. In RocksDb a TransactionDB
  * instance contains the transaction classes and methods to provide atomicity.
- * Transactions are linked to a TransactionDb, a subclass of RocksDB. Each transaction may be named,
+ * Transactions are linked to a TransactionDb, or OptimisticTransactionDb, both subclasses of RocksDB. Each transaction may be named,
  * and the name must be unique. To enforce uniqueness considering these constraints, the name
  * formed will be a concatenation of Transaction Id, which is a UUID, the class name, which is also
  * a column family or the default column family, and the Alias, or none, which is the default database path.<p>
@@ -46,15 +46,6 @@ public class TransactionSession extends Session implements TransactionInterface 
 		ro = new ReadOptions();
 		wo = new WriteOptions();
 	}
-
-	@Override
-	public synchronized Transaction BeginTransaction(String transactionName) throws RocksDBException {
-		Transaction t = ((TransactionDB) getKVStore()).beginTransaction(new WriteOptions());
-		if(DEBUG)
-			System.out.printf("%s.BeginTransaction transaction name %s%n",this.getClass().getName(),transactionName);
-		t.setName(transactionName);
-		return t;
-	}
 	
 	@Override
 	public synchronized Transaction BeginTransaction() {
@@ -71,51 +62,47 @@ public class TransactionSession extends Session implements TransactionInterface 
 	 * @return The RocksDb Transaction object or null if not found and create was false
 	 */
 	public synchronized Transaction getTransaction(TransactionId transactionId, String clazz, boolean create) {
-		try {
-			String name = transactionId.getTransactionId()+clazz;
-			if(DEBUG)
-				System.out.printf("%s.getTransaction Enter Transaction id:%s Class:%s create:%b from name:%s%n",this.getClass().getName(),transactionId,clazz,create,name);
-			Transaction transaction = null;
-			boolean exists = false;
-			SessionAndTransaction transLink = null;
-			// check exact match
-			ConcurrentHashMap<String, SessionAndTransaction> transSession = TransactionManager.getTransactionSession(transactionId);
-			if(transSession == null) {
-				transSession = TransactionManager.setTransaction(transactionId);
-			} else {
-				transLink = transSession.get(name);
-				if(transLink == null) {
-					// no match, is id in use for another class? if so, use that transaction
-					Collection<SessionAndTransaction> all = transSession.values();
-					if(all != null && !all.isEmpty()) {
-						for(SessionAndTransaction alle : all) {
-							//if(DEBUG)
-							//	System.out.printf("%s.getTransaction Transaction id:%s Transaction name:%s%n",this.getClass().getName(),alle.getKey(),alle.getValue().getName());
-							if(alle.getTransaction().getName().startsWith(transactionId.getTransactionId())) {
-								transaction = alle.getTransaction();
-								exists = true;
-								break;
-							}
+		String name = transactionId.getTransactionId()+clazz;
+		if(DEBUG)
+			System.out.printf("%s.getTransaction Enter Transaction id:%s Class:%s create:%b from name:%s%n",this.getClass().getName(),transactionId,clazz,create,name);
+		Transaction transaction = null;
+		boolean exists = false;
+		SessionAndTransaction transLink = null;
+		// check exact match
+		ConcurrentHashMap<String, SessionAndTransaction> transSession = TransactionManager.getTransactionSession(transactionId);
+		if(transSession == null) {
+			transSession = TransactionManager.setTransaction(transactionId);
+		} else {
+			transLink = transSession.get(name);
+			if(transLink == null) {
+				// no match, is id in use for another class? if so, use that transaction
+				Collection<SessionAndTransaction> all = transSession.values();
+				if(all != null && !all.isEmpty()) {
+					for(SessionAndTransaction alle : all) {
+						//if(DEBUG)
+						//	System.out.printf("%s.getTransaction Transaction id:%s Transaction name:%s%n",this.getClass().getName(),alle.getKey(),alle.getValue().getName());
+						if(alle.getTransactionId().getTransactionId().startsWith(transactionId.getTransactionId())) {
+							transaction = alle.getTransaction();
+							exists = true;
+							break;
 						}
 					}
-				} else {
-					transaction = transLink.getTransaction();
-					exists = true;
 				}
+			} else {
+				transaction = transLink.getTransaction();
+				exists = true;
 			}
-			if(!exists && create) {
-				if(DEBUG)
-					System.out.printf("%s.getTransaction Creating Transaction id:%s Transaction name:%s%n",this.getClass().getName(),transactionId,name);
-				transaction = BeginTransaction(name);
-				transLink = new SessionAndTransaction(this, transaction);
-				transSession.put(name, transLink);
-			}
-			if(DEBUG)
-				System.out.printf("%s.getTransaction returning Transaction name:%s%n",this.getClass().getName(),transaction.getName());
-			return transaction;
-		} catch (RocksDBException e) {
-				throw new RuntimeException(e);
 		}
+		if(!exists && create) {
+			if(DEBUG)
+				System.out.printf("%s.getTransaction Creating Transaction id:%s Transaction name:%s%n",this.getClass().getName(),transactionId,name);
+			transaction = BeginTransaction();
+			transLink = new SessionAndTransaction(this, transaction, transactionId);
+			transSession.put(name, transLink);
+		}
+		if(DEBUG)
+			System.out.printf("%s.getTransaction returning Transaction name:%s%n",this.getClass().getName(),transaction.getName());
+		return transaction;
 	}
 
 	/**
@@ -136,11 +123,7 @@ public class TransactionSession extends Session implements TransactionInterface 
 		if(tLink.containsKey(name))
 			return true;
 		SessionAndTransaction sLink;
-		try {
-			sLink = new SessionAndTransaction(tm.getSession(), BeginTransaction(name));
-		} catch (RocksDBException e) {
-			throw new IOException(e);
-		}
+		sLink = new SessionAndTransaction(tm.getSession(), BeginTransaction(), xid);
 		tLink.put(name, sLink);
 		return false;
 	}

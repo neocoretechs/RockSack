@@ -47,9 +47,11 @@ public final class TransactionManager {
 	static class SessionAndTransaction {
 		TransactionSession transactionSession;
 		Transaction transaction;
-		public SessionAndTransaction(TransactionSession session, Transaction transaction) {
+		TransactionId transactionId;
+		public SessionAndTransaction(TransactionSession session, Transaction transaction, TransactionId transactionId) {
 			this.transactionSession = session;
 			this.transaction = transaction;
+			this.transactionId = transactionId;
 		}
 		/**
 		 * @return the transactionSession
@@ -70,10 +72,19 @@ public final class TransactionManager {
 			return transaction;
 		}
 		/**
+		 * @return the {@link TransactionId} for this transaction
+		 */
+		public TransactionId getTransactionId() {
+			return transactionId;
+		}
+		/**
 		 * @param transaction the transaction to set
 		 */
 		public void setTransaction(Transaction transaction) {
 			this.transaction = transaction;
+		}
+		public void setTransactionId(TransactionId transactionId) {
+			this.transactionId = transactionId;
 		}
 		@Override
 		public int hashCode() {
@@ -93,7 +104,14 @@ public final class TransactionManager {
 		}
 		@Override
 		public String toString() {
-			return "SessionAndTransaction [transactionSession=" + transactionSession + ", transaction=" + transaction+ "]";
+			StringBuilder sb = new StringBuilder("SessionAndTransaction [transactionSession=");
+			sb.append(transactionSession);
+			sb.append(", transaction=");
+			sb.append(transaction);
+			sb.append(" transactionId=");
+			sb.append(transactionId);
+			sb.append("]\r\n");
+			return sb.toString();
 		}
 
 	}
@@ -150,19 +168,19 @@ public final class TransactionManager {
 	 * AWAITING_COMMIT AWAITING_PREPARE AWAITING_ROLLBACK COMMITED COMMITTED (?)
 	 * LOCKS_STOLEN PREPARED ROLLEDBACK STARTED. In practice, it seems to mainly vary between
 	 * STARTED and COMMITTED. The 'COMMITED' state doesnt seem to manifest.
-	 * @return
+	 * @return The unique transactions and the state of the transaction
 	 */
 	static List<String> getOutstandingTransactionState() {
 		ArrayList<String> retState = new ArrayList<String>();
-		for(Transaction t: getOutstandingTransactions()) {
-			retState.add("Transaction:"+t.getName()+" State:"+ t.getState().name());
+		for(SessionAndTransaction t: getOutstandingTransactions()) {
+			retState.add("Transaction:"+t.getTransaction()+" State:"+ t.getTransaction().getState().name());
 		}
 		return retState;
 	}
 	/**
 	 * Extract the list of unique transactions from a subset of the mapping of mangled names to SessionAndTransaction instances
-	 * @param tLink
-	 * @return
+	 * @param tLink map of subset of mangled name to SessionAndTransaction
+	 * @return List of Transactions from map
 	 */
 	static List<Transaction> getTransactions(ConcurrentHashMap<String, SessionAndTransaction> tLink) {
 		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
@@ -179,12 +197,13 @@ public final class TransactionManager {
 		return retXactn;
 	}
 	/**
-	 * Return a list all RocksDB transactions with id's mapped to transactions
+	 * Return a list all unique RocksDB transactions extracted from the map of mangled names to SessionAndTransaction<p>
+	 * Those exist in the map with id's mapped to transactions
 	 * in the set of active volumes, regardless of state.
-	 * @return raw RocksDB transactions, use with caution.
+	 * @return List of SessionAndTransaction containing raw RocksDB transactions, transactionId's and sessions.
 	 */
-	static List<Transaction> getOutstandingTransactions() {
-		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
+	static List<SessionAndTransaction> getOutstandingTransactions() {
+		ArrayList<SessionAndTransaction> retXactn = new ArrayList<SessionAndTransaction>();
 		for(Entry<TransactionId, ConcurrentHashMap<String, SessionAndTransaction>> transSessions : idToNameToSessionAndTransaction.entrySet()) {
 			ConcurrentHashMap<String,SessionAndTransaction> sessAndTrans = transSessions.getValue();
 			// Get all the SessionAndTransactions instances which contain the Session and its Transaction
@@ -194,12 +213,20 @@ public final class TransactionManager {
 					//if(!transact.getState().equals(TransactionState.COMMITED) &&
 					//	!transact.getState().equals(TransactionState.COMMITTED) &&
 					//	!transact.getState().equals(TransactionState.ROLLEDBACK))
-				if(!retXactn.contains(sLink.getTransaction()))
-					retXactn.add(sLink.getTransaction());
+				boolean found = false;
+				for(SessionAndTransaction sat: retXactn) {
+					if(sat.getTransaction().equals(sLink.getTransaction())) {
+						found = true;
+						break;
+					}	
+				}
+				if(!found)
+					retXactn.add(sLink);
 			}
 		}
 		return retXactn;
 	}
+	
 	/**
 	 * Return a list all RocksDB transactions with id's mapped to transactions
 	 * in the set of active volumes for a particular path regardless of state.
@@ -379,76 +406,76 @@ public final class TransactionManager {
 	}
 	
 	/**
-	 * Get the Transaction objects formed from class name. 
-	 * @param clazz
-	 * @return Set of names and RocksDb Transaction objects or null if none found
-	 */
-	public static ArrayList<Transaction> getTransactions(String clazz) {
-		List<Transaction> all = getOutstandingTransactions();
-		ArrayList<Transaction> names = new ArrayList<Transaction>();
-		for(Transaction alle : all) {
-			if(alle.getName().substring(36).startsWith(clazz)) {
-				names.add(alle);
-			}
-		}
-		return names;
-	}
-	
-	/**
 	 * Clear all the outstanding transactions. Roll back all in-progress transactions,
 	 * the clear the id to transaction table in the set of volumes.
 	 * Needless to say, use with caution.
 	 */
 	static void clearAllOutstandingTransactions() {
-		for(Transaction t: getOutstandingTransactions()) {
+		for(SessionAndTransaction t: getOutstandingTransactions()) {
 			try {
-				t.rollback();
+				t.getTransaction().rollback();
 			} catch (RocksDBException e) {}
 		}
 	}
 	/**
 	 * Roll back all transactions associated with the given transaction uid
-	 * @param uid
+	 * @param uid the TransactionId
 	 * @throws IOException 
 	 * @throws RocksDBException 
 	 */
 	static void clearOutstandingTransaction(String uid) throws RocksDBException, IOException {
-		for(Transaction t: getOutstandingTransactions()) {
-				if(t.getName().startsWith(uid)) {
-					t.rollback();
+		for(SessionAndTransaction t: getOutstandingTransactions()) {
+				if(t.getTransactionId().getTransactionId().startsWith(uid)) {
+					t.getTransaction().rollback();
 					removeTransaction(uid);
 				}
 		}
 	}
-	
+	/**
+	 * Commit all transactions with given transaction Id
+	 * @param uid the transaction Id
+	 * @throws RocksDBException
+	 */
 	public static void commit(String uid) throws RocksDBException {
-		for(Transaction t: getOutstandingTransactions()) {
-			if(t.getName().startsWith(uid)) {			
-					t.commit();
+		for(SessionAndTransaction t: getOutstandingTransactions()) {
+			if(t.getTransactionId().getTransactionId().startsWith(uid)) {			
+					t.getTransaction().commit();
 			}
 		}
 	}
-	
+	/**
+	 * Rollback all transactions with given transaction Id
+	 * @param uid the transaction Id
+	 * @throws RocksDBException
+	 */	
 	public static void rollback(String uid) throws RocksDBException {
-		for(Transaction t: getOutstandingTransactions()) {
-			if(t.getName().startsWith(uid)) {			
-					t.rollback();
+		for(SessionAndTransaction t: getOutstandingTransactions()) {
+			if(t.getTransactionId().getTransactionId().startsWith(uid)) {			
+					t.getTransaction().rollback();
 			}
 		}
 	}	
-	
+	/**
+	 * Checkpoint all transactions with given transaction Id
+	 * @param uid the transaction Id
+	 * @throws RocksDBException
+	 */
 	public static void checkpoint(String uid) throws RocksDBException {
-		for(Transaction t: getOutstandingTransactions()) {
-			if(t.getName().startsWith(uid)) {			
-					t.setSavePoint();
+		for(SessionAndTransaction t: getOutstandingTransactions()) {
+			if(t.getTransactionId().getTransactionId().startsWith(uid)) {			
+					t.getTransaction().setSavePoint();
 			}
 		}
 	}
-	
+	/**
+	 * Rollback to checkpoint all transactions with given transaction Id
+	 * @param uid the transaction Id
+	 * @throws RocksDBException
+	 */
 	public static void rollbackToCheckpoint(String uid) throws RocksDBException {
-		for(Transaction t: getOutstandingTransactions()) {
-			if(t.getName().startsWith(uid)) {			
-					t.rollbackToSavePoint();
+		for(SessionAndTransaction t: getOutstandingTransactions()) {
+			if(t.getTransactionId().getTransactionId().startsWith(uid)) {	
+				t.getTransaction().rollbackToSavePoint();
 			}
 		}
 	}

@@ -81,11 +81,7 @@ public class TransactionSessionAlias extends TransactionSession {
 		if(tLink.containsKey(name))
 			return true;
 		SessionAndTransaction sLink;
-		try {
-			sLink = new SessionAndTransaction(tm.getSession(), BeginTransaction(name));
-		} catch (RocksDBException e) {
-			throw new IOException(e);
-		}
+		sLink = new SessionAndTransaction(tm.getSession(), BeginTransaction(), xid);
 		tLink.put(name, sLink);
 		return false;
 	}
@@ -126,58 +122,54 @@ public class TransactionSessionAlias extends TransactionSession {
 	 */
 	@Override
 	public synchronized Transaction getTransaction(TransactionId transactionId, String clazz, boolean create) {
-		try {
-			String name = transactionId.getTransactionId()+clazz+alias.getAlias();
+		String name = transactionId.getTransactionId()+clazz+alias.getAlias();
+		if(DEBUG)
+			System.out.printf("%s.getTransaction Enter Alias:%s Transaction id:%s Class:%s create:%b from name:%s%n",this.getClass().getName(),alias,transactionId,clazz,create,name);
+		Transaction transaction = null;
+		boolean exists = false;
+		SessionAndTransaction transLink = null;
+		// check exact match
+		ConcurrentHashMap<String, SessionAndTransaction> transSession = TransactionManager.getTransactionSession(transactionId);
+		if(transSession == null) {
 			if(DEBUG)
-				System.out.printf("%s.getTransaction Enter Alias:%s Transaction id:%s Class:%s create:%b from name:%s%n",this.getClass().getName(),alias,transactionId,clazz,create,name);
-			Transaction transaction = null;
-			boolean exists = false;
-			SessionAndTransaction transLink = null;
-			// check exact match
-			ConcurrentHashMap<String, SessionAndTransaction> transSession = TransactionManager.getTransactionSession(transactionId);
-			if(transSession == null) {
+				System.out.printf("%s.getTransaction transSession null Alias:%s Transaction id:%s Class:%s create:%b from name:%s%n",this.getClass().getName(),alias,transactionId,clazz,create,name);
+			transSession = TransactionManager.setTransaction(transactionId);
+		} else {
+			transLink = transSession.get(name);
+			if(transLink == null) {
 				if(DEBUG)
-					System.out.printf("%s.getTransaction transSession null Alias:%s Transaction id:%s Class:%s create:%b from name:%s%n",this.getClass().getName(),alias,transactionId,clazz,create,name);
-				transSession = TransactionManager.setTransaction(transactionId);
-			} else {
-				transLink = transSession.get(name);
-				if(transLink == null) {
+					System.out.printf("%s.getTransaction transLink null Alias:%s Transaction id:%s Class:%s create:%b from name:%s%n",this.getClass().getName(),alias,transactionId,clazz,create,name);
+				// no match, is id in use for another class? if so, use that transaction
+				// as long as its in the same alias. RocksDb transactions cant span databases
+				// but conceptually and virtually we can.
+				Collection<SessionAndTransaction> all = transSession.values();
+				if(all != null && !all.isEmpty()) {
 					if(DEBUG)
-						System.out.printf("%s.getTransaction transLink null Alias:%s Transaction id:%s Class:%s create:%b from name:%s%n",this.getClass().getName(),alias,transactionId,clazz,create,name);
-					// no match, is id in use for another class? if so, use that transaction
-					// as long as its in the same alias. RocksDb transactions cant span databases
-					// but conceptually and virtually we can.
-					Collection<SessionAndTransaction> all = transSession.values();
-					if(all != null && !all.isEmpty()) {
-						if(DEBUG)
-							System.out.printf("%s.getTransaction transSession collection null or empty Alias:%s Transaction id:%s Class:%s create:%b from name:%s%n",this.getClass().getName(),alias,transactionId,clazz,create,name);
-						for(SessionAndTransaction alle : all) {
-							if(alle.getTransaction().getName().startsWith(transactionId.getTransactionId()) &&
-								alle.getTransaction().getName().endsWith(alias.getAlias())) {
-								transaction = alle.getTransaction();
-								exists = true;
-								break;
-							}
+						System.out.printf("%s.getTransaction transSession collection null or empty Alias:%s Transaction id:%s Class:%s create:%b from name:%s%n",this.getClass().getName(),alias,transactionId,clazz,create,name);
+					for(SessionAndTransaction alle : all) {
+						if(alle.getTransaction().getName().startsWith(transactionId.getTransactionId()) &&
+							alle.getTransaction().getName().endsWith(alias.getAlias())) {
+							transaction = alle.getTransaction();
+							exists = true;
+							break;
 						}
 					}
-				} else {
-					transaction = transLink.getTransaction();
-					exists = true;
 				}
+			} else {
+				transaction = transLink.getTransaction();
+				exists = true;
 			}
-			if(!exists && create) {
-				if(DEBUG)
-					System.out.printf("%s.getTransaction Creating Transaction id:%s Transaction name:%s%n",this.getClass().getName(),transactionId,name);
-				transaction = BeginTransaction(name);
-				transLink = new SessionAndTransaction(this, transaction);
-				transSession.put(name, transLink);
-			}
-			if(DEBUG)
-				System.out.printf("%s.getTransaction returning Transaction name:%s%n",this.getClass().getName(),transaction.getName());
-			return transaction;
-		} catch (RocksDBException e) {
-				throw new RuntimeException(e);
 		}
+		if(!exists && create) {
+			if(DEBUG)
+				System.out.printf("%s.getTransaction Creating Transaction id:%s Transaction name:%s%n",this.getClass().getName(),transactionId,name);
+			transaction = BeginTransaction();
+			transLink = new SessionAndTransaction(this, transaction, transactionId);
+			transSession.put(name, transLink);
+		}
+		if(DEBUG)
+			System.out.printf("%s.getTransaction returning Transaction name:%s%n",this.getClass().getName(),transaction.getName());
+		return transaction;
 	}
 
 	@Override
