@@ -2,13 +2,22 @@ package com.neocoretechs.rocksack.session;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.Stack;
 import java.util.stream.Stream;
 
-
+/**
+ * Extends the {@link SetInterface} to represent the Map contract.
+ * @author Jonathan Groff Copyright (C) NeoCoreTechs 2024
+ *
+ */
 interface MapInterface extends SetInterface {
 
-
+	/**
+	 * Put the value to the backing store with the given key.
+	 * @param key the key
+	 * @param o the value for the key
+	 * @return true if key/value previously existed
+	 * @throws IOException
+	 */
 	boolean put(Comparable key, Object o) throws IOException;
 
 	/**

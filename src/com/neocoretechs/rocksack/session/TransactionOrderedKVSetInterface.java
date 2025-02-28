@@ -6,7 +6,11 @@ import java.util.stream.Stream;
 
 import com.neocoretechs.rocksack.TransactionId;
 
-
+/**
+ * Interface contract for the ordered Key/Value Set abstraction in a transaction context.<p>
+ * @author Jonathan Groff Copyright (C)  NeoCoreTechs 2025
+ *
+ */
 interface TransactionOrderedKVSetInterface extends TransactionSetInterface {
 
 	/**

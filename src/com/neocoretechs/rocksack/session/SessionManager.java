@@ -8,6 +8,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.DBOptions;
+import org.rocksdb.OptimisticTransactionDB;
 import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -256,6 +258,109 @@ public final class SessionManager {
 		}
 		return hps;
 	}
+	
+	/**
+	 * Connect to an optimistic transaction database column family for a default ColumnFamily class being stored in that database.
+	 * @param dbname the path to the database
+	 * @param options the RocksDb options
+	 * @return the {@link TransactionSession} that contains methods we call using ColumnFamilyHandle
+	 * @throws IOException
+	 * @throws IllegalAccessException
+	 */
+	public static synchronized TransactionSession ConnectOptimisticTransaction(String dbname, Options options) throws IOException, IllegalAccessException {
+		if( DEBUG ) {
+			System.out.printf("Connecting to optimistic transaction database:%s with options:%s%n", dbname, options);
+		}
+		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
+		if (OfflineDBs.contains(dbname))
+			throw new IllegalAccessException("Database is offline, try later");
+		TransactionSession hps = (TransactionSession) (SessionTable.get(dbname));
+		if (hps == null) {
+			// did'nt find it, create anew
+			hps = OpenDBColumnFamilyOptimisticTransaction(dbname,options);
+			SessionTable.put(dbname, hps);
+			if( DEBUG )
+				System.out.printf("New optimistic session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+		}
+		return hps;
+	}
+	/**
+	 * Connect to an optimistic transaction database column family for a default ColumnFamily class being stored in that database.
+	 * @param dbname the path to the database
+	 * @param options the RocksDb options
+	 * @return the {@link TransactionSession} that contains methods we call using ColumnFamilyHandle
+	 * @throws IOException
+	 * @throws IllegalAccessException
+	 */
+	public static synchronized TransactionSession ConnectOptimisticTransaction(Alias alias, String dbname, Options options) throws IOException, IllegalAccessException {
+		if( DEBUG ) {
+			System.out.printf("Connecting to optimistic transaction database:%s with options:%s%n", dbname, options);
+		}
+		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
+		if (OfflineDBs.contains(dbname))
+			throw new IllegalAccessException("Database is offline, try later");
+		TransactionSession hps = (TransactionSession) (SessionTable.get(dbname));
+		if (hps == null) {
+			// did'nt find it, create anew
+			hps = OpenDBColumnFamilyOptimisticTransaction(alias,dbname,options);
+			SessionTable.put(dbname, hps);
+			if( DEBUG )
+				System.out.printf("New optimistic session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+		}
+		return hps;
+	}
+	/**
+	 * Connect to an optimistic transaction database column family for a derived class being stored in that database.
+	 * @param dbname the path to the database
+	 * @param options the RocksDb options
+	 * @param derivedClassName the derived class that will contain the ColumnFamily of the same name
+	 * @return the {@link TransactionSession} that contains methods we call using ColumnFamilyHandle
+	 * @throws IOException
+	 * @throws IllegalAccessException
+	 */
+	public static synchronized TransactionSession ConnectOptimisticTransaction(Alias alias, String dbname, Options options, String derivedClassName) throws IOException, IllegalAccessException {
+		if( DEBUG ) {
+			System.out.printf("Connecting to optimistic transaction database:%s with options:%s%n", dbname, options);
+		}
+		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
+		if (OfflineDBs.contains(dbname))
+			throw new IllegalAccessException("Database is offline, try later");
+		TransactionSession hps = (TransactionSession) (SessionTable.get(dbname));
+		if (hps == null) {
+			// did'nt find it, create anew
+			hps = OpenDBColumnFamilyOptimisticTransaction(alias,dbname,options,derivedClassName);
+			SessionTable.put(dbname, hps);
+			if( DEBUG )
+				System.out.printf("New optimistic session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+		}
+		return hps;
+	}
+	/**
+	 * Connect to an optimistic transaction database column family for a derived class being stored in that database.
+	 * @param dbname the path to the database
+	 * @param options the RocksDb options
+	 * @param derivedClassName the derived class that will contain the ColumnFamily of the same name
+	 * @return the {@link TransactionSession} that contains methods we call using ColumnFamilyHandle
+	 * @throws IOException
+	 * @throws IllegalAccessException
+	 */
+	public static synchronized TransactionSession ConnectOptimisticTransaction(String dbname, Options options, String derivedClassName) throws IOException, IllegalAccessException {
+		if( DEBUG ) {
+			System.out.printf("Connecting to optimistic transaction database:%s with options:%s%n", dbname, options);
+		}
+		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
+		if (OfflineDBs.contains(dbname))
+			throw new IllegalAccessException("Database is offline, try later");
+		TransactionSession hps = (TransactionSession) (SessionTable.get(dbname));
+		if (hps == null) {
+			// did'nt find it, create anew
+			hps = OpenDBColumnFamilyOptimisticTransaction(dbname,options,derivedClassName);
+			SessionTable.put(dbname, hps);
+			if( DEBUG )
+				System.out.printf("New optimistic session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+		}
+		return hps;
+	}
 	/**
 	 * Start the DB with no logging for debugging purposes
 	 * or to run read only without logging for some reason
@@ -316,35 +421,7 @@ public final class SessionManager {
 	 */
 	private static Session OpenDBColumnFamily(String dbPath, Options options) {
 		List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
-		ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor = new ArrayList<ColumnFamilyDescriptor>();
-		List<byte[]> allColumnFamilies;
-		try {
-			allColumnFamilies = RocksDB.listColumnFamilies(options, dbPath);
-		} catch (RocksDBException e) {
-			throw new RuntimeException(e);
-		}
-		boolean foundDefault = false;
-		String defcn = new String(RocksDB.DEFAULT_COLUMN_FAMILY); //is this necessary?
-		//this.session.columnFamilyDescriptor = Arrays.asList(
-		//	new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions), this.columnFamilyDescriptor);
-		for(byte[] e : allColumnFamilies) {
-			String cn = new String(e);
-			if(DEBUG)
-				System.out.printf("SessionManager.OpenDBColumnFamily reading column family %s for db:%s%n",cn,dbPath);
-			if(cn.equals(defcn)) {
-				foundDefault = true;
-			}
-			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(e, DatabaseManager.getDefaultColumnFamilyOptions());
-			columnFamilyDescriptor.add(cfd);
-		}
-		if(!foundDefault) {
-			if(DEBUG)
-				System.out.printf("SessionManager.OpenDBColumnFamily did NOT find %s for db:%s default columnfamily%n",new String(RocksDB.DEFAULT_COLUMN_FAMILY),dbPath);
-			// options from main DB open?
-			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, DatabaseManager.getDefaultColumnFamilyOptions());
-			columnFamilyDescriptor.add(cfd);
-			//cfo.close();
-		}
+		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDefaultColumnFamilyDescriptors(dbPath, options);
 	    RocksDB db;
 		try {
 			db = RocksDB.open(DatabaseManager.getDefaultDBOptions(), dbPath, columnFamilyDescriptor, columnFamilyHandles);
@@ -353,7 +430,7 @@ public final class SessionManager {
 		}
 		if(DEBUG)
 			System.out.printf("SessionManager.OpenDBColumnFamily Session return for db:%s default columnfamily%n",dbPath);
-	    return new Session(db, options, columnFamilyDescriptor, columnFamilyHandles);
+	    return new Session(db, options, (ArrayList<ColumnFamilyDescriptor>) columnFamilyDescriptor, columnFamilyHandles);
 	}
 	/**
 	 * Open the database for a given path and options and extract the ColumnFamily of the derived classes stored there
@@ -364,38 +441,7 @@ public final class SessionManager {
 	 */
 	private static Session OpenDBColumnFamily(String dbPath, Options options, String derivedClassName) {
 		List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
-		ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor = new ArrayList<ColumnFamilyDescriptor>();
-		List<byte[]> allColumnFamilies;
-		try {
-			allColumnFamilies = RocksDB.listColumnFamilies(options, dbPath);
-		} catch (RocksDBException e) {
-			throw new RuntimeException(e);
-		}
-		boolean found = false;
-		boolean foundDefault = false;
-		String defcn = new String(RocksDB.DEFAULT_COLUMN_FAMILY); //is this necessary?
-		//this.session.columnFamilyDescriptor = Arrays.asList(
-		//	new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions), this.columnFamilyDescriptor);
-		for(byte[] e : allColumnFamilies) {
-			String cn = new String(e);
-			if(DEBUG)
-				System.out.printf("SessionManager.OpenDBColumnFamily reading column family %s for db:%s derivedClass:%s%n",cn,dbPath,derivedClassName);
-			if(cn.equals(derivedClassName)) {
-					found = true;
-			}
-			if(cn.equals(defcn)) {
-				foundDefault = true;
-			}
-			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(e, DatabaseManager.getDefaultColumnFamilyOptions());
-			columnFamilyDescriptor.add(cfd);
-		}
-		if(!foundDefault) {
-			if(DEBUG)
-				System.out.printf("SessionManager.OpenDBColumnFamily did NOT find %s for db:%s derivedClass:%s%n",RocksDB.DEFAULT_COLUMN_FAMILY,dbPath,derivedClassName);
-			// options from main DB open?
-			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, DatabaseManager.getDefaultColumnFamilyOptions());
-			columnFamilyDescriptor.add(cfd);
-		}
+		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDerivedColumnFamilyDescriptors(dbPath, options, derivedClassName);
 	    RocksDB db;
 		try {
 			db = RocksDB.open(DatabaseManager.getDefaultDBOptions(), dbPath, columnFamilyDescriptor, columnFamilyHandles);
@@ -403,8 +449,8 @@ public final class SessionManager {
 			throw new RuntimeException(e);
 		}
 		if(DEBUG)
-			System.out.printf("SessionManager.OpenDBColumnFamily Session return with derived found:%b for db:%s derivedClass:%s%n",found,dbPath,derivedClassName);
-	    return new Session(db, options, columnFamilyDescriptor, columnFamilyHandles);
+			System.out.printf("SessionManager.OpenDBColumnFamily Session return with derived for db:%s derivedClass:%s%n",dbPath,derivedClassName);
+	    return new Session(db, options, (ArrayList<ColumnFamilyDescriptor>) columnFamilyDescriptor, columnFamilyHandles);
 	}
 	/**
 	 * Open the transaction database for a given path and options and extract the default ColumnFamily of the classes stored there
@@ -414,34 +460,7 @@ public final class SessionManager {
 	 */
 	private static TransactionSession OpenDBColumnFamilyTransaction(String dbPath, Options options) {
 		List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
-		ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor = new ArrayList<ColumnFamilyDescriptor>();
-		List<byte[]> allColumnFamilies;
-		try {
-			allColumnFamilies = TransactionDB.listColumnFamilies(options, dbPath);
-		} catch (RocksDBException e) {
-			throw new RuntimeException(e);
-		}
-		boolean foundDefault = false;
-		String defcn = new String(TransactionDB.DEFAULT_COLUMN_FAMILY); 
-		//this.session.columnFamilyDescriptor = Arrays.asList(
-		//	new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions), this.columnFamilyDescriptor);
-		for(byte[] e : allColumnFamilies) {
-			String cn = new String(e);
-			if(DEBUG)
-				System.out.printf("SessionManager.OpenDBColumnFamilyTransaction reading column family %s for db:%s%n",cn,dbPath);
-			if(cn.equals(defcn)) {
-				foundDefault = true;
-			}
-			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(e, DatabaseManager.getDefaultColumnFamilyOptions());
-			columnFamilyDescriptor.add(cfd);
-		}
-		if(!foundDefault) {
-			if(DEBUG)
-				System.out.printf("SessionManager.OpenDBColumnFamilyTransaction did NOT find %s for db:%s%n",TransactionDB.DEFAULT_COLUMN_FAMILY,dbPath);
-			// options from main DB open?
-			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, DatabaseManager.getDefaultColumnFamilyOptions());
-			columnFamilyDescriptor.add(cfd);
-		}
+		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDefaultColumnFamilyDescriptors(dbPath, options);
 	    TransactionDB db;
 	    TransactionDBOptions tDbo = new TransactionDBOptions();
 		try {
@@ -449,9 +468,7 @@ public final class SessionManager {
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}
-		if(DEBUG)
-			System.out.printf("SessionManager.OpenDBColumnFamilyTransaction Session return with derived found:%b for db:%s%n",foundDefault,dbPath);
-	    return new TransactionSession(db, options, columnFamilyDescriptor, columnFamilyHandles);
+	    return new TransactionSession(db, options, (ArrayList<ColumnFamilyDescriptor>) columnFamilyDescriptor, columnFamilyHandles);
 	}
 	/**
 	 * Open the transaction database for a given path and options and extract the ColumnFamily of the derived classes stored there
@@ -462,38 +479,7 @@ public final class SessionManager {
 	 */
 	private static TransactionSession OpenDBColumnFamilyTransaction(String dbPath, Options options, String derivedClassName) {
 		List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
-		ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor = new ArrayList<ColumnFamilyDescriptor>();
-		List<byte[]> allColumnFamilies;
-		try {
-			allColumnFamilies = TransactionDB.listColumnFamilies(options, dbPath);
-		} catch (RocksDBException e) {
-			throw new RuntimeException(e);
-		}
-		boolean found = false;
-		boolean foundDefault = false;
-		String defcn = new String(TransactionDB.DEFAULT_COLUMN_FAMILY); //is this necessary?
-		//this.session.columnFamilyDescriptor = Arrays.asList(
-		//	new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions), this.columnFamilyDescriptor);
-		for(byte[] e : allColumnFamilies) {
-			String cn = new String(e);
-			if(DEBUG)
-				System.out.printf("SessionManager.OpenDBColumnFamilyTransaction reading column family %s for db:%s derivedClass:%s%n",cn,dbPath,derivedClassName);
-			if(cn.equals(derivedClassName)) {
-					found = true;
-			}
-			if(cn.equals(defcn)) {
-				foundDefault = true;
-			}
-			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(e,  DatabaseManager.getDefaultColumnFamilyOptions());
-			columnFamilyDescriptor.add(cfd);
-		}
-		if(!foundDefault) {
-			if(DEBUG)
-				System.out.printf("SessionManager.OpenDBColumnFamilyTransaction did NOT find %s for db:%s derivedClass:%s%n",TransactionDB.DEFAULT_COLUMN_FAMILY,dbPath,derivedClassName);
-			// options from main DB open?
-			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, DatabaseManager.getDefaultColumnFamilyOptions());
-			columnFamilyDescriptor.add(cfd);
-		}
+		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDerivedColumnFamilyDescriptors(dbPath, options, derivedClassName);
 	    TransactionDB db;
 	    TransactionDBOptions tDbo = new TransactionDBOptions();
 		try {
@@ -502,8 +488,8 @@ public final class SessionManager {
 			throw new RuntimeException(e);
 		}
 		if(DEBUG)
-			System.out.printf("SessionManager.OpenDBColumnFamilyTransaction Session return with derived found:%b for db:%s derivedClass:%s%n",found,dbPath,derivedClassName);
-	    return new TransactionSession(db, options, columnFamilyDescriptor, columnFamilyHandles);
+			System.out.printf("SessionManager.OpenDBColumnFamilyTransaction Session return with derived for db:%s derivedClass:%s%n",dbPath,derivedClassName);
+	    return new TransactionSession(db, options, (ArrayList<ColumnFamilyDescriptor>) columnFamilyDescriptor, columnFamilyHandles);
 	}
 
 	/**
@@ -511,42 +497,11 @@ public final class SessionManager {
 	 * @param dbPath
 	 * @param options
 	 * @param derivedClassName
-	 * @return the {@link TransactionSession} that contains the method calls to TransactionDb
+	 * @return the {@link TransactionSessionAlias} that contains the method calls to TransactionDb
 	 */
 	private static TransactionSession OpenDBColumnFamilyTransaction(Alias alias, String dbPath, Options options, String derivedClassName) {
 		List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
-		ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor = new ArrayList<ColumnFamilyDescriptor>();
-		List<byte[]> allColumnFamilies;
-		try {
-			allColumnFamilies = TransactionDB.listColumnFamilies(options, dbPath);
-		} catch (RocksDBException e) {
-			throw new RuntimeException(e);
-		}
-		boolean found = false;
-		boolean foundDefault = false;
-		String defcn = new String(TransactionDB.DEFAULT_COLUMN_FAMILY); //is this necessary?
-		//this.session.columnFamilyDescriptor = Arrays.asList(
-		//	new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions), this.columnFamilyDescriptor);
-		for(byte[] e : allColumnFamilies) {
-			String cn = new String(e);
-			if(DEBUG)
-				System.out.printf("SessionManager.OpenDBColumnFamilyTransaction reading column family %s for db:%s derivedClass:%s%n",cn,dbPath,derivedClassName);
-			if(cn.equals(derivedClassName)) {
-					found = true;
-			}
-			if(cn.equals(defcn)) {
-				foundDefault = true;
-			}
-			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(e,  DatabaseManager.getDefaultColumnFamilyOptions());
-			columnFamilyDescriptor.add(cfd);
-		}
-		if(!foundDefault) {
-			if(DEBUG)
-				System.out.printf("SessionManager.OpenDBColumnFamilyTransaction did NOT find %s for db:%s derivedClass:%s%n",TransactionDB.DEFAULT_COLUMN_FAMILY,dbPath,derivedClassName);
-			// options from main DB open?
-			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, DatabaseManager.getDefaultColumnFamilyOptions());
-			columnFamilyDescriptor.add(cfd);
-		}
+		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDerivedColumnFamilyDescriptors(dbPath, options, derivedClassName);
 	    TransactionDB db;
 	    TransactionDBOptions tDbo = new TransactionDBOptions();
 		try {
@@ -555,32 +510,134 @@ public final class SessionManager {
 			throw new RuntimeException(e);
 		}
 		if(DEBUG)
-			System.out.printf("SessionManager.OpenDBColumnFamilyTransaction Session return with derived found:%b for db:%s derivedClass:%s%n",found,dbPath,derivedClassName);
-	    return new TransactionSessionAlias(db, options, columnFamilyDescriptor, columnFamilyHandles, alias);
+			System.out.printf("SessionManager.OpenDBColumnFamilyTransaction Session return with derived for db:%s derivedClass:%s%n",dbPath,derivedClassName);
+	    return new TransactionSessionAlias(db, options, (ArrayList<ColumnFamilyDescriptor>) columnFamilyDescriptor, columnFamilyHandles, alias);
 	}
 	/**
 	 * Open the transaction database for a given path and options and extract the default ColumnFamily of the classes stored there
 	 * @param dbPath
 	 * @param options
-	 * @return the {@link TransactionSession} that contains the method calls to TransactionDb
+	 * @return the {@link TransactionSessionAlias} that contains the method calls to TransactionDb
 	 */
 	private static TransactionSession OpenDBColumnFamilyTransaction(Alias alias, String dbPath, Options options) {
 		List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
-		ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor = new ArrayList<ColumnFamilyDescriptor>();
-		List<byte[]> allColumnFamilies;
+		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDefaultColumnFamilyDescriptors(dbPath, options);
+	    TransactionDB db;
+	    TransactionDBOptions tDbo = new TransactionDBOptions();
 		try {
-			allColumnFamilies = TransactionDB.listColumnFamilies(options, dbPath);
+			db = (TransactionDB) TransactionDB.open(DatabaseManager.getDefaultDBOptions(), tDbo, dbPath, columnFamilyDescriptor, columnFamilyHandles);
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}
+		if(DEBUG)
+			System.out.printf("SessionManager.OpenDBColumnFamilyTransaction Session return with derived for db:%s%n",dbPath);
+	    return new TransactionSessionAlias(db, options, (ArrayList<ColumnFamilyDescriptor>) columnFamilyDescriptor, columnFamilyHandles, alias);
+	}
+	
+	/**
+	 * Open the transaction database for a given path and options and extract the default ColumnFamily of the classes stored there
+	 * @param dbPath
+	 * @param options
+	 * @return the {@link OptimisticTransactionSession} that contains the method calls to TransactionDb
+	 */
+	private static OptimisticTransactionSession OpenDBColumnFamilyOptimisticTransaction(String dbPath, Options options) {
+		List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
+		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDefaultColumnFamilyDescriptors(dbPath, options);
+	    OptimisticTransactionDB db;
+		try {
+			db = OptimisticTransactionDB.open(DatabaseManager.getDefaultDBOptions(), dbPath, columnFamilyDescriptor, columnFamilyHandles);
+		} catch (RocksDBException e) {
+			throw new RuntimeException(e);
+		}
+	    return new OptimisticTransactionSession(db, options, (ArrayList<ColumnFamilyDescriptor>) columnFamilyDescriptor, columnFamilyHandles);
+	}
+	/**
+	 * Open the optimistic transaction database for a given path and options and extract the ColumnFamily of the derived classes stored there
+	 * @param dbPath
+	 * @param options
+	 * @param derivedClassName
+	 * @return the {@link OptimisticTransactionSession} that contains the method calls to TransactionDb
+	 */
+	private static OptimisticTransactionSession OpenDBColumnFamilyOptimisticTransaction(String dbPath, Options options, String derivedClassName) {
+		List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
+		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDerivedColumnFamilyDescriptors(dbPath, options, derivedClassName);
+	    OptimisticTransactionDB db;
+		try {
+			db = OptimisticTransactionDB.open(DatabaseManager.getDefaultDBOptions(), dbPath, columnFamilyDescriptor, columnFamilyHandles);
+		} catch (RocksDBException e) {
+			throw new RuntimeException(e);
+		}
+		if(DEBUG)
+			System.out.printf("SessionManager.OpenDBColumnFamilyOptimisticTransaction Session return with derived for db:%s derivedClass:%s%n",dbPath,derivedClassName);
+	    return new OptimisticTransactionSession(db, options, (ArrayList<ColumnFamilyDescriptor>) columnFamilyDescriptor, columnFamilyHandles);
+	}
+
+	/**
+	 * Open the optimistic transaction database for a given path and options and extract the ColumnFamily of the derived classes stored there
+	 * @param dbPath
+	 * @param options
+	 * @param derivedClassName
+	 * @return the {@link OptimisticTransactionSessionAlias} that contains the method calls to TransactionDb
+	 */
+	private static OptimisticTransactionSessionAlias OpenDBColumnFamilyOptimisticTransaction(Alias alias, String dbPath, Options options, String derivedClassName) {
+		List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
+		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDerivedColumnFamilyDescriptors(dbPath, options, derivedClassName);
+	    OptimisticTransactionDB db;
+		try {
+			db = OptimisticTransactionDB.open(DatabaseManager.getDefaultDBOptions(), dbPath, columnFamilyDescriptor, columnFamilyHandles);
+		} catch (RocksDBException e) {
+			throw new RuntimeException(e);
+		}
+		if(DEBUG)
+			System.out.printf("SessionManager.OpenDBColumnFamilyOptimisticTransaction Session return with derived for db:%s derivedClass:%s%n",dbPath,derivedClassName);
+	    return new OptimisticTransactionSessionAlias(db, options, (ArrayList<ColumnFamilyDescriptor>) columnFamilyDescriptor, columnFamilyHandles, alias);
+	}
+	/**
+	 * Open the optimistic transaction database for a given path and options and extract the default ColumnFamily of the classes stored there
+	 * @param dbPath
+	 * @param options
+	 * @return the {@link OptimisticTransactionSessionAlias} that contains the method calls to TransactionDb
+	 */
+	private static OptimisticTransactionSessionAlias OpenDBColumnFamilyOptimisticTransaction(Alias alias, String dbPath, Options options) {
+		List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
+		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDefaultColumnFamilyDescriptors(dbPath, options);
+	    OptimisticTransactionDB db;
+		try {
+			db = OptimisticTransactionDB.open(DatabaseManager.getDefaultDBOptions(), dbPath, columnFamilyDescriptor, columnFamilyHandles);
+		} catch (RocksDBException e) {
+			throw new RuntimeException(e);
+		}
+		if(DEBUG)
+			System.out.printf("SessionManager.OpenDBColumnFamilyOptimisticTransaction Session return with derived for db:%s%n",dbPath);
+	    return new OptimisticTransactionSessionAlias(db, options, (ArrayList<ColumnFamilyDescriptor>) columnFamilyDescriptor, columnFamilyHandles, alias);
+	}
+	
+	/**
+	 * From the provided dbpath and options, build the list of default columnFamilyDescriptors.<p>
+	 * We do this by calling the RocksDB.listColumnFamilies method which gives us a list of byte arrays. 
+	 * We then construct the ColumnFamilyDescriptor for each returned byte array. We have to search for the default column family
+	 * and if not located, we must add it. Our eventual goal is to provide the list by which we can obtain the
+	 * columnFamilyHandles using our open call for a particular database.
+	 * @param dbPath The database path, which is tablespace plus database name and we append the particular class stored in default column family
+	 * @param options The database options
+	 * @return columnFamilyDescriptor ArrayList populated with discovered and constructed descriptors
+	 */
+	private static List<ColumnFamilyDescriptor> buildDefaultColumnFamilyDescriptors(String dbPath, Options options) {
+		List<byte[]> allColumnFamilies;
+		try {
+			allColumnFamilies = RocksDB.listColumnFamilies(options, dbPath);
+		} catch (RocksDBException e) {
+			throw new RuntimeException(e);
+		}
+		ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor = new ArrayList<ColumnFamilyDescriptor>();
 		boolean foundDefault = false;
-		String defcn = new String(TransactionDB.DEFAULT_COLUMN_FAMILY); 
+		String defcn = new String(RocksDB.DEFAULT_COLUMN_FAMILY); //is this necessary?
 		//this.session.columnFamilyDescriptor = Arrays.asList(
 		//	new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions), this.columnFamilyDescriptor);
 		for(byte[] e : allColumnFamilies) {
 			String cn = new String(e);
 			if(DEBUG)
-				System.out.printf("SessionManager.OpenDBColumnFamilyTransaction reading column family %s for db:%s%n",cn,dbPath);
+				System.out.printf("SessionManager.buildColumnFamilyDescriptors reading column family %s for db:%s%n",cn,dbPath);
 			if(cn.equals(defcn)) {
 				foundDefault = true;
 			}
@@ -589,21 +646,58 @@ public final class SessionManager {
 		}
 		if(!foundDefault) {
 			if(DEBUG)
-				System.out.printf("SessionManager.OpenDBColumnFamilyTransaction did NOT find %s for db:%s%n",TransactionDB.DEFAULT_COLUMN_FAMILY,dbPath);
+				System.out.printf("SessionManager.buildColumnFamilyDescriptors did NOT find %s for db:%s default columnfamily%n",new String(RocksDB.DEFAULT_COLUMN_FAMILY),dbPath);
+			// options from main DB open?
+			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, DatabaseManager.getDefaultColumnFamilyOptions());
+			columnFamilyDescriptor.add(cfd);
+			//cfo.close();
+		}
+		return columnFamilyDescriptor;
+	}
+	/**
+	 * From the provided dbpath and options, build the list of default and derived columnFamilyDescriptors.<p>
+	 * We do this by calling the RocksDB.listColumnFamilies method which gives us a list of byte arrays. 
+	 * We then construct the ColumnFamilyDescriptor for each returned byte array. We have to search for the default and derived column families
+	 * and if not located, we must add them. Our eventual goal is to provide the list by which we can obtain the
+	 * columnFamilyHandles using our open call for a particular database.
+	 * @param dbPath The database path, which is tablespace plus database name and we append the particular class stored in default column family
+	 * @param options The database options
+	 * @return columnFamilyDescriptor ArrayList populated with discovered and constructed descriptors
+	 */
+	private static List<ColumnFamilyDescriptor> buildDerivedColumnFamilyDescriptors(String dbPath, Options options, String derivedClassName) {
+		List<byte[]> allColumnFamilies;
+		try {
+			allColumnFamilies = RocksDB.listColumnFamilies(options, dbPath);
+		} catch (RocksDBException e) {
+			throw new RuntimeException(e);
+		}
+		ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor = new ArrayList<ColumnFamilyDescriptor>();
+		boolean found = false;
+		boolean foundDefault = false;
+		String defcn = new String(TransactionDB.DEFAULT_COLUMN_FAMILY); //is this necessary?
+		//this.session.columnFamilyDescriptor = Arrays.asList(
+		//	new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions), this.columnFamilyDescriptor);
+		for(byte[] e : allColumnFamilies) {
+			String cn = new String(e);
+			if(DEBUG)
+				System.out.printf("SessionManager.buildDerivedColumnFamilyDescriptors reading column family %s for db:%s derivedClass:%s%n",cn,dbPath,derivedClassName);
+			if(cn.equals(derivedClassName)) {
+					found = true;
+			}
+			if(cn.equals(defcn)) {
+				foundDefault = true;
+			}
+			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(e,  DatabaseManager.getDefaultColumnFamilyOptions());
+			columnFamilyDescriptor.add(cfd);
+		}
+		if(!foundDefault) {
+			if(DEBUG)
+				System.out.printf("SessionManager.buildDerivedColumnFamilyDescriptors did NOT find %s for db:%s derivedClass:%s%n",TransactionDB.DEFAULT_COLUMN_FAMILY,dbPath,derivedClassName);
 			// options from main DB open?
 			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, DatabaseManager.getDefaultColumnFamilyOptions());
 			columnFamilyDescriptor.add(cfd);
 		}
-	    TransactionDB db;
-	    TransactionDBOptions tDbo = new TransactionDBOptions();
-		try {
-			db = (TransactionDB) TransactionDB.open(DatabaseManager.getDefaultDBOptions(), tDbo, dbPath, columnFamilyDescriptor, columnFamilyHandles);
-		} catch (RocksDBException e) {
-			throw new RuntimeException(e);
-		}
-		if(DEBUG)
-			System.out.printf("SessionManager.OpenDBColumnFamilyTransaction Session return with derived found:%b for db:%s%n",foundDefault,dbPath);
-	    return new TransactionSessionAlias(db, options, columnFamilyDescriptor, columnFamilyHandles, alias);
+		return columnFamilyDescriptor;
 	}
 	/**
 	* Set the database offline, kill all sessions using it

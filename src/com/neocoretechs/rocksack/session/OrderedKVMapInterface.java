@@ -4,7 +4,12 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.stream.Stream;
 
-
+/**
+ * Extends the {@link MapInterface} to represent the ordered key/value map contract.
+ * Primarily headMap, tailMap and subMap operations.
+ * @author Jonathan Groff Copyright (C) NeoCoreTechs 2024
+ *
+ */
 interface OrderedKVMapInterface extends MapInterface, OrderedKVSetInterface {
 	
 	/**
@@ -25,7 +30,6 @@ interface OrderedKVMapInterface extends MapInterface, OrderedKVSetInterface {
 	 * @throws IOException
 	 */
 	Stream<?> subSetKVStream(Comparable fkey, Comparable tkey) throws IOException;
-	
 	
 	/**
 	* Not a real subset, returns Iterator

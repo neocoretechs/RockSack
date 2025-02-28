@@ -15,7 +15,11 @@ import java.util.ArrayList;
 
 import org.rocksdb.*;
 import org.rocksdb.util.SizeUnit;
-
+/**
+ * A sample of low level RocksDB usage rather than how one would implement RockSack in an application.
+ * @author groff
+ *
+ */
 public class RocksDBSample {
 static {
 RocksDB.loadLibrary();

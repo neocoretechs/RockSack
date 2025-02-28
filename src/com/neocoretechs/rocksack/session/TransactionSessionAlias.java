@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.OptimisticTransactionDB;
 import org.rocksdb.Options;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDBException;
@@ -33,7 +34,14 @@ import com.neocoretechs.rocksack.session.TransactionManager.SessionAndTransactio
 public class TransactionSessionAlias extends TransactionSession {
 	private static boolean DEBUG = false;
 	private Alias alias;
-	
+	/**
+	 * 
+	 * @param kvStore the RocksDb TransactionDB encapsulated by this instance
+	 * @param options the options for opening the transaction database
+	 * @param columnFamilyDescriptor the list of column family descriptors for the class instances stored in this session and database
+	 * @param columnFamilyHandles the list of column family handles for the class instances stored associated with the the column family descriptors
+	 * @param alias the alias associated with this database
+	 */
 	protected TransactionSessionAlias(TransactionDB kvStore, Options options, ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor, List<ColumnFamilyHandle> columnFamilyHandles, Alias alias) {
 		super(kvStore, options, columnFamilyDescriptor, columnFamilyHandles);
 		this.alias = alias;
@@ -41,16 +49,32 @@ public class TransactionSessionAlias extends TransactionSession {
 		wo = new WriteOptions();
 	}
 	
-	public Alias getAlias() {
+	public TransactionSessionAlias(OptimisticTransactionDB kvStore, Options options, ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor, List<ColumnFamilyHandle> columnFamilyHandles, Alias alias) {
+		super(kvStore, options, columnFamilyDescriptor, columnFamilyHandles);
+		this.alias = alias;
+		ro = new ReadOptions();
+		wo = new WriteOptions();
+	}
+
+	/**
+	 * @return the {@link Alias} associated with this transaction and session.
+	 */
+	public synchronized Alias getAlias() {
 		return alias;
 	}
 	
 	/**
 	 * Called from associateSession and setTransaction to link a new mangled name to a new SessionAndTransaction instance
-	 * to populate the passed tLink map .
+	 * to populate the passed tLink map. A new transaction is initiated as the map of {@link SessionAndTransaction} is populated.
+	 * @param xid the transaction Id
+	 * @param tm the {@link TransactionalMap} instance containing the {@link Session} to link
+	 * @param tLink the map of mangled name to {@link SessionAndTransaction} instance populated by the method
+	 * @return true if the tLink instance already contained the linked mangled name, false if a new name is created and a new transaction is initiated.
+	 * @throws IOException if database exception occurs beginning the transaction.
+	 * 
 	 */
 	@Override
-	public boolean linkSessionAndTransaction(TransactionId xid, TransactionalMap tm, ConcurrentHashMap<String, SessionAndTransaction> tLink) throws IOException {
+	public synchronized boolean linkSessionAndTransaction(TransactionId xid, TransactionalMap tm, ConcurrentHashMap<String, SessionAndTransaction> tLink) throws IOException {
 		if(DEBUG)
 			System.out.printf("%s.linkSessionAndTransaction %s%n",this.getClass().getName(), tm);
 		String name = xid.getTransactionId()+tm.getClassName()+alias.getAlias();
@@ -77,7 +101,7 @@ public class TransactionSessionAlias extends TransactionSession {
 	 * @throws IOException
 	 */
 	@Override
-	public boolean isTransactionLinked(TransactionId xid, TransactionalMap tm, ConcurrentHashMap<String, SessionAndTransaction> tLink) throws IOException {
+	public synchronized boolean isTransactionLinked(TransactionId xid, TransactionalMap tm, ConcurrentHashMap<String, SessionAndTransaction> tLink) throws IOException {
 		if(DEBUG)
 			System.out.printf("%s.isTransactionLinked %s %s%n",this.getClass().getName(), tm, tLink);
 		if(tLink == null)
@@ -101,7 +125,7 @@ public class TransactionSessionAlias extends TransactionSession {
 	 * @return The RocksDb Transaction object or null if not found and create was false
 	 */
 	@Override
-	public Transaction getTransaction(TransactionId transactionId, String clazz, boolean create) {
+	public synchronized Transaction getTransaction(TransactionId transactionId, String clazz, boolean create) {
 		try {
 			String name = transactionId.getTransactionId()+clazz+alias.getAlias();
 			if(DEBUG)

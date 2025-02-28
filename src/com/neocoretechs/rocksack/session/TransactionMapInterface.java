@@ -6,10 +6,21 @@ import java.util.stream.Stream;
 
 import com.neocoretechs.rocksack.TransactionId;
 
-
+/**
+ * Interface contract for the Map abstraction in a transaction context.<p>
+ * @author Jonathan Groff Copyright (C) NeoCoreTechs 2025
+ *
+ */
 interface TransactionMapInterface extends TransactionSetInterface {
 
-
+	/**
+	 * Put a value to key/value store.
+	 * @param transactionId the transction id
+	 * @param key the key to put
+	 * @param o the value for the key
+	 * @return true if value previously existed
+	 * @throws IOException
+	 */
 	boolean put(TransactionId transactionId, Comparable key, Object o) throws IOException;
 
 	/**

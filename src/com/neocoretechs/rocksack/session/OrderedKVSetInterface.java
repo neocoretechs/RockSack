@@ -4,7 +4,11 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.stream.Stream;
 
-
+/**
+ * Extends the {@link SetInterface} to represent the ordered key/value set contract.
+ * @author Jonathan Groff Copyright (C) NeoCoreTechs 2024
+ *
+ */
 interface OrderedKVSetInterface extends SetInterface {
 
 	/**

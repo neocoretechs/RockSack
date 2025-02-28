@@ -153,10 +153,6 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 		session.getKVStore().close();
 	}
 	
-	@Override
-	public TransactionDB getKVStore() {
-		return session.getKVStore();
-	}
 	
 	/**
 	* Put a key/value pair to backing store.
@@ -241,7 +237,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	 * @throws IOException
 	 */
 	@SuppressWarnings("rawtypes")
-	protected Object getForUpdate(TransactionId transactionId, Comparable o, boolean exclusive) throws IOException {
+	public Object getForUpdate(TransactionId transactionId, Comparable o, boolean exclusive) throws IOException {
 		if(DEBUG)
 			System.out.printf("%s.get(%s, %s, %s)%n", this.getClass().getName(), transactionId, session.ro, o);
 		Transaction txn = session.getTransaction(transactionId, className, false);
@@ -256,7 +252,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	 * @throws IOException
 	 */
 	@SuppressWarnings("rawtypes")
-	protected void undoGetForUpdate(TransactionId transactionId, Comparable o) throws IOException {
+	public void undoGetForUpdate(TransactionId transactionId, Comparable o) throws IOException {
 		if(DEBUG)
 			System.out.printf("%s.get(%s, %s, %s)%n", this.getClass().getName(), transactionId, session.ro, o);
 		Transaction txn = session.getTransaction(transactionId, className, false);

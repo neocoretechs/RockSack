@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.OptimisticTransactionDB;
 import org.rocksdb.Options;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDBException;
@@ -38,14 +39,15 @@ public class TransactionSession extends Session implements TransactionInterface 
 		wo = new WriteOptions();
 	}
 	
-	@Override
-	public synchronized TransactionDB getKVStore() {
-		return (TransactionDB) kvStore;
+	public TransactionSession(OptimisticTransactionDB kvStore, Options options, ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor, List<ColumnFamilyHandle> columnFamilyHandles) {
+		super(kvStore, options, columnFamilyDescriptor, columnFamilyHandles);
+		ro = new ReadOptions();
+		wo = new WriteOptions();
 	}
-	
+
 	@Override
 	public synchronized Transaction BeginTransaction(String transactionName) throws RocksDBException {
-		Transaction t = getKVStore().beginTransaction(new WriteOptions());
+		Transaction t = ((TransactionDB) getKVStore()).beginTransaction(new WriteOptions());
 		if(DEBUG)
 			System.out.printf("%s.BeginTransaction transaction name %s%n",this.getClass().getName(),transactionName);
 		t.setName(transactionName);
@@ -56,7 +58,7 @@ public class TransactionSession extends Session implements TransactionInterface 
 	public synchronized Transaction BeginTransaction() {
 		if(DEBUG)
 			System.out.printf("%s.BeginTransaction transaction name undefined%n",this.getClass().getName());
-		return getKVStore().beginTransaction(new WriteOptions());
+		return ((TransactionDB) getKVStore()).beginTransaction(new WriteOptions());
 	}
 	/**
 	 * Get the Transaction object formed from id and class. If the transaction
