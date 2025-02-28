@@ -13,6 +13,8 @@
 https://github.com/facebook/rocksdb <br/>
 http://rocksdb.org/					<br/>
 https://github.com/facebook/rocksdb/tree/main/java/src/main/java/org/rocksdb <br/>
+Full Javadocs available for RockSack on the NeoCoreTechs website:<br/>
+http://neocoretechs.com<br/>
 <h3>Why RockSack?</h3>
 A bag or sack is a computer science term for a structure to hold a large amount of data that is usually unstructured.
 RockSack can store Java objects so that they can be efficiently indexed, preserved, and retrieved in a manner that mirrors the java.util.Hashmap, java.util.TreeMap and java.util.TreeSet classes while providing the benefits of a full blown database.
