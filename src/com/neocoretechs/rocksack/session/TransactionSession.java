@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.rocksdb.ColumnFamilyDescriptor;
@@ -14,6 +15,7 @@ import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.Transaction;
 import org.rocksdb.TransactionDB;
+import org.rocksdb.TransactionDB.KeyLockInfo;
 import org.rocksdb.WriteOptions;
 
 import com.neocoretechs.rocksack.TransactionId;
@@ -164,6 +166,22 @@ public class TransactionSession extends Session implements TransactionInterface 
 		if(tLink.containsKey(name))
 			return true;
 		return false;
+	}
+	
+	/**
+	 * Get the map of lock status from TransactionDb
+	 * @return
+	 */
+	public Map<Long, KeyLockInfo> getLockStatusData() {
+		return ((TransactionDB) getKVStore()).getLockStatusData();
+	}
+	
+	/**
+	 * Get all prepared transactions
+	 * @return
+	 */
+	public List<Transaction> getAllPreparedTransactions() {
+		return ((TransactionDB) getKVStore()).getAllPreparedTransactions();
 	}
 	
 	@Override

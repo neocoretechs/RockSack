@@ -47,7 +47,9 @@ import com.neocoretechs.rocksack.session.VolumeManager.Volume;
  * The main function of this adapter is to ensure that the appropriate map is instantiated.<br>
  * A map can be obtained by instance of Comparable to impart ordering.<br>
  * A Buffered map has atomic transactions bounded automatically with each insert/delete.<br>
- * A transactional map requires commit/rollback and can be checkpointed.
+ * A transactional map requires commit/rollback and can be checkpointed.<br>
+ * An optimistic transactional map requires commit/rollback, can be snapshotted, and uses optimistic concurrency control, acquiring
+ * no locks and checking for conflicts during commit.<br>
  * The database name is the full path of the top level tablespace and log directory, i.e.
  * /home/db/test would create a 'test' database in the /home/db directory consisting of a series of RocksDB files
  * with the database name appended to the class contained in each 'instance'. For example;
@@ -504,7 +506,17 @@ public final class DatabaseManager {
 	public static synchronized TransactionalMap getTransactionalMap(Class clazz, TransactionId xid) throws IllegalAccessException, IOException, RocksDBException {
 		return getMap(VolumeManager.get(tableSpaceDir), tableSpaceDir, clazz, xid);
 	}
-	
+	/***
+	 * Private helper method to obtain the {@link TransactionalMap} from a volume, tablespace, class, and transactionId
+	 * @param v
+	 * @param tDir
+	 * @param clazz
+	 * @param xid
+	 * @return
+	 * @throws IllegalAccessException
+	 * @throws IOException
+	 * @throws RocksDBException
+	 */
 	private static synchronized TransactionalMap getMap(Volume v, String tDir, Class clazz, TransactionId xid) throws IllegalAccessException, IOException, RocksDBException {
 		boolean isDerivedClass = false;
 		String xClass,dClass = null;
@@ -545,23 +557,117 @@ public final class DatabaseManager {
 					}
 					v.classToIsoTransaction.put(dClass, ret);
 					if(DEBUG)
-						System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return DERIVED map:"+ret+" for dir:"+(tDir+xClass)+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
+						System.out.println("DatabaseManager.getMap xid:"+xid+" About to return DERIVED map:"+ret+" for dir:"+(tDir+xClass)+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
 				} else {
 					ret =  new TransactionalMap(SessionManager.ConnectTransaction(tDir+xClass, options), xClass, isDerivedClass);
 					v.classToIsoTransaction.put(xClass, ret);
 					if(DEBUG)
-						System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return BASE map:"+ret+" for dir:"+(tDir+xClass)+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
+						System.out.println("DatabaseManager.getMap xid:"+xid+" About to return BASE map:"+ret+" for dir:"+(tDir+xClass)+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
 				}
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
 			if(DEBUG)
-				System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to create new map:"+ret);
+				System.out.println("DatabaseManager.getMap xid:"+xid+" About to create new map:"+ret);
 			associateSession(xid, ret);
 			return ret;
 		}
 		if(DEBUG)
-			System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return map:"+ret+" for class:"+xClass+" isDerivedClass:"+isDerivedClass);
+			System.out.println("DatabaseManager.getMap xid:"+xid+" About to return map:"+ret+" for class:"+xClass+" isDerivedClass:"+isDerivedClass);
+		return ret;	
+	}
+	
+	/**
+	 * Start a new optimistic transaction for the given class in the current database
+	 * @param clazz
+	 * @return
+	 * @throws IllegalAccessException
+	 * @throws IOException
+	 * @throws RocksDBException 
+	 */
+	public static synchronized TransactionalMap getOptimisticTransactionalMap(Comparable clazz, TransactionId xid) throws IllegalAccessException, IOException, RocksDBException {
+		return getOptimisticMap(VolumeManager.get(tableSpaceDir), tableSpaceDir, clazz.getClass(), xid);
+	}
+	/**
+	 * Start a new optimistic transaction for the given class in the current database
+	 * @param clazz
+	 * @return
+	 * @throws IllegalAccessException
+	 * @throws IOException
+	 * @throws RocksDBException 
+	 */
+	public static synchronized TransactionalMap getOptimisticTransactionalMap(Class clazz, TransactionId xid) throws IllegalAccessException, IOException, RocksDBException {
+		return getOptimisticMap(VolumeManager.get(tableSpaceDir), tableSpaceDir, clazz, xid);
+	}
+	/**
+	 * Private helper method to obtain the {@link TransactionalMap} from a volume, tablespace, class, and transactionId
+	 * using optimistic concurrency control
+	 * @param v
+	 * @param tDir
+	 * @param clazz
+	 * @param xid
+	 * @return
+	 * @throws IllegalAccessException
+	 * @throws IOException
+	 * @throws RocksDBException
+	 */
+	private static synchronized TransactionalMap getOptimisticMap(Volume v, String tDir, Class clazz, TransactionId xid) throws IllegalAccessException, IOException, RocksDBException {
+		boolean isDerivedClass = false;
+		String xClass,dClass = null;
+		TransactionalMap ret = null;
+		//
+		// are we working with marked derived class? if so open as column family in main class tablespace
+		if(clazz.isAnnotationPresent(DatabaseClass.class)) {
+			isDerivedClass = true;
+			DatabaseClass dc = (DatabaseClass)clazz.getAnnotation(DatabaseClass.class);
+			String ts = dc.tablespace();
+			if(ts.equals(""))
+				ts = clazz.getSuperclass().getName();
+			xClass = translateClass(ts);
+			String ds = dc.column();
+			if(ds.equals(""))
+				ds = clazz.getName();
+			dClass = translateClass(ds);
+			ret = (TransactionalMap) v.classToIsoTransaction.get(dClass);
+		} else {
+			xClass = translateClass(clazz.getName());
+			ret = (TransactionalMap) v.classToIsoTransaction.get(xClass);
+		}
+		if( ret == null ) {
+			try {
+				if(isDerivedClass) {
+					TransactionalMap def = (TransactionalMap) v.classToIsoTransaction.get(xClass);
+					// have we already opened the main database?
+					if(def == null) {
+						TransactionSession ts = SessionManager.ConnectOptimisticTransaction(tDir+xClass, options, dClass);
+						// put the main class default ColumnFamily, its not there
+						TransactionalMap tm = new TransactionalMap(ts, xClass, false);
+						v.classToIsoTransaction.put(xClass, tm);
+						associateSession(xid, tm);
+						ret = new TransactionalMap(ts, dClass, isDerivedClass);
+					} else {
+						// create derived with session of main, previously instantiated default ColumnFamily
+						ret = new TransactionalMap(def.getSession(), dClass, isDerivedClass);
+					}
+					v.classToIsoTransaction.put(dClass, ret);
+					if(DEBUG)
+						System.out.println("DatabaseManager.getOptimisticMap xid:"+xid+" About to return DERIVED map:"+ret+" for dir:"+(tDir+xClass)+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
+				} else {
+					ret =  new TransactionalMap(SessionManager.ConnectOptimisticTransaction(tDir+xClass, options), xClass, isDerivedClass);
+					v.classToIsoTransaction.put(xClass, ret);
+					if(DEBUG)
+						System.out.println("DatabaseManager.getOptimisticMap xid:"+xid+" About to return BASE map:"+ret+" for dir:"+(tDir+xClass)+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
+				}
+			} catch (RocksDBException e) {
+				throw new IOException(e);
+			}
+			if(DEBUG)
+				System.out.println("DatabaseManager.getOptimisticMap xid:"+xid+" About to create new map:"+ret);
+			associateSession(xid, ret);
+			return ret;
+		}
+		if(DEBUG)
+			System.out.println("DatabaseManager.getOptimisticMap xid:"+xid+" About to return map:"+ret+" for class:"+xClass+" isDerivedClass:"+isDerivedClass);
 		return ret;	
 	}
 	/**
@@ -581,6 +687,7 @@ public final class DatabaseManager {
 		return getMap(alias, clazz, xid);
 	}
 	/**
+	 * Private helper method to obtain a {@link TransactionalMap}
 	 * Start a new transaction for the given class in the aliased database
 	 * @param alias The alias for the tablespace
 	 * @param clazz
@@ -631,24 +738,112 @@ public final class DatabaseManager {
 					}
 					v.classToIsoTransaction.put(dClass, ret);
 					if(DEBUG)
-						System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return DERIVED map:"+ret+" for dir:"+VolumeManager.getAliasToPath(alias)+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
+						System.out.println("DatabaseManager.getMap xid:"+xid+" About to return DERIVED map:"+ret+" for dir:"+VolumeManager.getAliasToPath(alias)+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
 				} else {
 					ret = new TransactionalMap(SessionManager.ConnectTransaction(alias,VolumeManager.getAliasToPath(alias)+xClass, options), xClass, isDerivedClass);
 					v.classToIsoTransaction.put(xClass, ret);
 					if(DEBUG)
-						System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return BASE map:"+ret+" for dir:"+VolumeManager.getAliasToPath(alias)+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
+						System.out.println("DatabaseManager.getMap xid:"+xid+" About to return BASE map:"+ret+" for dir:"+VolumeManager.getAliasToPath(alias)+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
 				}
 			} catch (RocksDBException e) {
 				throw new IOException(e);
 			}
 			if(DEBUG)
-				System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to create new map:"+ret);
+				System.out.println("DatabaseManager.getMap xid:"+xid+" About to create new map:"+ret);
 			associateSession(xid, ret);
 			return ret;
 		}
 		// We had the map requested,
 		if(DEBUG)
-			System.out.println("DatabaseManager.getTransactionalMap xid:"+xid+" About to return map:"+ret+" for class:"+xClass+" isDerivedClass:"+isDerivedClass);
+			System.out.println("DatabaseManager.getMap xid:"+xid+" About to return map:"+ret+" for class:"+xClass+" isDerivedClass:"+isDerivedClass);
+		return ret;		
+	}
+	
+	/**
+	 * Start a new transaction for the given class in the aliased database
+	 * @param alias The alias for the tablespace
+	 * @param clazz
+	 * @return the TransactionalMap for the alias/class/xid
+	 * @throws IllegalAccessException
+	 * @throws NoSuchElementException if The alias cant be located
+	 * @throws IOException
+	 */
+	public static synchronized TransactionalMap getOptimisticTransactionalMap(Alias alias, Comparable clazz, TransactionId xid) throws IllegalAccessException, IOException, NoSuchElementException {
+		return getOptimisticMap(alias, clazz.getClass(), xid);
+	}
+	
+	public static synchronized TransactionalMap getOptimisticTransactionalMap(Alias alias, Class clazz, TransactionId xid) throws IllegalAccessException, IOException, NoSuchElementException {
+		return getOptimisticMap(alias, clazz, xid);
+	}
+	/**
+	 * Start a new optimistic transaction for the given class in the aliased database
+	 * @param alias The alias for the tablespace
+	 * @param clazz
+	 * @return the TransactionalMap for the alias/class/xid
+	 * @throws IllegalAccessException
+	 * @throws NoSuchElementException if The alias cant be located
+	 * @throws IOException
+	 * @throws RocksDBException 
+	 */
+	private static synchronized TransactionalMap getOptimisticMap(Alias alias, Class clazz, TransactionId xid) throws IllegalAccessException, IOException, NoSuchElementException {
+		Volume v = VolumeManager.getByAlias(alias);
+		boolean isDerivedClass = false;
+		String xClass,dClass = null;
+		TransactionalMap ret = null;
+		//
+		// are we working with marked derived class? if so open as column family in main class tablespace
+		if(clazz.isAnnotationPresent(DatabaseClass.class)) {
+			isDerivedClass = true;
+			DatabaseClass dc = (DatabaseClass)clazz.getAnnotation(DatabaseClass.class);
+			String ts = dc.tablespace();
+			if(ts.equals(""))
+				ts = clazz.getSuperclass().getName();
+			xClass = translateClass(ts);
+			String ds = dc.column();
+			if(ds.equals(""))
+				ds = clazz.getName();
+			dClass = translateClass(ds);
+			ret = (TransactionalMap) v.classToIsoTransaction.get(dClass);
+		} else {
+			xClass = translateClass(clazz.getName());
+			ret = (TransactionalMap) v.classToIsoTransaction.get(xClass);
+		}
+		if( ret == null ) {
+			try {
+				if(isDerivedClass) {
+					TransactionalMap def = (TransactionalMap) v.classToIsoTransaction.get(xClass);
+					// have we already opened the main database?
+					if(def == null) {
+						TransactionSession ts = SessionManager.ConnectOptimisticTransaction(alias,VolumeManager.getAliasToPath(alias)+xClass, options, dClass);
+						// put the main class default ColumnFamily, its not there
+						TransactionalMap tm = new TransactionalMap(ts, xClass, false);
+						v.classToIsoTransaction.put(xClass, tm);
+						associateSession(xid, tm);
+						ret = new TransactionalMap(ts, dClass, isDerivedClass);
+					} else {
+						// create derived with session of main, previously instantiated default ColumnFamily
+						ret = new TransactionalMap(def.getSession(), dClass, isDerivedClass);
+					}
+					v.classToIsoTransaction.put(dClass, ret);
+					if(DEBUG)
+						System.out.println("DatabaseManager.getOptimisticMap xid:"+xid+" About to return DERIVED map:"+ret+" for dir:"+VolumeManager.getAliasToPath(alias)+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
+				} else {
+					ret = new TransactionalMap(SessionManager.ConnectOptimisticTransaction(alias,VolumeManager.getAliasToPath(alias)+xClass, options), xClass, isDerivedClass);
+					v.classToIsoTransaction.put(xClass, ret);
+					if(DEBUG)
+						System.out.println("DatabaseManager.getOptimisticMap xid:"+xid+" About to return BASE map:"+ret+" for dir:"+VolumeManager.getAliasToPath(alias)+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
+				}
+			} catch (RocksDBException e) {
+				throw new IOException(e);
+			}
+			if(DEBUG)
+				System.out.println("DatabaseManager.getOptimisticMap xid:"+xid+" About to create new map:"+ret);
+			associateSession(xid, ret);
+			return ret;
+		}
+		// We had the map requested,
+		if(DEBUG)
+			System.out.println("DatabaseManager.getOptimisticMap xid:"+xid+" About to return map:"+ret+" for class:"+xClass+" isDerivedClass:"+isDerivedClass);
 		return ret;		
 	}
 
