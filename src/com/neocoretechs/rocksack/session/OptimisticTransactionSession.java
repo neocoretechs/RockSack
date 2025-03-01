@@ -44,7 +44,7 @@ public class OptimisticTransactionSession extends TransactionSession {
 			System.out.printf("%s.BeginTransaction transaction name undefined%n",this.getClass().getName());
 		optoOpts = new OptimisticTransactionOptions();
 		optoOpts.setComparator(new SerializedComparator());
-		optoOpts.setSetSnapshot(true);
+		//optoOpts.setSetSnapshot(true);
 		return ((OptimisticTransactionDB) getKVStore()).beginTransaction(new WriteOptions(), optoOpts);
 	}
 	

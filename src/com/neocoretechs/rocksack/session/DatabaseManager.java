@@ -32,6 +32,7 @@ import org.rocksdb.util.SizeUnit;
 
 import com.neocoretechs.rocksack.Alias;
 import com.neocoretechs.rocksack.DatabaseClass;
+import com.neocoretechs.rocksack.LockingTransactionId;
 import com.neocoretechs.rocksack.SerializedComparator;
 import com.neocoretechs.rocksack.TransactionId;
 import com.neocoretechs.rocksack.session.TransactionManager.SessionAndTransaction;
@@ -475,15 +476,22 @@ public final class DatabaseManager {
 		return ret;
 	}	
 
-	
 	/**
-	 * Generate a randomUUID
-	 * @return the string values randomUUID that will serve as unique globally unique transaction ID
+	 * Generate a transaction with random UUID
+	 * @return the {@link TransactionId} with string value randomUUID that will serve as unique globally unique transaction ID
 	 */
 	public static TransactionId getTransactionId() {
 		return TransactionId.generate();
 	}
 	
+	/**
+	 * Generate a transaction with random UUID
+	 * @param timeout the lock timeout in milliseconds
+	 * @return the {@link LockingTransactionId} with timeout and string value randomUUID that will serve as unique globally unique transaction ID
+	 */
+	public static TransactionId getTransactionId(long timeout) {
+		return LockingTransactionId.generate(timeout);
+	}
 	/**
 	 * Start a new transaction for the given class in the current database
 	 * @param clazz
@@ -545,7 +553,11 @@ public final class DatabaseManager {
 					TransactionalMap def = (TransactionalMap) v.classToIsoTransaction.get(xClass);
 					// have we already opened the main database?
 					if(def == null) {
-						TransactionSession ts = SessionManager.ConnectTransaction(tDir+xClass, options, dClass);
+						TransactionSession ts;
+						if(xid instanceof LockingTransactionId)
+							ts = SessionManager.ConnectTransaction(tDir+xClass, options, dClass, ((LockingTransactionId)xid).getLockTimeout());
+						else
+							ts = SessionManager.ConnectTransaction(tDir+xClass, options, dClass);
 						// put the main class default ColumnFamily, its not there
 						TransactionalMap tm = new TransactionalMap(ts, xClass, false);
 						v.classToIsoTransaction.put(xClass, tm);
@@ -559,7 +571,12 @@ public final class DatabaseManager {
 					if(DEBUG)
 						System.out.println("DatabaseManager.getMap xid:"+xid+" About to return DERIVED map:"+ret+" for dir:"+(tDir+xClass)+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
 				} else {
-					ret =  new TransactionalMap(SessionManager.ConnectTransaction(tDir+xClass, options), xClass, isDerivedClass);
+					TransactionSession ts;
+					if(xid instanceof LockingTransactionId)
+						ts = SessionManager.ConnectTransaction(tDir+xClass, options, ((LockingTransactionId)xid).getLockTimeout());
+					else
+						ts = SessionManager.ConnectTransaction(tDir+xClass, options);
+					ret =  new TransactionalMap(ts, xClass, isDerivedClass);
 					v.classToIsoTransaction.put(xClass, ret);
 					if(DEBUG)
 						System.out.println("DatabaseManager.getMap xid:"+xid+" About to return BASE map:"+ret+" for dir:"+(tDir+xClass)+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
@@ -726,7 +743,11 @@ public final class DatabaseManager {
 					TransactionalMap def = (TransactionalMap) v.classToIsoTransaction.get(xClass);
 					// have we already opened the main database?
 					if(def == null) {
-						TransactionSession ts = SessionManager.ConnectTransaction(alias,VolumeManager.getAliasToPath(alias)+xClass, options, dClass);
+						TransactionSession ts;
+						if(xid instanceof LockingTransactionId)
+							ts = SessionManager.ConnectTransaction(alias,VolumeManager.getAliasToPath(alias)+xClass, options, dClass, ((LockingTransactionId)xid).getLockTimeout());
+						else
+							ts = SessionManager.ConnectTransaction(alias,VolumeManager.getAliasToPath(alias)+xClass, options, dClass);
 						// put the main class default ColumnFamily, its not there
 						TransactionalMap tm = new TransactionalMap(ts, xClass, false);
 						v.classToIsoTransaction.put(xClass, tm);
@@ -740,7 +761,12 @@ public final class DatabaseManager {
 					if(DEBUG)
 						System.out.println("DatabaseManager.getMap xid:"+xid+" About to return DERIVED map:"+ret+" for dir:"+VolumeManager.getAliasToPath(alias)+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
 				} else {
-					ret = new TransactionalMap(SessionManager.ConnectTransaction(alias,VolumeManager.getAliasToPath(alias)+xClass, options), xClass, isDerivedClass);
+					TransactionSession ts;
+					if(xid instanceof LockingTransactionId)
+						ts = SessionManager.ConnectTransaction(alias,VolumeManager.getAliasToPath(alias)+xClass, options, ((LockingTransactionId)xid).getLockTimeout());
+					else
+						ts = SessionManager.ConnectTransaction(alias,VolumeManager.getAliasToPath(alias)+xClass, options);
+					ret = new TransactionalMap(ts, xClass, isDerivedClass);
 					v.classToIsoTransaction.put(xClass, ret);
 					if(DEBUG)
 						System.out.println("DatabaseManager.getMap xid:"+xid+" About to return BASE map:"+ret+" for dir:"+VolumeManager.getAliasToPath(alias)+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);

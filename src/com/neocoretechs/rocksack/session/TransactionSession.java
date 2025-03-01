@@ -12,12 +12,13 @@ import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.OptimisticTransactionDB;
 import org.rocksdb.Options;
 import org.rocksdb.ReadOptions;
-import org.rocksdb.RocksDBException;
 import org.rocksdb.Transaction;
 import org.rocksdb.TransactionDB;
 import org.rocksdb.TransactionDB.KeyLockInfo;
+import org.rocksdb.TransactionOptions;
 import org.rocksdb.WriteOptions;
 
+import com.neocoretechs.rocksack.LockingTransactionId;
 import com.neocoretechs.rocksack.TransactionId;
 import com.neocoretechs.rocksack.session.TransactionManager.SessionAndTransaction;
 /**
@@ -52,6 +53,14 @@ public class TransactionSession extends Session implements TransactionInterface 
 		if(DEBUG)
 			System.out.printf("%s.BeginTransaction transaction name undefined%n",this.getClass().getName());
 		return ((TransactionDB) getKVStore()).beginTransaction(new WriteOptions());
+	}
+	
+	public synchronized Transaction BeginTransaction(long timeout) {
+		if(DEBUG)
+			System.out.printf("%s.BeginTransaction transaction name undefined timeout=%d%n",this.getClass().getName(),timeout);
+		TransactionOptions to = new TransactionOptions();
+		to.setLockTimeout(timeout);
+		return ((TransactionDB) getKVStore()).beginTransaction(new WriteOptions(), to);
 	}
 	/**
 	 * Get the Transaction object formed from id and class. If the transaction
@@ -96,7 +105,10 @@ public class TransactionSession extends Session implements TransactionInterface 
 		if(!exists && create) {
 			if(DEBUG)
 				System.out.printf("%s.getTransaction Creating Transaction id:%s Transaction name:%s%n",this.getClass().getName(),transactionId,name);
-			transaction = BeginTransaction();
+			if(transactionId instanceof LockingTransactionId)
+				transaction = BeginTransaction(((LockingTransactionId)transactionId).getLockTimeout());
+			else
+				transaction = BeginTransaction();
 			transLink = new SessionAndTransaction(this, transaction, transactionId);
 			transSession.put(name, transLink);
 		}
@@ -123,7 +135,10 @@ public class TransactionSession extends Session implements TransactionInterface 
 		if(tLink.containsKey(name))
 			return true;
 		SessionAndTransaction sLink;
-		sLink = new SessionAndTransaction(tm.getSession(), BeginTransaction(), xid);
+		if(xid instanceof LockingTransactionId)
+			sLink = new SessionAndTransaction(tm.getSession(), BeginTransaction(((LockingTransactionId)xid).getLockTimeout()), xid);
+		else
+			sLink = new SessionAndTransaction(tm.getSession(), BeginTransaction(), xid);
 		tLink.put(name, sLink);
 		return false;
 	}

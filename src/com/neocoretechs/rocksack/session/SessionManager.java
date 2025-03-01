@@ -8,7 +8,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.DBOptions;
 import org.rocksdb.OptimisticTransactionDB;
 import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
@@ -43,9 +42,12 @@ import com.neocoretechs.rocksack.Alias;
 */
 /**
 * SessionManager class is a singleton 
-* that accepts connections and returns a {@link Session} object. A table of one to one sessions and
-* tables is maintained. 
-* @author Jonathan Groff (c) NeoCoreTechs 2003, 2017, 2021, 2024
+* that accepts connections and returns a {@link Session} subclass instance. A table of one to one sessions and
+* tables is maintained. Primary means by which {@link DatabaseManager} receives various {@link TransactionSession},
+* {@link OptimisticTransactionSession}, etc. and from there obtains the {@link BufferedMap}, {@link TransactionalMap}, etc.
+* maps by which most of the work gets done. The session typically provides the overarching set of methods from which the various
+* maps encapsulate the functionality of the specific type of map.
+* @author Jonathan Groff (c) NeoCoreTechs 2003, 2017, 2021, 2024, 2025
 */
 public final class SessionManager {
 	private static boolean DEBUG = false;
@@ -107,7 +109,7 @@ public final class SessionManager {
 	/**
 	 * Open the database and extract the ColumnFamily that represents the derivedClassName
 	 * @param dbname
-	 * @param options
+	 * @param options RocksDb.listColumnFamilies options
 	 * @param derivedClassName
 	 * @return The {@link Session} that contains the methods to be invoked with ColumnFamilyHandle once we extract it from DB params
 	 * @throws IOException
@@ -133,7 +135,7 @@ public final class SessionManager {
 	/**
 	 * Open the database and extract the ColumnFamily that represents the default column family for main class
 	 * @param dbname
-	 * @param options
+	 * @param options RocksDb.listColumnFamilies options
 	 * @return The {@link Session} that contains the methods to be invoked with ColumnFamilyHandle once we extract it from DB params
 	 * @throws IOException
 	 * @throws IllegalAccessException
@@ -159,7 +161,7 @@ public final class SessionManager {
 	/**
 	 * Connect to a transaction database column family for a default ColumnFamily class being stored in that database.
 	 * @param dbname the path to the database
-	 * @param options the RocksDb options
+	 * @param options the RocksDb options RocksDb.listColumnFamilies options
 	 * @return the {@link TransactionSession} that contains methods we call using ColumnFamilyHandle
 	 * @throws IOException
 	 * @throws IllegalAccessException
@@ -182,9 +184,36 @@ public final class SessionManager {
 		return hps;
 	}
 	/**
-	 * Connect to a transaction database column family for a default ColumnFamily class being stored in that database.
+	 * Connect to a transaction database column family for a default ColumnFamily class being stored in that database with associated transaction timeout.
 	 * @param dbname the path to the database
-	 * @param options the RocksDb options
+	 * @param options the RocksDb options RocksDb.listColumnFamilies options
+	 * @param timeout the transaction timeout
+	 * @return the {@link TransactionSession} that contains methods we call using ColumnFamilyHandle
+	 * @throws IOException
+	 * @throws IllegalAccessException
+	 */
+	public static synchronized TransactionSession ConnectTransaction(String dbname, Options options, long timeout) throws IOException, IllegalAccessException {
+		if( DEBUG ) {
+			System.out.printf("Connecting to transaction database:%s with options:%s%n", dbname, options);
+		}
+		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
+		if (OfflineDBs.contains(dbname))
+			throw new IllegalAccessException("Database is offline, try later");
+		TransactionSession hps = (TransactionSession) (SessionTable.get(dbname));
+		if (hps == null) {
+			// did'nt find it, create anew
+			hps = OpenDBColumnFamilyTransaction(dbname,options,timeout);
+			SessionTable.put(dbname, hps);
+			if( DEBUG )
+				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+		}
+		return hps;
+	}
+	/**
+	 * Connect to a transaction database column family for a default ColumnFamily class being stored in that database.
+	 * @param alias the database alias
+	 * @param dbname the path to the database
+	 * @param options the RocksDb options RocksDb.listColumnFamilies options
 	 * @return the {@link TransactionSession} that contains methods we call using ColumnFamilyHandle
 	 * @throws IOException
 	 * @throws IllegalAccessException
@@ -207,9 +236,37 @@ public final class SessionManager {
 		return hps;
 	}
 	/**
-	 * Connect to a transaction database column family for a derived class being stored in that database.
+	 * Connect to a transaction database column family for a default ColumnFamily class being stored in that database with associated transaction timeout.
+	 * @param alias the database alias
 	 * @param dbname the path to the database
-	 * @param options the RocksDb options
+	 * @param options the RocksDb options RocksDb.listColumnFamilies options
+	 * @param timeout the transaction timeout
+	 * @return the {@link TransactionSession} that contains methods we call using ColumnFamilyHandle
+	 * @throws IOException
+	 * @throws IllegalAccessException
+	 */
+	public static synchronized TransactionSession ConnectTransaction(Alias alias, String dbname, Options options, long timeout) throws IOException, IllegalAccessException {
+		if( DEBUG ) {
+			System.out.printf("Connecting to transaction database:%s with options:%s%n", dbname, options);
+		}
+		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
+		if (OfflineDBs.contains(dbname))
+			throw new IllegalAccessException("Database is offline, try later");
+		TransactionSession hps = (TransactionSession) (SessionTable.get(dbname));
+		if (hps == null) {
+			// did'nt find it, create anew
+			hps = OpenDBColumnFamilyTransaction(alias, dbname, options, timeout);
+			SessionTable.put(dbname, hps);
+			if( DEBUG )
+				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+		}
+		return hps;
+	}
+	/**
+	 * Connect to a transaction database column family for a derived class being stored in that database.
+	 * @param alias the database alias
+	 * @param dbname the path to the database
+	 * @param options the RocksDb options RocksDb.listColumnFamilies options
 	 * @param derivedClassName the derived class that will contain the ColumnFamily of the same name
 	 * @return the {@link TransactionSession} that contains methods we call using ColumnFamilyHandle
 	 * @throws IOException
@@ -233,9 +290,37 @@ public final class SessionManager {
 		return hps;
 	}
 	/**
+	 * Connect to a transaction database column family for a derived class being stored in that database with associated transaction timeout.
+	 * @param alias the database alias
+	 * @param dbname the path to the database
+	 * @param options the RocksDb options RocksDb.listColumnFamilies options
+	 * @param derivedClassName the derived class that will contain the ColumnFamily of the same name
+	 * @param timeout transaction timeout
+	 * @return the {@link TransactionSession} that contains methods we call using ColumnFamilyHandle
+	 * @throws IOException
+	 * @throws IllegalAccessException
+	 */
+	public static synchronized TransactionSession ConnectTransaction(Alias alias, String dbname, Options options, String derivedClassName, long timeout) throws IOException, IllegalAccessException {
+		if( DEBUG ) {
+			System.out.printf("Connecting to transaction database:%s with options:%s%n", dbname, options);
+		}
+		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
+		if (OfflineDBs.contains(dbname))
+			throw new IllegalAccessException("Database is offline, try later");
+		TransactionSession hps = (TransactionSession) (SessionTable.get(dbname));
+		if (hps == null) {
+			// did'nt find it, create anew
+			hps = OpenDBColumnFamilyTransaction(alias, dbname, options, derivedClassName, timeout);
+			SessionTable.put(dbname, hps);
+			if( DEBUG )
+				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+		}
+		return hps;
+	}
+	/**
 	 * Connect to a transaction database column family for a derived class being stored in that database.
 	 * @param dbname the path to the database
-	 * @param options the RocksDb options
+	 * @param options the RocksDb options RocksDb.listColumnFamilies options
 	 * @param derivedClassName the derived class that will contain the ColumnFamily of the same name
 	 * @return the {@link TransactionSession} that contains methods we call using ColumnFamilyHandle
 	 * @throws IOException
@@ -258,11 +343,38 @@ public final class SessionManager {
 		}
 		return hps;
 	}
+	/**
+	 * Connect to a transaction database column family for a derived class being stored in that database with associated transaction timeout.
+	 * @param dbname the path to the database
+	 * @param options the RocksDb options RocksDb.listColumnFamilies options
+	 * @param derivedClassName the derived class that will contain the ColumnFamily of the same name
+	 * @param timeout the transaction timeout
+	 * @return the {@link TransactionSession} that contains methods we call using ColumnFamilyHandle
+	 * @throws IOException
+	 * @throws IllegalAccessException
+	 */
+	public static synchronized TransactionSession ConnectTransaction(String dbname, Options options, String derivedClassName, long timeout) throws IOException, IllegalAccessException {
+		if( DEBUG ) {
+			System.out.printf("Connecting to transaction database:%s with options:%s%n", dbname, options);
+		}
+		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
+		if (OfflineDBs.contains(dbname))
+			throw new IllegalAccessException("Database is offline, try later");
+		TransactionSession hps = (TransactionSession) (SessionTable.get(dbname));
+		if (hps == null) {
+			// did'nt find it, create anew
+			hps = OpenDBColumnFamilyTransaction(dbname, options, derivedClassName, timeout);
+			SessionTable.put(dbname, hps);
+			if( DEBUG )
+				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+		}
+		return hps;
+	}
 	
 	/**
 	 * Connect to an optimistic transaction database column family for a default ColumnFamily class being stored in that database.
 	 * @param dbname the path to the database
-	 * @param options the RocksDb options
+	 * @param options the RocksDb options RocksDb.listColumnFamilies options
 	 * @return the {@link TransactionSession} that contains methods we call using ColumnFamilyHandle
 	 * @throws IOException
 	 * @throws IllegalAccessException
@@ -287,7 +399,7 @@ public final class SessionManager {
 	/**
 	 * Connect to an optimistic transaction database column family for a default ColumnFamily class being stored in that database.
 	 * @param dbname the path to the database
-	 * @param options the RocksDb options
+	 * @param options the RocksDb options RocksDb.listColumnFamilies options
 	 * @return the {@link TransactionSession} that contains methods we call using ColumnFamilyHandle
 	 * @throws IOException
 	 * @throws IllegalAccessException
@@ -312,7 +424,7 @@ public final class SessionManager {
 	/**
 	 * Connect to an optimistic transaction database column family for a derived class being stored in that database.
 	 * @param dbname the path to the database
-	 * @param options the RocksDb options
+	 * @param options the RocksDb options RocksDb.listColumnFamilies options
 	 * @param derivedClassName the derived class that will contain the ColumnFamily of the same name
 	 * @return the {@link TransactionSession} that contains methods we call using ColumnFamilyHandle
 	 * @throws IOException
@@ -338,7 +450,7 @@ public final class SessionManager {
 	/**
 	 * Connect to an optimistic transaction database column family for a derived class being stored in that database.
 	 * @param dbname the path to the database
-	 * @param options the RocksDb options
+	 * @param options the RocksDb options RocksDb.listColumnFamilies options
 	 * @param derivedClassName the derived class that will contain the ColumnFamily of the same name
 	 * @return the {@link TransactionSession} that contains methods we call using ColumnFamilyHandle
 	 * @throws IOException
@@ -365,7 +477,7 @@ public final class SessionManager {
 	 * Start the DB with no logging for debugging purposes
 	 * or to run read only without logging for some reason
 	 * @param dbname the path to the database (path+dbname)
-	 * @param options db options
+	 * @param options db options RocksDb.listColumnFamilies options
 	 * @return The {@link Session}
 	 * @throws IOException
 	 * @throws IllegalAccessException
@@ -416,7 +528,7 @@ public final class SessionManager {
 	/**
 	 * Open the database for a given path and options and extract the ColumnFamily of the main classe stored there
 	 * @param dbPath
-	 * @param options
+	 * @param options RocksDb.listColumnFamilies options
 	 * @return the {@link Session} that contains the method calls to RocksDb
 	 */
 	private static Session OpenDBColumnFamily(String dbPath, Options options) {
@@ -435,7 +547,7 @@ public final class SessionManager {
 	/**
 	 * Open the database for a given path and options and extract the ColumnFamily of the derived classes stored there
 	 * @param dbPath
-	 * @param options
+	 * @param options RocksDb.listColumnFamilies options
 	 * @param derivedClassName
 	 * @return the {@link Session} that contains the method calls to RocksDb
 	 */
@@ -455,7 +567,7 @@ public final class SessionManager {
 	/**
 	 * Open the transaction database for a given path and options and extract the default ColumnFamily of the classes stored there
 	 * @param dbPath
-	 * @param options
+	 * @param options RocksDb.listColumnFamilies options
 	 * @return the {@link TransactionSession} that contains the method calls to TransactionDb
 	 */
 	private static TransactionSession OpenDBColumnFamilyTransaction(String dbPath, Options options) {
@@ -471,9 +583,29 @@ public final class SessionManager {
 	    return new TransactionSession(db, options, (ArrayList<ColumnFamilyDescriptor>) columnFamilyDescriptor, columnFamilyHandles);
 	}
 	/**
+	 * Open the transaction database for a given path and options and extract the default ColumnFamily of the classes stored there
+	 * @param dbPath
+	 * @param options RocksDb.listColumnFamilies options
+	 * @param timeout the lock timeout
+	 * @return the {@link TransactionSession} that contains the method calls to TransactionDb
+	 */
+	private static TransactionSession OpenDBColumnFamilyTransaction(String dbPath, Options options, long timeout) {
+		List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
+		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDefaultColumnFamilyDescriptors(dbPath, options);
+	    TransactionDB db;
+	    TransactionDBOptions tDbo = new TransactionDBOptions();
+	    tDbo.setTransactionLockTimeout(timeout);
+		try {
+			db = (TransactionDB) TransactionDB.open(DatabaseManager.getDefaultDBOptions(), tDbo, dbPath, columnFamilyDescriptor, columnFamilyHandles);
+		} catch (RocksDBException e) {
+			throw new RuntimeException(e);
+		}
+	    return new TransactionSession(db, options, (ArrayList<ColumnFamilyDescriptor>) columnFamilyDescriptor, columnFamilyHandles);
+	}
+	/**
 	 * Open the transaction database for a given path and options and extract the ColumnFamily of the derived classes stored there
 	 * @param dbPath
-	 * @param options
+	 * @param options RocksDb.listColumnFamilies options
 	 * @param derivedClassName
 	 * @return the {@link TransactionSession} that contains the method calls to TransactionDb
 	 */
@@ -491,11 +623,36 @@ public final class SessionManager {
 			System.out.printf("SessionManager.OpenDBColumnFamilyTransaction Session return with derived for db:%s derivedClass:%s%n",dbPath,derivedClassName);
 	    return new TransactionSession(db, options, (ArrayList<ColumnFamilyDescriptor>) columnFamilyDescriptor, columnFamilyHandles);
 	}
+	/**
+	 * Open the transaction database for a given path and options and extract the ColumnFamily of the derived classes stored there
+	 * with optional lock timeout differing from the default 1000ms
+	 * @param dbPath
+	 * @param options RocksDb.listColumnFamilies options
+	 * @param derivedClassName
+	 * @param the lock timeout in millis.
+	 * @return the {@link TransactionSession} that contains the method calls to TransactionDb
+	 */
+	private static TransactionSession OpenDBColumnFamilyTransaction(String dbPath, Options options, String derivedClassName, long timeout) {
+		List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
+		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDerivedColumnFamilyDescriptors(dbPath, options, derivedClassName);
+	    TransactionDB db;
+	    TransactionDBOptions tDbo = new TransactionDBOptions();
+	    tDbo.setTransactionLockTimeout(timeout);
+		try {
+			db = (TransactionDB) TransactionDB.open(DatabaseManager.getDefaultDBOptions(), tDbo, dbPath, columnFamilyDescriptor, columnFamilyHandles);
+		} catch (RocksDBException e) {
+			throw new RuntimeException(e);
+		}
+		if(DEBUG)
+			System.out.printf("SessionManager.OpenDBColumnFamilyTransaction Session return with derived for db:%s derivedClass:%s%n",dbPath,derivedClassName);
+	    return new TransactionSession(db, options, (ArrayList<ColumnFamilyDescriptor>) columnFamilyDescriptor, columnFamilyHandles);
+	}
 
 	/**
 	 * Open the transaction database for a given path and options and extract the ColumnFamily of the derived classes stored there
+	 * @param alias The database alias
 	 * @param dbPath
-	 * @param options
+	 * @param options RocksDb.listColumnFamilies options
 	 * @param derivedClassName
 	 * @return the {@link TransactionSessionAlias} that contains the method calls to TransactionDb
 	 */
@@ -514,9 +671,35 @@ public final class SessionManager {
 	    return new TransactionSessionAlias(db, options, (ArrayList<ColumnFamilyDescriptor>) columnFamilyDescriptor, columnFamilyHandles, alias);
 	}
 	/**
-	 * Open the transaction database for a given path and options and extract the default ColumnFamily of the classes stored there
+	 * Open the transaction database for a given path and options and extract the ColumnFamily of the derived classes stored there
+	 * with optional lock timeout differing from the default 1000ms
+	 * @param alias The database alias
 	 * @param dbPath
-	 * @param options
+	 * @param options RocksDb.listColumnFamilies options
+	 * @param derivedClassName
+	 * @param timeout the transaction timeout in millis.
+	 * @return the {@link TransactionSessionAlias} that contains the method calls to TransactionDb
+	 */
+	private static TransactionSession OpenDBColumnFamilyTransaction(Alias alias, String dbPath, Options options, String derivedClassName, long timeout) {
+		List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
+		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDerivedColumnFamilyDescriptors(dbPath, options, derivedClassName);
+	    TransactionDB db;
+	    TransactionDBOptions tDbo = new TransactionDBOptions();
+	    tDbo.setTransactionLockTimeout(timeout);
+		try {
+			db = (TransactionDB) TransactionDB.open(DatabaseManager.getDefaultDBOptions(), tDbo, dbPath, columnFamilyDescriptor, columnFamilyHandles);
+		} catch (RocksDBException e) {
+			throw new RuntimeException(e);
+		}
+		if(DEBUG)
+			System.out.printf("SessionManager.OpenDBColumnFamilyTransaction Session return with derived for db:%s derivedClass:%s%n",dbPath,derivedClassName);
+	    return new TransactionSessionAlias(db, options, (ArrayList<ColumnFamilyDescriptor>) columnFamilyDescriptor, columnFamilyHandles, alias);
+	}
+	/**
+	 * Open the transaction database for a given path and options and extract the default ColumnFamily of the classes stored there
+	 * @param alias the database alias
+	 * @param dbPath the tablespace path
+	 * @param optionsthe build column family descriptor options RocksDb.listColumnFamilies options
 	 * @return the {@link TransactionSessionAlias} that contains the method calls to TransactionDb
 	 */
 	private static TransactionSession OpenDBColumnFamilyTransaction(Alias alias, String dbPath, Options options) {
@@ -533,11 +716,34 @@ public final class SessionManager {
 			System.out.printf("SessionManager.OpenDBColumnFamilyTransaction Session return with derived for db:%s%n",dbPath);
 	    return new TransactionSessionAlias(db, options, (ArrayList<ColumnFamilyDescriptor>) columnFamilyDescriptor, columnFamilyHandles, alias);
 	}
-	
+	/**
+	 * Open the transaction database for a given alias, tablespace path and options and extract the default ColumnFamily of the classes stored there
+	 * with optional lock timeout differing from the default 1000ms.
+	 * @param alias the database alias
+	 * @param dbPath the tablespace path
+	 * @param options the build column family descriptor options RocksDb.listColumnFamilies options
+	 * @param the transaction timeout
+	 * @return the {@link TransactionSessionAlias} that contains the method calls to TransactionDb
+	 */
+	private static TransactionSession OpenDBColumnFamilyTransaction(Alias alias, String dbPath, Options options, long timeout) {
+		List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
+		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDefaultColumnFamilyDescriptors(dbPath, options);
+	    TransactionDB db;
+	    TransactionDBOptions tDbo = new TransactionDBOptions();
+	    tDbo.setTransactionLockTimeout(timeout);
+		try {
+			db = (TransactionDB) TransactionDB.open(DatabaseManager.getDefaultDBOptions(), tDbo, dbPath, columnFamilyDescriptor, columnFamilyHandles);
+		} catch (RocksDBException e) {
+			throw new RuntimeException(e);
+		}
+		if(DEBUG)
+			System.out.printf("SessionManager.OpenDBColumnFamilyTransaction Session return with derived for db:%s%n",dbPath);
+	    return new TransactionSessionAlias(db, options, (ArrayList<ColumnFamilyDescriptor>) columnFamilyDescriptor, columnFamilyHandles, alias);
+	}
 	/**
 	 * Open the transaction database for a given path and options and extract the default ColumnFamily of the classes stored there
 	 * @param dbPath
-	 * @param options
+	 * @param options RocksDb.listColumnFamilies options
 	 * @return the {@link OptimisticTransactionSession} that contains the method calls to TransactionDb
 	 */
 	private static OptimisticTransactionSession OpenDBColumnFamilyOptimisticTransaction(String dbPath, Options options) {
@@ -554,7 +760,7 @@ public final class SessionManager {
 	/**
 	 * Open the optimistic transaction database for a given path and options and extract the ColumnFamily of the derived classes stored there
 	 * @param dbPath
-	 * @param options
+	 * @param options RocksDb.listColumnFamilies options
 	 * @param derivedClassName
 	 * @return the {@link OptimisticTransactionSession} that contains the method calls to TransactionDb
 	 */
@@ -574,8 +780,9 @@ public final class SessionManager {
 
 	/**
 	 * Open the optimistic transaction database for a given path and options and extract the ColumnFamily of the derived classes stored there
+	 * @param alias the database alias
 	 * @param dbPath
-	 * @param options
+	 * @param options RocksDb.listColumnFamilies options
 	 * @param derivedClassName
 	 * @return the {@link OptimisticTransactionSessionAlias} that contains the method calls to TransactionDb
 	 */
@@ -593,9 +800,10 @@ public final class SessionManager {
 	    return new OptimisticTransactionSessionAlias(db, options, (ArrayList<ColumnFamilyDescriptor>) columnFamilyDescriptor, columnFamilyHandles, alias);
 	}
 	/**
-	 * Open the optimistic transaction database for a given path and options and extract the default ColumnFamily of the classes stored there
-	 * @param dbPath
-	 * @param options
+	 * Open the optimistic transaction database for a given alias and path and options and extract the default ColumnFamily of the classes stored there
+	 * @param alias the database alias
+	 * @param dbPath database tablespace
+	 * @param options RocksDb.listColumnFamilies options
 	 * @return the {@link OptimisticTransactionSessionAlias} that contains the method calls to TransactionDb
 	 */
 	private static OptimisticTransactionSessionAlias OpenDBColumnFamilyOptimisticTransaction(Alias alias, String dbPath, Options options) {
@@ -727,7 +935,7 @@ public final class SessionManager {
 	}
 	
 	/**
-	 * For those that wish to maintain admin tables
+	 * For those that wish to maintain admin tables like {@code getSessionTable()}
 	 * @return The Hashtable of Admin sessions - you define
 	 */
 	protected static ConcurrentHashMap<?, ?> getAdminSessionTable() {

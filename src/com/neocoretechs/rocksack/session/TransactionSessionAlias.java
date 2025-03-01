@@ -11,12 +11,12 @@ import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.OptimisticTransactionDB;
 import org.rocksdb.Options;
 import org.rocksdb.ReadOptions;
-import org.rocksdb.RocksDBException;
 import org.rocksdb.Transaction;
 import org.rocksdb.TransactionDB;
 import org.rocksdb.WriteOptions;
 
 import com.neocoretechs.rocksack.Alias;
+import com.neocoretechs.rocksack.LockingTransactionId;
 import com.neocoretechs.rocksack.TransactionId;
 import com.neocoretechs.rocksack.session.TransactionManager.SessionAndTransaction;
 /**
@@ -81,7 +81,10 @@ public class TransactionSessionAlias extends TransactionSession {
 		if(tLink.containsKey(name))
 			return true;
 		SessionAndTransaction sLink;
-		sLink = new SessionAndTransaction(tm.getSession(), BeginTransaction(), xid);
+		if(xid instanceof LockingTransactionId)
+			sLink = new SessionAndTransaction(tm.getSession(), BeginTransaction(((LockingTransactionId)xid).getLockTimeout()), xid);
+		else
+			sLink = new SessionAndTransaction(tm.getSession(), BeginTransaction(), xid);
 		tLink.put(name, sLink);
 		return false;
 	}
@@ -147,8 +150,7 @@ public class TransactionSessionAlias extends TransactionSession {
 					if(DEBUG)
 						System.out.printf("%s.getTransaction transSession collection null or empty Alias:%s Transaction id:%s Class:%s create:%b from name:%s%n",this.getClass().getName(),alias,transactionId,clazz,create,name);
 					for(SessionAndTransaction alle : all) {
-						if(alle.getTransaction().getName().startsWith(transactionId.getTransactionId()) &&
-							alle.getTransaction().getName().endsWith(alias.getAlias())) {
+						if(alle.getTransactionId().getTransactionId().startsWith(transactionId.getTransactionId())) {
 							transaction = alle.getTransaction();
 							exists = true;
 							break;
@@ -163,7 +165,10 @@ public class TransactionSessionAlias extends TransactionSession {
 		if(!exists && create) {
 			if(DEBUG)
 				System.out.printf("%s.getTransaction Creating Transaction id:%s Transaction name:%s%n",this.getClass().getName(),transactionId,name);
-			transaction = BeginTransaction();
+			if(transactionId instanceof LockingTransactionId)
+				transaction = BeginTransaction(((LockingTransactionId)transactionId).getLockTimeout());
+			else
+				transaction = BeginTransaction();
 			transLink = new SessionAndTransaction(this, transaction, transactionId);
 			transSession.put(name, transLink);
 		}
