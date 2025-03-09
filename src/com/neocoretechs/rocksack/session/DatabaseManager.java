@@ -195,11 +195,11 @@ public final class DatabaseManager {
 	}
 	
 	public static List<Transaction> getOutstandingTransactionsByAliasAndId(Alias alias, TransactionId uid) {
-		return TransactionManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), uid.getTransactionId());
+		return TransactionManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), uid);
 	}
 	
 	public static List<Transaction> getOutstandingTransactionsByPathAndId(String path, TransactionId uid) throws IOException {
-		return TransactionManager.getOutstandingTransactionsByPathAndId(path, uid.getTransactionId());
+		return TransactionManager.getOutstandingTransactionsByPathAndId(path, uid);
 	}
 	
 	/**
@@ -247,9 +247,10 @@ public final class DatabaseManager {
 		options.setComparator(comparator);
 		try {
 		    options.setCreateIfMissing(true)
+		    	.setIncreaseParallelism(8)
 		        .setStatistics(stats)
-		        .setWriteBufferSize(8 * SizeUnit.MB)
-		        .setMaxWriteBufferNumber(3)
+		        .setWriteBufferSize(64 * SizeUnit.MB)
+		        .setMaxWriteBufferNumber(25)
 		        .setMaxBackgroundJobs(24)
 		        .setCompressionType(CompressionType.SNAPPY_COMPRESSION)
 		        .setCompactionStyle(CompactionStyle.LEVEL);
@@ -941,7 +942,7 @@ public final class DatabaseManager {
 	 */
 	public static synchronized void removeTransaction(TransactionId xid) throws IOException {
 		removeTransactionalMap(xid.getTransactionId());
-		TransactionManager.removeTransaction(xid.getTransactionId());
+		TransactionManager.removeTransaction(xid);
 	}
 
 	/**
@@ -952,15 +953,15 @@ public final class DatabaseManager {
 	 * @throws IOException If the transaction is not in a state to be removed. i.e. not COMMITTED, ROLLEDBACK or STARTED
 	 */
 	public static synchronized void removeTransaction(Alias alias, TransactionId xid) throws NoSuchElementException, IOException {
-		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), xid.getTransactionId());
+		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), xid);
 		if(tx != null && !tx.isEmpty()) {
-				TransactionManager.removeTransaction(alias,xid.getTransactionId());
+				TransactionManager.removeTransaction(alias,xid);
 		} else
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
 	public static void commitTransaction(TransactionId xid) throws IOException {
-		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByPathAndId(tableSpaceDir, xid.getTransactionId());
+		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByPathAndId(tableSpaceDir, xid);
 		if(tx != null && !tx.isEmpty()) {
 			try {
 				for(Transaction t: tx) {
@@ -976,7 +977,7 @@ public final class DatabaseManager {
 	}
 	
 	public static void commitTransaction(Alias alias, TransactionId xid) throws IOException, NoSuchElementException {
-		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), xid.getTransactionId());
+		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), xid);
 		if(tx != null && !tx.isEmpty()) {
 			try {
 				for(Transaction t: tx) {
@@ -992,7 +993,7 @@ public final class DatabaseManager {
 	}
 	
 	public static void rollbackTransaction(TransactionId xid) throws IOException {
-		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByPathAndId(tableSpaceDir, xid.getTransactionId());
+		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByPathAndId(tableSpaceDir, xid);
 		if(tx != null && !tx.isEmpty()) {
 			try {
 				for(Transaction t: tx) {
@@ -1008,7 +1009,7 @@ public final class DatabaseManager {
 	}
 	
 	public static void rollbackTransaction(Alias alias, TransactionId xid) throws IOException, NoSuchElementException {
-		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), xid.getTransactionId());
+		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), xid);
 		if(tx != null && !tx.isEmpty()) {
 			try {
 				for(Transaction t: tx) {
@@ -1024,7 +1025,7 @@ public final class DatabaseManager {
 	}
 	
 	public static void checkpointTransaction(TransactionId xid) throws IOException {
-		List<Transaction> tx = TransactionManager.getOutstandingTransactionsById(xid.getTransactionId());
+		List<Transaction> tx = TransactionManager.getOutstandingTransactionsById(xid);
 		if(tx != null && !tx.isEmpty()) {
 			try {
 				for(Transaction t: tx) {
@@ -1040,7 +1041,7 @@ public final class DatabaseManager {
 	}
 	
 	public static void checkpointTransaction(Alias alias, TransactionId xid) throws IOException, NoSuchElementException {
-		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), xid.getTransactionId());
+		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), xid);
 		if(tx != null && !tx.isEmpty()) {
 			try {
 				for(Transaction t: tx) {
@@ -1056,7 +1057,7 @@ public final class DatabaseManager {
 	}
 	
 	public static void rollbackToCheckpoint(TransactionId xid) throws IOException {
-		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByPathAndId(tableSpaceDir, xid.getTransactionId());
+		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByPathAndId(tableSpaceDir, xid);
 		if(tx != null && !tx.isEmpty()) {
 			try {
 				for(Transaction t: tx) {
@@ -1072,7 +1073,7 @@ public final class DatabaseManager {
 	}
 	
 	public static void rollbackToCheckpoint(Alias alias, TransactionId xid) throws IOException, NoSuchElementException {
-		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), xid.getTransactionId());
+		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), xid);
 		if(tx != null && !tx.isEmpty()) {
 			try {
 				for(Transaction t: tx) {
@@ -1168,7 +1169,7 @@ public final class DatabaseManager {
 				}
 			});
 		}
-		TransactionManager.removeTransaction(xid.getTransactionId());
+		TransactionManager.removeTransaction(xid);
 	}
 	
 	/**
@@ -1213,7 +1214,7 @@ public final class DatabaseManager {
 	}
 
 	public static void endTransaction(TransactionId xid) throws IOException {
-		TransactionManager.removeTransaction(xid.getTransactionId());
+		TransactionManager.removeTransaction(xid);
 	}
 	
 	public static void clearAllOutstandingTransactions() {
@@ -1221,7 +1222,7 @@ public final class DatabaseManager {
 	}
 	
 	public static void clearOutstandingTransaction(TransactionId xid) throws IOException, RocksDBException {
-		TransactionManager.clearOutstandingTransaction(xid.getTransactionId());
+		TransactionManager.clearOutstandingTransaction(xid);
 	}
 	
 	/**

@@ -297,11 +297,11 @@ public final class TransactionManager {
 	 * @param uid
 	 * @return
 	 */
-	static List<Transaction> getOutstandingTransactionsById(String uid) {
+	static List<Transaction> getOutstandingTransactionsById(TransactionId uid) {
 		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
 		for(Entry<TransactionId, ConcurrentHashMap<String, SessionAndTransaction>> sessions : idToNameToSessionAndTransaction.entrySet()) {
 			// Get all the TransactionalMaps for the session
-			if(sessions.getKey().getTransactionId().equals(uid)) {
+			if(sessions.getKey().equals(uid)) {
 				ConcurrentHashMap<String,SessionAndTransaction> sessAndTrans = sessions.getValue();
 				// Get all the SessionAndTransactions instances which contain the Session and its Transaction
 				for(Entry<String, SessionAndTransaction> transMaps: sessAndTrans.entrySet()) {
@@ -325,10 +325,10 @@ public final class TransactionManager {
 	 * @param uid
 	 * @return
 	 */
-	static List<Transaction> getOutstandingTransactionsByAliasAndId(String alias, String uid) {
+	static List<Transaction> getOutstandingTransactionsByAliasAndId(String alias, TransactionId uid) {
 		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
 		Alias al = new Alias(alias);
-		ConcurrentHashMap<String, SessionAndTransaction> sessions = idToNameToSessionAndTransaction.get(new TransactionId(uid));
+		ConcurrentHashMap<String, SessionAndTransaction> sessions = idToNameToSessionAndTransaction.get(uid);
 		if(sessions != null) {
 			for(SessionAndTransaction sLink : sessions.values()) {
 				if(sLink.getTransactionSession() instanceof TransactionSessionAlias &&
@@ -352,10 +352,10 @@ public final class TransactionManager {
 	 * @return The list of Transaction
 	 * @throws IOException 
 	 */
-	static List<Transaction> getOutstandingTransactionsByPathAndId(String path, String uid) throws IOException {
+	static List<Transaction> getOutstandingTransactionsByPathAndId(String path, TransactionId uid) throws IOException {
 		ArrayList<Transaction> retXactn = new ArrayList<Transaction>();
 		Volume v = VolumeManager.get(path);
-		ConcurrentHashMap<String, SessionAndTransaction> sessions = idToNameToSessionAndTransaction.get(new TransactionId(uid));
+		ConcurrentHashMap<String, SessionAndTransaction> sessions = idToNameToSessionAndTransaction.get(uid);
 		if(DEBUG)
 			System.out.println("TransactionManager.getOutstandingTransactionsByPathAndId for path:"+path+" id:"+uid+" got volume "+v);
 		// Get all the TransactionalMaps for the volume, compare sessions
@@ -423,12 +423,12 @@ public final class TransactionManager {
 	 * @throws IOException 
 	 * @throws RocksDBException 
 	 */
-	static void clearOutstandingTransaction(String uid) throws RocksDBException, IOException {
+	static void clearOutstandingTransaction(TransactionId uid) throws RocksDBException, IOException {
 		for(SessionAndTransaction t: getOutstandingTransactions()) {
-				if(t.getTransactionId().getTransactionId().startsWith(uid)) {
-					t.getTransaction().rollback();
-					removeTransaction(uid);
-				}
+			if(t.getTransactionId().equals(uid)) {
+				t.getTransaction().rollback();
+				removeTransaction(uid);
+			}
 		}
 	}
 	/**
@@ -436,10 +436,10 @@ public final class TransactionManager {
 	 * @param uid the transaction Id
 	 * @throws RocksDBException
 	 */
-	public static void commit(String uid) throws RocksDBException {
+	public static void commit(TransactionId uid) throws RocksDBException {
 		for(SessionAndTransaction t: getOutstandingTransactions()) {
-			if(t.getTransactionId().getTransactionId().startsWith(uid)) {			
-					t.getTransaction().commit();
+			if(t.getTransactionId().equals(uid)) {			
+				t.getTransaction().commit();
 			}
 		}
 	}
@@ -448,10 +448,10 @@ public final class TransactionManager {
 	 * @param uid the transaction Id
 	 * @throws RocksDBException
 	 */	
-	public static void rollback(String uid) throws RocksDBException {
+	public static void rollback(TransactionId uid) throws RocksDBException {
 		for(SessionAndTransaction t: getOutstandingTransactions()) {
-			if(t.getTransactionId().getTransactionId().startsWith(uid)) {			
-					t.getTransaction().rollback();
+			if(t.getTransactionId().equals(uid)) {			
+				t.getTransaction().rollback();
 			}
 		}
 	}	
@@ -460,10 +460,10 @@ public final class TransactionManager {
 	 * @param uid the transaction Id
 	 * @throws RocksDBException
 	 */
-	public static void checkpoint(String uid) throws RocksDBException {
+	public static void checkpoint(TransactionId uid) throws RocksDBException {
 		for(SessionAndTransaction t: getOutstandingTransactions()) {
-			if(t.getTransactionId().getTransactionId().startsWith(uid)) {			
-					t.getTransaction().setSavePoint();
+			if(t.getTransactionId().equals(uid)) {			
+				t.getTransaction().setSavePoint();
 			}
 		}
 	}
@@ -472,9 +472,9 @@ public final class TransactionManager {
 	 * @param uid the transaction Id
 	 * @throws RocksDBException
 	 */
-	public static void rollbackToCheckpoint(String uid) throws RocksDBException {
+	public static void rollbackToCheckpoint(TransactionId uid) throws RocksDBException {
 		for(SessionAndTransaction t: getOutstandingTransactions()) {
-			if(t.getTransactionId().getTransactionId().startsWith(uid)) {	
+			if(t.getTransactionId().equals(uid)) {	
 				t.getTransaction().rollbackToSavePoint();
 			}
 		}
@@ -488,16 +488,15 @@ public final class TransactionManager {
 	 * @param uid The target transaction id
 	 * @throws IOException if we encounter extreme corruption
 	 */
-	static void removeTransaction(String uid) throws IOException {
-		TransactionId tid = new TransactionId(uid);
-		ConcurrentHashMap<String, SessionAndTransaction> tis = idToNameToSessionAndTransaction.get(tid);
+	static void removeTransaction(TransactionId uid) throws IOException {
+		ConcurrentHashMap<String, SessionAndTransaction> tis = idToNameToSessionAndTransaction.get(uid);
 		List<String> ts = new ArrayList<String>();
 		for(Entry<String, SessionAndTransaction> s : tis.entrySet()) {
 			if(DEBUG) {
 				System.out.printf("TransactionManager.removeTransaction xid:%s name:%s%n", uid, s.getValue());
 			}
 			// sanity check
-			if(!s.getKey().startsWith(uid))
+			if(!s.getKey().startsWith(uid.getTransactionId()))
 				throw new IOException("Encountered corrupt idToNameToSessionAndTransaction entry");
 			ts.add(s.getKey());
 		}
@@ -506,9 +505,9 @@ public final class TransactionManager {
 		}
 		if(tis.isEmpty()) {
 			if(DEBUG) {
-				System.out.printf("TransactionManager.removeTransaction removing empty idToNameToSessionAndTransaction map entry for xid:%s%n", tid);
+				System.out.printf("TransactionManager.removeTransaction removing empty idToNameToSessionAndTransaction map entry for xid:%s%n", uid);
 			}
-			idToNameToSessionAndTransaction.remove(tid);
+			idToNameToSessionAndTransaction.remove(uid);
 		}
 	}
 	/**
@@ -517,16 +516,15 @@ public final class TransactionManager {
 	 * @param uid
 	 * @throws IOException
 	 */
-	static void removeTransaction(Alias alias, String uid) throws IOException {
-		TransactionId tid = new TransactionId(uid);
-		ConcurrentHashMap<String, SessionAndTransaction> tis = idToNameToSessionAndTransaction.get(tid);
+	static void removeTransaction(Alias alias, TransactionId uid) throws IOException {
+		ConcurrentHashMap<String, SessionAndTransaction> tis = idToNameToSessionAndTransaction.get(uid);
 		List<String> ts = new ArrayList<String>();
 		for(Entry<String, SessionAndTransaction> s : tis.entrySet()) {
 			if(DEBUG) {
 				System.out.printf("TransactionManager.removeTransaction xid:%s name:%s%n", uid, s.getValue());
 			}
 			// sanity check
-			if(!s.getKey().startsWith(uid))
+			if(!s.getKey().startsWith(uid.getTransactionId()))
 				throw new IOException("Encountered corrupt idToNameToSessionAndTransaction entry");
 			if(s.getKey().endsWith(alias.getAlias()))
 				ts.add(s.getKey());
@@ -536,9 +534,9 @@ public final class TransactionManager {
 		}
 		if(tis.isEmpty()) {
 			if(DEBUG) {
-				System.out.printf("TransactionManager.removeTransaction removing empty idToNameToSessionAndTransaction map entry for xid:%s%n", tid);
+				System.out.printf("TransactionManager.removeTransaction removing empty idToNameToSessionAndTransaction map entry for xid:%s%n", uid);
 			}
-			idToNameToSessionAndTransaction.remove(tid);
+			idToNameToSessionAndTransaction.remove(uid);
 		}	
 	}
 
