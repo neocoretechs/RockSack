@@ -630,7 +630,7 @@ public class BatteryKVDerived {
 		Based fkey = null;
 		for(int i = min; i < max1; i++) {
 			fkey = new Based(String.format(uniqKeyFmt, i));
-			bmap.put(fkey, new Long(i));
+			bmap.put(fkey, Long.valueOf(i));
 			++recs;
 		}
 		long s = bmap.size();
@@ -638,7 +638,7 @@ public class BatteryKVDerived {
 			System.out.println("Size at halway point of restore incorrect:"+s+" should be "+max1);
 		for(int i = max1; i < max; i++) {
 			fkey = new Derived(String.format(uniqKeyFmt, i));
-			bmapd.put(fkey, new Long(i));
+			bmapd.put(fkey, Long.valueOf(i));
 			++recs;
 		}
 		System.out.println("KV BATTERY18 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms. Stored "+recs+" records, rejected "+dupes+" dupes.");

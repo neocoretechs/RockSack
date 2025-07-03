@@ -82,7 +82,7 @@ public class BatteryKVTransactionStream {
 		}
 		for(int i = min; i < max; i++) {
 			fkey = String.format(uniqKeyFmt, i);
-				bmap.put(xid, fkey, new Long(i));
+				bmap.put(xid, fkey, Long.valueOf(i));
 				++recs;
 		}
 		DatabaseManager.commitTransaction(xid);
@@ -104,7 +104,7 @@ public class BatteryKVTransactionStream {
 		TransactionalMap bmap2 = bmap;
 		for(int i = max; i < max*2; i++) {
 			fkey = String.format(uniqKeyFmt, i);
-			bmap2.put(xid2, fkey, new Long(fkey));
+			bmap2.put(xid2, fkey, Long.valueOf(fkey));
 			++recs;
 		}
 		if( recs > 0) {
@@ -478,14 +478,14 @@ public class BatteryKVTransactionStream {
 		String fkey = null;
 		for(int i = min; i < max1; i++) {
 			fkey = String.format(uniqKeyFmt, i);
-			bmap2.put(xid2, fkey, new Long(i));
+			bmap2.put(xid2, fkey, Long.valueOf(i));
 			++recs;
 		}
 		System.out.println("Checkpointing.."+xid2);
 		DatabaseManager.checkpointTransaction(xid2);
 		for(int i = max1; i < max; i++) {
 			fkey = String.format(uniqKeyFmt, i);
-			bmap2.put(xid2, fkey, new Long(i));
+			bmap2.put(xid2, fkey, Long.valueOf(i));
 			++recs;
 		}
 		DatabaseManager.commitTransaction(xid2);

@@ -125,8 +125,8 @@ public class BatteryKVOptimisticTransaction {
 		int dupes = 0;
 		String fkey = null;
 		for(int i = min22; i < max22; i++) {
-			fkey = String.format(uniqKeyFmt, new Long(i));
-				bmap.put(xid, fkey, new Long(i));
+			fkey = String.format(uniqKeyFmt, Long.valueOf(i));
+				bmap.put(xid, fkey, Long.valueOf(i));
 				recs12.getAndIncrement();
 		}
 		DatabaseManager.commitTransaction(xid);
@@ -525,14 +525,14 @@ public class BatteryKVOptimisticTransaction {
 		String fkey = null;
 		for(int i = min12; i < max1; i++) {
 			fkey = String.format(uniqKeyFmt, i);
-			bmap2.put(xid2, fkey, new Long(i));
+			bmap2.put(xid2, fkey, Long.valueOf(i));
 			++recs;
 		}
 		System.out.println(xid2+" Checkpointing..");
 		DatabaseManager.checkpointTransaction(xid2);
 		for(int i = max1; i < max22; i++) {
 			fkey = String.format(uniqKeyFmt, i);
-			bmap2.put(xid2, fkey, new Long(i));
+			bmap2.put(xid2, fkey, Long.valueOf(i));
 			++recs;
 		}
 		DatabaseManager.commitTransaction(xid2);

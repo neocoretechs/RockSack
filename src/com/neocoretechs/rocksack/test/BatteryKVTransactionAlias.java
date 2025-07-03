@@ -179,9 +179,9 @@ public class BatteryKVTransactionAlias {
 		// for each database will will pass opposite values
 		for(int i = min; i < max; i+=2) {
 			fkey = alias12+String.format(uniqKeyFmt, i);
-			bmap3.put(xid, fkey, new Long(i));
+			bmap3.put(xid, fkey, Long.valueOf(i));
 			fkey = alias12+String.format(uniqKeyFmt, i+1);
-			bmap3.put(xid0, fkey, new Long(i+1));
+			bmap3.put(xid0, fkey, Long.valueOf(i+1));
 			recs+=2;
 		}
 		System.out.println("KV BATTERY1 SUCCESS in "+(System.currentTimeMillis()-tims)+" ms. Stored "+recs+" records, rejected "+dupes+" dupes.");
@@ -201,7 +201,7 @@ public class BatteryKVTransactionAlias {
 		String fkey = null;
 		for(int i = max; i < max*2; i++) {
 			fkey = alias12+String.format(uniqKeyFmt, i);
-			bmap2.put(xid, fkey, new Long(i));
+			bmap2.put(xid, fkey, Long.valueOf(i));
 			++recs;
 		}
 		if( recs > 0) {
@@ -572,14 +572,14 @@ public class BatteryKVTransactionAlias {
 		String fkey = null;
 		for(int i = min; i < max1; i++) {
 			fkey = alias12+String.format(uniqKeyFmt, i);
-			bmap2.put(xid2, fkey, new Long(i));
+			bmap2.put(xid2, fkey, Long.valueOf(i));
 			++recs;
 		}
 		System.out.println(xid2+" Checkpointing..");
 		DatabaseManager.checkpointTransaction(alias12, xid2);
 		for(int i = max1; i < max; i++) {
 			fkey = alias12+String.format(uniqKeyFmt, i);
-			bmap2.put(xid2, fkey, new Long(i));
+			bmap2.put(xid2, fkey, Long.valueOf(i));
 			++recs;
 		}
 		DatabaseManager.commitTransaction(alias12,xid2);

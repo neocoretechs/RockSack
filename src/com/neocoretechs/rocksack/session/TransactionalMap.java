@@ -374,7 +374,7 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 	* @return First key in set
 	* @exception IOException If backing store retrieval failure
 	*/
-			@Override
+	@Override
 	public Comparable firstKey(TransactionId transactionId) throws IOException {
 		Transaction txn = session.getTransaction(transactionId, className, false);
 		if(txn == null)
