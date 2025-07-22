@@ -333,7 +333,7 @@ public final class DatabaseManager {
 	 * @throws IllegalAccessException
 	 * @throws IOException
 	 */
-	public static BufferedMap getMap(Comparable clazz) throws IllegalAccessException, IOException {
+	public static synchronized BufferedMap getMap(Comparable clazz) throws IllegalAccessException, IOException {
 		return getMap(clazz.getClass());
 	}
 	/**
@@ -343,7 +343,7 @@ public final class DatabaseManager {
 	 * @throws IllegalAccessException
 	 * @throws IOException
 	 */
-	public static BufferedMap getMap(Class clazz) throws IllegalAccessException, IOException {
+	public static synchronized BufferedMap getMap(Class clazz) throws IllegalAccessException, IOException {
 		boolean isDerivedClass = false;
 		String xClass,dClass = null;
 		BufferedMap ret = null;
@@ -408,7 +408,7 @@ public final class DatabaseManager {
 	 * @throws NoSuchElementException if alias was not found
 	 * @throws IOException
 	 */
-	public static BufferedMap getMap(Alias alias, Comparable clazz) throws IllegalAccessException, IOException, NoSuchElementException {
+	public static synchronized BufferedMap getMap(Alias alias, Comparable clazz) throws IllegalAccessException, IOException, NoSuchElementException {
 		return getMap(alias, clazz.getClass());
 	}
 	/**
@@ -420,7 +420,7 @@ public final class DatabaseManager {
 	 * @throws NoSuchElementException if alias was not found
 	 * @throws IOException
 	 */
-	public static BufferedMap getMap(Alias alias, Class clazz) throws IllegalAccessException, IOException, NoSuchElementException {
+	public static synchronized BufferedMap getMap(Alias alias, Class clazz) throws IllegalAccessException, IOException, NoSuchElementException {
 		boolean isDerivedClass = false;
 		String xClass,dClass = null;
 		BufferedMap ret = null;
@@ -883,7 +883,7 @@ public final class DatabaseManager {
 	 * @param tm
 	 * @throws IOException
 	 */
-	public static void associateSession(TransactionId xid, TransactionalMap tm) throws IOException {
+	public static synchronized void associateSession(TransactionId xid, TransactionalMap tm) throws IOException {
 		ConcurrentHashMap<String, SessionAndTransaction> ts = TransactionManager.getTransactionSession(xid);
 		if(DEBUG)
 			System.out.printf("DatabaseManager.associateSession Enter Transaction id:%s TransactionMap:%s got session:%s%n",xid,tm,ts);
@@ -908,7 +908,7 @@ public final class DatabaseManager {
 	 * @return true if transaction id is associated to a {@link TransactionalMap}
 	 * @throws IOException
 	 */
-	public static boolean isSessionAssociated(TransactionId xid, TransactionalMap tm) throws IOException {
+	public static synchronized boolean isSessionAssociated(TransactionId xid, TransactionalMap tm) throws IOException {
 		ConcurrentHashMap<String, SessionAndTransaction> ts = TransactionManager.getTransactionSession(xid);
 		if(DEBUG)
 			System.out.printf("DatabaseManager.isSessionAssociated %s %s %s%n",xid,tm.getClassName(),ts);
@@ -960,7 +960,7 @@ public final class DatabaseManager {
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
-	public static void commitTransaction(TransactionId xid) throws IOException {
+	public static synchronized void commitTransaction(TransactionId xid) throws IOException {
 		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByPathAndId(tableSpaceDir, xid);
 		if(tx != null && !tx.isEmpty()) {
 			try {
@@ -976,7 +976,7 @@ public final class DatabaseManager {
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
-	public static void commitTransaction(Alias alias, TransactionId xid) throws IOException, NoSuchElementException {
+	public static synchronized void commitTransaction(Alias alias, TransactionId xid) throws IOException, NoSuchElementException {
 		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), xid);
 		if(tx != null && !tx.isEmpty()) {
 			try {
@@ -992,7 +992,7 @@ public final class DatabaseManager {
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
-	public static void rollbackTransaction(TransactionId xid) throws IOException {
+	public static synchronized void rollbackTransaction(TransactionId xid) throws IOException {
 		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByPathAndId(tableSpaceDir, xid);
 		if(tx != null && !tx.isEmpty()) {
 			try {
@@ -1008,7 +1008,7 @@ public final class DatabaseManager {
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
-	public static void rollbackTransaction(Alias alias, TransactionId xid) throws IOException, NoSuchElementException {
+	public static synchronized void rollbackTransaction(Alias alias, TransactionId xid) throws IOException, NoSuchElementException {
 		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), xid);
 		if(tx != null && !tx.isEmpty()) {
 			try {
@@ -1024,7 +1024,7 @@ public final class DatabaseManager {
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
-	public static void checkpointTransaction(TransactionId xid) throws IOException {
+	public static synchronized void checkpointTransaction(TransactionId xid) throws IOException {
 		List<Transaction> tx = TransactionManager.getOutstandingTransactionsById(xid);
 		if(tx != null && !tx.isEmpty()) {
 			try {
@@ -1040,7 +1040,7 @@ public final class DatabaseManager {
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
-	public static void checkpointTransaction(Alias alias, TransactionId xid) throws IOException, NoSuchElementException {
+	public static synchronized void checkpointTransaction(Alias alias, TransactionId xid) throws IOException, NoSuchElementException {
 		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), xid);
 		if(tx != null && !tx.isEmpty()) {
 			try {
@@ -1056,7 +1056,7 @@ public final class DatabaseManager {
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
-	public static void rollbackToCheckpoint(TransactionId xid) throws IOException {
+	public static synchronized void rollbackToCheckpoint(TransactionId xid) throws IOException {
 		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByPathAndId(tableSpaceDir, xid);
 		if(tx != null && !tx.isEmpty()) {
 			try {
@@ -1072,7 +1072,7 @@ public final class DatabaseManager {
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
-	public static void rollbackToCheckpoint(Alias alias, TransactionId xid) throws IOException, NoSuchElementException {
+	public static synchronized void rollbackToCheckpoint(Alias alias, TransactionId xid) throws IOException, NoSuchElementException {
 		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), xid);
 		if(tx != null && !tx.isEmpty()) {
 			try {
