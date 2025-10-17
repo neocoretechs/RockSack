@@ -536,7 +536,7 @@ public final class SessionManager {
 		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDefaultColumnFamilyDescriptors(dbPath, options);
 	    RocksDB db;
 		try {
-			db = RocksDB.open(DatabaseManager.getDefaultDBOptions(), dbPath, columnFamilyDescriptor, columnFamilyHandles);
+			db = RocksDB.open(DatabaseManager.getInstance().getDefaultDBOptions(), dbPath, columnFamilyDescriptor, columnFamilyHandles);
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}
@@ -556,7 +556,7 @@ public final class SessionManager {
 		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDerivedColumnFamilyDescriptors(dbPath, options, derivedClassName);
 	    RocksDB db;
 		try {
-			db = RocksDB.open(DatabaseManager.getDefaultDBOptions(), dbPath, columnFamilyDescriptor, columnFamilyHandles);
+			db = RocksDB.open(DatabaseManager.getInstance().getDefaultDBOptions(), dbPath, columnFamilyDescriptor, columnFamilyHandles);
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}
@@ -576,7 +576,7 @@ public final class SessionManager {
 	    TransactionDB db;
 	    TransactionDBOptions tDbo = new TransactionDBOptions();
 		try {
-			db = (TransactionDB) TransactionDB.open(DatabaseManager.getDefaultDBOptions(), tDbo, dbPath, columnFamilyDescriptor, columnFamilyHandles);
+			db = (TransactionDB) TransactionDB.open(DatabaseManager.getInstance().getDefaultDBOptions(), tDbo, dbPath, columnFamilyDescriptor, columnFamilyHandles);
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}
@@ -596,7 +596,7 @@ public final class SessionManager {
 	    TransactionDBOptions tDbo = new TransactionDBOptions();
 	    tDbo.setTransactionLockTimeout(timeout);
 		try {
-			db = (TransactionDB) TransactionDB.open(DatabaseManager.getDefaultDBOptions(), tDbo, dbPath, columnFamilyDescriptor, columnFamilyHandles);
+			db = (TransactionDB) TransactionDB.open(DatabaseManager.getInstance().getDefaultDBOptions(), tDbo, dbPath, columnFamilyDescriptor, columnFamilyHandles);
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}
@@ -615,7 +615,7 @@ public final class SessionManager {
 	    TransactionDB db;
 	    TransactionDBOptions tDbo = new TransactionDBOptions();
 		try {
-			db = (TransactionDB) TransactionDB.open(DatabaseManager.getDefaultDBOptions(), tDbo, dbPath, columnFamilyDescriptor, columnFamilyHandles);
+			db = (TransactionDB) TransactionDB.open(DatabaseManager.getInstance().getDefaultDBOptions(), tDbo, dbPath, columnFamilyDescriptor, columnFamilyHandles);
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}
@@ -639,7 +639,7 @@ public final class SessionManager {
 	    TransactionDBOptions tDbo = new TransactionDBOptions();
 	    tDbo.setTransactionLockTimeout(timeout);
 		try {
-			db = (TransactionDB) TransactionDB.open(DatabaseManager.getDefaultDBOptions(), tDbo, dbPath, columnFamilyDescriptor, columnFamilyHandles);
+			db = (TransactionDB) TransactionDB.open(DatabaseManager.getInstance().getDefaultDBOptions(), tDbo, dbPath, columnFamilyDescriptor, columnFamilyHandles);
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}
@@ -662,7 +662,7 @@ public final class SessionManager {
 	    TransactionDB db;
 	    TransactionDBOptions tDbo = new TransactionDBOptions();
 		try {
-			db = (TransactionDB) TransactionDB.open(DatabaseManager.getDefaultDBOptions(), tDbo, dbPath, columnFamilyDescriptor, columnFamilyHandles);
+			db = (TransactionDB) TransactionDB.open(DatabaseManager.getInstance().getDefaultDBOptions(), tDbo, dbPath, columnFamilyDescriptor, columnFamilyHandles);
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}
@@ -687,7 +687,7 @@ public final class SessionManager {
 	    TransactionDBOptions tDbo = new TransactionDBOptions();
 	    tDbo.setTransactionLockTimeout(timeout);
 		try {
-			db = (TransactionDB) TransactionDB.open(DatabaseManager.getDefaultDBOptions(), tDbo, dbPath, columnFamilyDescriptor, columnFamilyHandles);
+			db = (TransactionDB) TransactionDB.open(DatabaseManager.getInstance().getDefaultDBOptions(), tDbo, dbPath, columnFamilyDescriptor, columnFamilyHandles);
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}
@@ -708,7 +708,7 @@ public final class SessionManager {
 	    TransactionDB db;
 	    TransactionDBOptions tDbo = new TransactionDBOptions();
 		try {
-			db = (TransactionDB) TransactionDB.open(DatabaseManager.getDefaultDBOptions(), tDbo, dbPath, columnFamilyDescriptor, columnFamilyHandles);
+			db = (TransactionDB) TransactionDB.open(DatabaseManager.getInstance().getDefaultDBOptions(), tDbo, dbPath, columnFamilyDescriptor, columnFamilyHandles);
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}
@@ -732,7 +732,7 @@ public final class SessionManager {
 	    TransactionDBOptions tDbo = new TransactionDBOptions();
 	    tDbo.setTransactionLockTimeout(timeout);
 		try {
-			db = (TransactionDB) TransactionDB.open(DatabaseManager.getDefaultDBOptions(), tDbo, dbPath, columnFamilyDescriptor, columnFamilyHandles);
+			db = (TransactionDB) TransactionDB.open(DatabaseManager.getInstance().getDefaultDBOptions(), tDbo, dbPath, columnFamilyDescriptor, columnFamilyHandles);
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}
@@ -751,7 +751,7 @@ public final class SessionManager {
 		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDefaultColumnFamilyDescriptors(dbPath, options);
 	    OptimisticTransactionDB db;
 		try {
-			db = OptimisticTransactionDB.open(DatabaseManager.getDefaultDBOptions(), dbPath, columnFamilyDescriptor, columnFamilyHandles);
+			db = OptimisticTransactionDB.open(DatabaseManager.getInstance().getDefaultDBOptions(), dbPath, columnFamilyDescriptor, columnFamilyHandles);
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}
@@ -769,7 +769,7 @@ public final class SessionManager {
 		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDerivedColumnFamilyDescriptors(dbPath, options, derivedClassName);
 	    OptimisticTransactionDB db;
 		try {
-			db = OptimisticTransactionDB.open(DatabaseManager.getDefaultDBOptions(), dbPath, columnFamilyDescriptor, columnFamilyHandles);
+			db = OptimisticTransactionDB.open(DatabaseManager.getInstance().getDefaultDBOptions(), dbPath, columnFamilyDescriptor, columnFamilyHandles);
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}
@@ -791,7 +791,7 @@ public final class SessionManager {
 		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDerivedColumnFamilyDescriptors(dbPath, options, derivedClassName);
 	    OptimisticTransactionDB db;
 		try {
-			db = OptimisticTransactionDB.open(DatabaseManager.getDefaultDBOptions(), dbPath, columnFamilyDescriptor, columnFamilyHandles);
+			db = OptimisticTransactionDB.open(DatabaseManager.getInstance().getDefaultDBOptions(), dbPath, columnFamilyDescriptor, columnFamilyHandles);
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}
@@ -811,7 +811,7 @@ public final class SessionManager {
 		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDefaultColumnFamilyDescriptors(dbPath, options);
 	    OptimisticTransactionDB db;
 		try {
-			db = OptimisticTransactionDB.open(DatabaseManager.getDefaultDBOptions(), dbPath, columnFamilyDescriptor, columnFamilyHandles);
+			db = OptimisticTransactionDB.open(DatabaseManager.getInstance().getDefaultDBOptions(), dbPath, columnFamilyDescriptor, columnFamilyHandles);
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}

@@ -2,6 +2,8 @@ package com.neocoretechs.rocksack.session;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -11,6 +13,8 @@ import org.rocksdb.AbstractComparator;
 import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.BloomFilter;
 import org.rocksdb.Cache;
+import org.rocksdb.ColumnFamilyDescriptor;
+import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.CompactionStyle;
 import org.rocksdb.CompressionType;
@@ -86,11 +90,18 @@ public final class DatabaseManager {
 	private static String tableSpaceDir = "/";
 	private static final char[] ILLEGAL_CHARS = { '[', ']', '!', '+', '=', '|', ';', '?', '*', '\\', '<', '>', '|', '\"', ':' };
 	private static final char[] OK_CHARS = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E' };
-	private static Options options = null;
+	private Options options = null;
+	private DBOptions dbOptions = null;
+	private BlockBasedTableConfig baseTable = null;
+	private ConcurrentHashMap<String, ColumnFamilyOptions> CFOptionsCache = new ConcurrentHashMap<String,ColumnFamilyOptions>();
 	
 	// Multithreaded double check Singleton setups:
 	// 1.) privatized constructor; no other class can call
 	private DatabaseManager() {
+		baseTable = getBaseTable();
+		setupColumnFamilies(baseTable);
+		dbOptions = getPrivateDBOptions(baseTable);
+		options = getDefaultOptions(baseTable);
 	}
 	// 2.) volatile instance
 	private static volatile DatabaseManager instance = null;
@@ -106,9 +117,129 @@ public final class DatabaseManager {
 	
 	static {
 		RocksDB.loadLibrary();
-		options = getDefaultOptions();
+	}
+	/**
+	 * Get the default options using the RockSack {@link SerializedComparator}
+	 * @return the populated RocksDB options instance
+	 */
+	private static Options getDefaultOptions(BlockBasedTableConfig baseTbl) {
+		return getDefaultOptions(new SerializedComparator(), baseTbl);
+	}
+	/**
+	 * Get the default options using a different comparator, primarily to provide hooks inside compare method.
+	 * The call sequence would be DatabaseManager.setDatabaseOptions(DatabaseManager.getDefaultOptions(your SerializedComparator))
+	 * WARNING: must provide all functionality of RockSack {@link SerializedComparator}
+	 * @param comparator the AbstractComparator instance
+	 * @return the populated RocksDB options instance
+	 */
+	private static Options getDefaultOptions(AbstractComparator comparator, BlockBasedTableConfig baseTable) {
+		Options options = new Options();
+		final Filter bloomFilter = new BloomFilter(10);
+		//final ReadOptions readOptions = new ReadOptions().setFillCache(false);
+		final Statistics stats = new Statistics();
+		//final RateLimiter rateLimiter = new RateLimiter(10000000,10000, 10);
+		//options.setRateLimiter(rateLimiter);
+		options.setComparator(comparator);
+		try {
+			options.setCreateIfMissing(true)
+			.setIncreaseParallelism(8)
+			.setStatistics(stats)
+			.setWriteBufferSize(64 * SizeUnit.MB)
+			.setMaxWriteBufferNumber(25)
+			.setMaxBackgroundJobs(24)
+			.setCompressionType(CompressionType.SNAPPY_COMPRESSION)
+			.setCompactionStyle(CompactionStyle.LEVEL);
+		} catch (final IllegalArgumentException e) {
+			//assert (false);
+			bloomFilter.close();
+			throw new RuntimeException(e);
+		}
+		options.setMemTableConfig(
+				new HashSkipListMemTableConfig()
+				.setHeight(4)
+				.setBranchingFactor(4)
+				.setBucketCount(2000000));
+		// options.setMemTableConfig(new VectorMemTableConfig().setReservedSize(10000));
+		// options.setMemTableConfig(new SkipListMemTableConfig());
+		// options.setTableFormatConfig(new PlainTableConfig());
+		// Plain-Table requires mmap read
+		options.setTableFormatConfig(baseTable);
+		options.setAllowMmapReads(true);
+		return options;
+	}
+
+	private static BlockBasedTableConfig getBaseTable() {
+		// Shared cache for all CFs
+		final Cache sharedCache = new LRUCache(1024L * 1024 * 1024, 6, true);
+		BlockBasedTableConfig baseTbl = new BlockBasedTableConfig()
+				.setBlockCache(sharedCache)
+				.setBlockSize(64 * 1024)
+				.setCacheIndexAndFilterBlocks(true)
+				.setPinL0FilterAndIndexBlocksInCache(true)
+				.setWholeKeyFiltering(false)
+				.setFilterPolicy(new BloomFilter(10));
+		return baseTbl;
 	}
 	
+	private static DBOptions getPrivateDBOptions(BlockBasedTableConfig baseTable) {
+		DBOptions dbOpts = new DBOptions(getDefaultOptions(baseTable))
+				.setCreateIfMissing(true)
+				.setCreateMissingColumnFamilies(true)
+				.setUseDirectReads(true)
+				.setUseDirectIoForFlushAndCompaction(true)
+				.setIncreaseParallelism(2)
+				.setMaxBackgroundJobs(2);
+		return dbOpts;
+	}
+	
+	private void setupColumnFamilies(BlockBasedTableConfig baseTbl) {
+		ColumnFamilyOptions cfPrimary = new ColumnFamilyOptions()
+				.setTableFormatConfig(baseTbl)
+				.setWriteBufferSize(96L * SizeUnit.MB)
+				.setMaxWriteBufferNumber(3)
+				.setCompressionType(CompressionType.LZ4_COMPRESSION)
+				.setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION);
+
+		ColumnFamilyOptions cfReverse = new ColumnFamilyOptions()
+				.setWriteBufferSize(64L * 1024 * 1024)
+				.setCompressionType(CompressionType.LZ4_COMPRESSION);
+
+		ColumnFamilyOptions cfIndex = new ColumnFamilyOptions()
+				.setWriteBufferSize(64L * 1024 * 1024)
+				.setMaxWriteBufferNumber(2)
+				.setCompressionType(CompressionType.LZ4_COMPRESSION);
+
+		ColumnFamilyOptions cfCounters = new ColumnFamilyOptions()
+				.setWriteBufferSize(32L * 1024 * 1024)
+				.setMaxWriteBufferNumber(2)
+				.setCompactionStyle(CompactionStyle.FIFO)
+				.setCompressionType(CompressionType.NO_COMPRESSION);
+
+		// Define CF descriptors
+		CFOptionsCache.put("DEFAULT_COLUMN_FAMILY", cfPrimary);  //  primary semantic
+		CFOptionsCache.put("reverse", cfReverse);                //  reverse index
+		CFOptionsCache.put("index", cfIndex);                    //  main index
+		CFOptionsCache.put("counters", cfCounters);              // stats/counters
+	}
+	
+	/**
+	 * Get the default options using default options.
+	 * @return the populated DBOptions from default getDefaultOptions method
+	 */
+	public DBOptions getDefaultDBOptions() {
+		return dbOptions;
+	}
+	
+	public Options getDefaultOptions() {
+		return options;
+	}
+	/**
+	 * Get the default ColumnFamily options using default options.
+	 * @return the populated ColumnFamilyOptions from default getDefaultOptions method
+	 */	
+	public static ColumnFamilyOptions getDefaultColumnFamilyOptions() {
+		return instance.CFOptionsCache.get("DEFAULT_COLUMN_FAMILY");
+	}
 	/**
 	 * Get the tablespace by given alias
 	 * @param alias
@@ -215,125 +346,13 @@ public final class DatabaseManager {
 	}
 	
 	/**
-	 * Set the RocksDB options for all subsequent databases
-	 * @param dboptions
-	 */
-	public static void setDatabaseOptions(Options dboptions) {
-		options = dboptions;
-	}
-	/**
-	 * Get the default options using the RockSack {@link SerializedComparator}
-	 * @return the populated RocksDB options instance
-	 */
-	private static Options getDefaultOptions() {
-		return getDefaultOptions(new SerializedComparator());
-	}
-	/**
-	 * Get the default options using a different comparator, primarily to provide hooks inside compare method.
-	 * The call sequence would be DatabaseManager.setDatabaseOptions(DatabaseManager.getDefaultOptions(your SerializedComparator))
-	 * WARNING: must provide all functionality of RockSack {@link SerializedComparator}
-	 * @param comparator the AbstractComparator instance
-	 * @return the populated RocksDB options instance
-	 */
-	public static Options getDefaultOptions(AbstractComparator comparator) {
-		//RocksDB db = null;
-		//final String db_path = dbpath;
-		//final String db_path_not_found = db_path + "_not_found";
-		Options options = new Options();
-		final Filter bloomFilter = new BloomFilter(10);
-		//final ReadOptions readOptions = new ReadOptions().setFillCache(false);
-		final Statistics stats = new Statistics();
-		//final RateLimiter rateLimiter = new RateLimiter(10000000,10000, 10);
-		options.setComparator(comparator);
-		try {
-		    options.setCreateIfMissing(true)
-		    	.setIncreaseParallelism(8)
-		        .setStatistics(stats)
-		        .setWriteBufferSize(64 * SizeUnit.MB)
-		        .setMaxWriteBufferNumber(25)
-		        .setMaxBackgroundJobs(24)
-		        .setCompressionType(CompressionType.SNAPPY_COMPRESSION)
-		        .setCompactionStyle(CompactionStyle.LEVEL);
-		 } catch (final IllegalArgumentException e) {
-		    //assert (false);
-			 bloomFilter.close();
-			 throw new RuntimeException(e);
-		 }
-		  //assert (options.createIfMissing() == true);
-		  //assert (options.writeBufferSize() == 8 * SizeUnit.KB);
-		  //assert (options.maxWriteBufferNumber() == 3);
-		  //assert (options.maxBackgroundJobs() == 10);
-		  //assert (options.compressionType() == CompressionType.ZLIB_COMPRESSION);
-		  //assert (options.compactionStyle() == CompactionStyle.UNIVERSAL);
-
-		  assert (options.memTableFactoryName().equals("SkipListFactory"));
-		  options.setMemTableConfig(
-		      new HashSkipListMemTableConfig()
-		          .setHeight(4)
-		          .setBranchingFactor(4)
-		          .setBucketCount(2000000));
-		  assert (options.memTableFactoryName().equals("HashSkipListRepFactory"));
-
-		  options.setMemTableConfig(
-		      new HashLinkedListMemTableConfig()
-		          .setBucketCount(100000));
-		  assert (options.memTableFactoryName().equals("HashLinkedListRepFactory"));
-
-		  options.setMemTableConfig(
-		      new VectorMemTableConfig().setReservedSize(10000));
-		  assert (options.memTableFactoryName().equals("VectorRepFactory"));
-
-		  options.setMemTableConfig(new SkipListMemTableConfig());
-		  assert (options.memTableFactoryName().equals("SkipListFactory"));
-
-		  options.setTableFormatConfig(new PlainTableConfig());
-		  // Plain-Table requires mmap read
-		  options.setAllowMmapReads(true);
-		  assert (options.tableFactoryName().equals("PlainTable"));
-
-		  //options.setRateLimiter(rateLimiter);
-
-		  final BlockBasedTableConfig table_options = new BlockBasedTableConfig();
-		  Cache cache = new LRUCache(64 * 1024, 6);
-		  table_options.setBlockCache(cache)
-		      .setFilterPolicy(bloomFilter)
-		      .setBlockSizeDeviation(5)
-		      .setBlockRestartInterval(10)
-		      .setCacheIndexAndFilterBlocks(true);
-		      //.setBlockCacheCompressed(new LRUCache(64 * 1000, 10));
-
-		  assert (table_options.blockSizeDeviation() == 5);
-		  assert (table_options.blockRestartInterval() == 10);
-		  assert (table_options.cacheIndexAndFilterBlocks() == true);
-
-		  options.setTableFormatConfig(table_options);
-		  assert (options.tableFactoryName().equals("BlockBasedTable"));
-		  return options;
-	}
-	/**
-	 * Get the default options using default options.
-	 * @return the populated DBOptions from default getDefaultOptions method
-	 */
-	public static DBOptions getDefaultDBOptions() {
-		DBOptions options = new DBOptions(getDefaultOptions());
-		return options;
-	}	
-	/**
-	 * Get the default ColumnFamily options using default options.
-	 * @return the populated ColumnFamilyOptions from default getDefaultOptions method
-	 */	
-	public static ColumnFamilyOptions getDefaultColumnFamilyOptions() {
-		ColumnFamilyOptions options = new ColumnFamilyOptions(getDefaultOptions());
-		return options;
-	}
-	/**
 	 * Get a Map via Comparable instance.
 	 * @param clazz The Comparable object that the java class name is extracted from
 	 * @return A {@link BufferedMap} for the clazz instances.
 	 * @throws IllegalAccessException
 	 * @throws IOException
 	 */
-	public static synchronized BufferedMap getMap(Comparable clazz) throws IllegalAccessException, IOException {
+	public static BufferedMap getMap(Comparable clazz) throws IllegalAccessException, IOException {
 		return getMap(clazz.getClass());
 	}
 	/**
@@ -343,7 +362,7 @@ public final class DatabaseManager {
 	 * @throws IllegalAccessException
 	 * @throws IOException
 	 */
-	public static synchronized BufferedMap getMap(Class clazz) throws IllegalAccessException, IOException {
+	public static BufferedMap getMap(Class clazz) throws IllegalAccessException, IOException {
 		boolean isDerivedClass = false;
 		String xClass,dClass = null;
 		BufferedMap ret = null;
@@ -372,7 +391,7 @@ public final class DatabaseManager {
 					BufferedMap def = (BufferedMap) v.classToIso.get(xClass);
 					// have we already opened the main database?
 					if(def == null) {
-						Session ts = SessionManager.Connect(tableSpaceDir+xClass, options, dClass);
+						Session ts = SessionManager.Connect(tableSpaceDir+xClass, getInstance().getDefaultOptions(), dClass);
 						// put the main class default ColumnFamily, its not there
 						v.classToIso.put(xClass, (BufferedMap)(new BufferedMap(ts)));
 						ret = (BufferedMap)(new BufferedMap(ts, dClass));
@@ -384,7 +403,7 @@ public final class DatabaseManager {
 					if(DEBUG)
 						System.out.println("DatabaseManager.getMap About to return DERIVED map:"+ret+" for dir:"+tableSpaceDir+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
 				} else {
-					ret =  new BufferedMap(SessionManager.Connect(tableSpaceDir+xClass, options));
+					ret =  new BufferedMap(SessionManager.Connect(tableSpaceDir+xClass, getInstance().getDefaultOptions()));
 					v.classToIso.put(xClass, ret);
 					if(DEBUG)
 						System.out.println("DatabaseManager.getMap About to return BASE map:"+ret+" for dir:"+tableSpaceDir+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
@@ -408,7 +427,7 @@ public final class DatabaseManager {
 	 * @throws NoSuchElementException if alias was not found
 	 * @throws IOException
 	 */
-	public static synchronized BufferedMap getMap(Alias alias, Comparable clazz) throws IllegalAccessException, IOException, NoSuchElementException {
+	public static BufferedMap getMap(Alias alias, Comparable clazz) throws IllegalAccessException, IOException, NoSuchElementException {
 		return getMap(alias, clazz.getClass());
 	}
 	/**
@@ -420,7 +439,7 @@ public final class DatabaseManager {
 	 * @throws NoSuchElementException if alias was not found
 	 * @throws IOException
 	 */
-	public static synchronized BufferedMap getMap(Alias alias, Class clazz) throws IllegalAccessException, IOException, NoSuchElementException {
+	public static BufferedMap getMap(Alias alias, Class clazz) throws IllegalAccessException, IOException, NoSuchElementException {
 		boolean isDerivedClass = false;
 		String xClass,dClass = null;
 		BufferedMap ret = null;
@@ -449,7 +468,7 @@ public final class DatabaseManager {
 					BufferedMap def = (BufferedMap) v.classToIso.get(xClass);
 					// have we already opened the main database?
 					if(def == null) {
-						Session ts = SessionManager.Connect(VolumeManager.getAliasToPath(alias)+xClass, options, dClass);
+						Session ts = SessionManager.Connect(VolumeManager.getAliasToPath(alias)+xClass, getInstance().getDefaultOptions(), dClass);
 						// put the main class default ColumnFamily, its not there
 						v.classToIso.put(xClass, (BufferedMap)(new BufferedMap(ts)));
 						ret = (BufferedMap)(new BufferedMap(ts, dClass));
@@ -461,7 +480,7 @@ public final class DatabaseManager {
 					if(DEBUG)
 						System.out.println("DatabaseManager.getMap About to return DERIVED map:"+ret+" for alias:"+alias+" path:"+(VolumeManager.getAliasToPath(alias)+xClass)+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
 				} else {
-					ret =  new BufferedMap(SessionManager.Connect(VolumeManager.getAliasToPath(alias)+xClass, options));
+					ret =  new BufferedMap(SessionManager.Connect(VolumeManager.getAliasToPath(alias)+xClass, getInstance().getDefaultOptions()));
 					v.classToIso.put(xClass, ret);
 					if(DEBUG)
 						System.out.println("DatabaseManager.getMap About to return BASE map:"+ret+" alias:"+alias+" for dir:"+(VolumeManager.getAliasToPath(alias)+xClass)+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
@@ -526,7 +545,7 @@ public final class DatabaseManager {
 	 * @throws IOException
 	 * @throws RocksDBException
 	 */
-	private static synchronized TransactionalMap getMap(Volume v, String tDir, Class clazz, TransactionId xid) throws IllegalAccessException, IOException, RocksDBException {
+	private static TransactionalMap getMap(Volume v, String tDir, Class clazz, TransactionId xid) throws IllegalAccessException, IOException, RocksDBException {
 		boolean isDerivedClass = false;
 		String xClass,dClass = null;
 		TransactionalMap ret = null;
@@ -556,9 +575,9 @@ public final class DatabaseManager {
 					if(def == null) {
 						TransactionSession ts;
 						if(xid instanceof LockingTransactionId)
-							ts = SessionManager.ConnectTransaction(tDir+xClass, options, dClass, ((LockingTransactionId)xid).getLockTimeout());
+							ts = SessionManager.ConnectTransaction(tDir+xClass, getInstance().getDefaultOptions(), dClass, ((LockingTransactionId)xid).getLockTimeout());
 						else
-							ts = SessionManager.ConnectTransaction(tDir+xClass, options, dClass);
+							ts = SessionManager.ConnectTransaction(tDir+xClass, getInstance().getDefaultOptions(), dClass);
 						// put the main class default ColumnFamily, its not there
 						TransactionalMap tm = new TransactionalMap(ts, xClass, false);
 						v.classToIsoTransaction.put(xClass, tm);
@@ -574,9 +593,9 @@ public final class DatabaseManager {
 				} else {
 					TransactionSession ts;
 					if(xid instanceof LockingTransactionId)
-						ts = SessionManager.ConnectTransaction(tDir+xClass, options, ((LockingTransactionId)xid).getLockTimeout());
+						ts = SessionManager.ConnectTransaction(tDir+xClass, getInstance().getDefaultOptions(), ((LockingTransactionId)xid).getLockTimeout());
 					else
-						ts = SessionManager.ConnectTransaction(tDir+xClass, options);
+						ts = SessionManager.ConnectTransaction(tDir+xClass, getInstance().getDefaultOptions());
 					ret =  new TransactionalMap(ts, xClass, isDerivedClass);
 					v.classToIsoTransaction.put(xClass, ret);
 					if(DEBUG)
@@ -629,7 +648,7 @@ public final class DatabaseManager {
 	 * @throws IOException
 	 * @throws RocksDBException
 	 */
-	private static synchronized TransactionalMap getOptimisticMap(Volume v, String tDir, Class clazz, TransactionId xid) throws IllegalAccessException, IOException, RocksDBException {
+	private static TransactionalMap getOptimisticMap(Volume v, String tDir, Class clazz, TransactionId xid) throws IllegalAccessException, IOException, RocksDBException {
 		boolean isDerivedClass = false;
 		String xClass,dClass = null;
 		TransactionalMap ret = null;
@@ -657,7 +676,7 @@ public final class DatabaseManager {
 					TransactionalMap def = (TransactionalMap) v.classToIsoTransaction.get(xClass);
 					// have we already opened the main database?
 					if(def == null) {
-						TransactionSession ts = SessionManager.ConnectOptimisticTransaction(tDir+xClass, options, dClass);
+						TransactionSession ts = SessionManager.ConnectOptimisticTransaction(tDir+xClass, getInstance().getDefaultOptions(), dClass);
 						// put the main class default ColumnFamily, its not there
 						TransactionalMap tm = new TransactionalMap(ts, xClass, false);
 						v.classToIsoTransaction.put(xClass, tm);
@@ -671,7 +690,7 @@ public final class DatabaseManager {
 					if(DEBUG)
 						System.out.println("DatabaseManager.getOptimisticMap xid:"+xid+" About to return DERIVED map:"+ret+" for dir:"+(tDir+xClass)+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
 				} else {
-					ret =  new TransactionalMap(SessionManager.ConnectOptimisticTransaction(tDir+xClass, options), xClass, isDerivedClass);
+					ret =  new TransactionalMap(SessionManager.ConnectOptimisticTransaction(tDir+xClass, getInstance().getDefaultOptions()), xClass, isDerivedClass);
 					v.classToIsoTransaction.put(xClass, ret);
 					if(DEBUG)
 						System.out.println("DatabaseManager.getOptimisticMap xid:"+xid+" About to return BASE map:"+ret+" for dir:"+(tDir+xClass)+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
@@ -715,7 +734,7 @@ public final class DatabaseManager {
 	 * @throws IOException
 	 * @throws RocksDBException 
 	 */
-	private static synchronized TransactionalMap getMap(Alias alias, Class clazz, TransactionId xid) throws IllegalAccessException, IOException, NoSuchElementException {
+	private static TransactionalMap getMap(Alias alias, Class clazz, TransactionId xid) throws IllegalAccessException, IOException, NoSuchElementException {
 		Volume v = VolumeManager.getByAlias(alias);
 		boolean isDerivedClass = false;
 		String xClass,dClass = null;
@@ -746,9 +765,9 @@ public final class DatabaseManager {
 					if(def == null) {
 						TransactionSession ts;
 						if(xid instanceof LockingTransactionId)
-							ts = SessionManager.ConnectTransaction(alias,VolumeManager.getAliasToPath(alias)+xClass, options, dClass, ((LockingTransactionId)xid).getLockTimeout());
+							ts = SessionManager.ConnectTransaction(alias,VolumeManager.getAliasToPath(alias)+xClass, getInstance().getDefaultOptions(), dClass, ((LockingTransactionId)xid).getLockTimeout());
 						else
-							ts = SessionManager.ConnectTransaction(alias,VolumeManager.getAliasToPath(alias)+xClass, options, dClass);
+							ts = SessionManager.ConnectTransaction(alias,VolumeManager.getAliasToPath(alias)+xClass, getInstance().getDefaultOptions(), dClass);
 						// put the main class default ColumnFamily, its not there
 						TransactionalMap tm = new TransactionalMap(ts, xClass, false);
 						v.classToIsoTransaction.put(xClass, tm);
@@ -764,9 +783,9 @@ public final class DatabaseManager {
 				} else {
 					TransactionSession ts;
 					if(xid instanceof LockingTransactionId)
-						ts = SessionManager.ConnectTransaction(alias,VolumeManager.getAliasToPath(alias)+xClass, options, ((LockingTransactionId)xid).getLockTimeout());
+						ts = SessionManager.ConnectTransaction(alias,VolumeManager.getAliasToPath(alias)+xClass, getInstance().getDefaultOptions(), ((LockingTransactionId)xid).getLockTimeout());
 					else
-						ts = SessionManager.ConnectTransaction(alias,VolumeManager.getAliasToPath(alias)+xClass, options);
+						ts = SessionManager.ConnectTransaction(alias,VolumeManager.getAliasToPath(alias)+xClass, getInstance().getDefaultOptions());
 					ret = new TransactionalMap(ts, xClass, isDerivedClass);
 					v.classToIsoTransaction.put(xClass, ret);
 					if(DEBUG)
@@ -795,11 +814,11 @@ public final class DatabaseManager {
 	 * @throws NoSuchElementException if The alias cant be located
 	 * @throws IOException
 	 */
-	public static synchronized TransactionalMap getOptimisticTransactionalMap(Alias alias, Comparable clazz, TransactionId xid) throws IllegalAccessException, IOException, NoSuchElementException {
+	public static TransactionalMap getOptimisticTransactionalMap(Alias alias, Comparable clazz, TransactionId xid) throws IllegalAccessException, IOException, NoSuchElementException {
 		return getOptimisticMap(alias, clazz.getClass(), xid);
 	}
 	
-	public static synchronized TransactionalMap getOptimisticTransactionalMap(Alias alias, Class clazz, TransactionId xid) throws IllegalAccessException, IOException, NoSuchElementException {
+	public static TransactionalMap getOptimisticTransactionalMap(Alias alias, Class clazz, TransactionId xid) throws IllegalAccessException, IOException, NoSuchElementException {
 		return getOptimisticMap(alias, clazz, xid);
 	}
 	/**
@@ -812,7 +831,7 @@ public final class DatabaseManager {
 	 * @throws IOException
 	 * @throws RocksDBException 
 	 */
-	private static synchronized TransactionalMap getOptimisticMap(Alias alias, Class clazz, TransactionId xid) throws IllegalAccessException, IOException, NoSuchElementException {
+	private static TransactionalMap getOptimisticMap(Alias alias, Class clazz, TransactionId xid) throws IllegalAccessException, IOException, NoSuchElementException {
 		Volume v = VolumeManager.getByAlias(alias);
 		boolean isDerivedClass = false;
 		String xClass,dClass = null;
@@ -841,7 +860,7 @@ public final class DatabaseManager {
 					TransactionalMap def = (TransactionalMap) v.classToIsoTransaction.get(xClass);
 					// have we already opened the main database?
 					if(def == null) {
-						TransactionSession ts = SessionManager.ConnectOptimisticTransaction(alias,VolumeManager.getAliasToPath(alias)+xClass, options, dClass);
+						TransactionSession ts = SessionManager.ConnectOptimisticTransaction(alias,VolumeManager.getAliasToPath(alias)+xClass, getInstance().getDefaultOptions(), dClass);
 						// put the main class default ColumnFamily, its not there
 						TransactionalMap tm = new TransactionalMap(ts, xClass, false);
 						v.classToIsoTransaction.put(xClass, tm);
@@ -855,7 +874,7 @@ public final class DatabaseManager {
 					if(DEBUG)
 						System.out.println("DatabaseManager.getOptimisticMap xid:"+xid+" About to return DERIVED map:"+ret+" for dir:"+VolumeManager.getAliasToPath(alias)+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
 				} else {
-					ret = new TransactionalMap(SessionManager.ConnectOptimisticTransaction(alias,VolumeManager.getAliasToPath(alias)+xClass, options), xClass, isDerivedClass);
+					ret = new TransactionalMap(SessionManager.ConnectOptimisticTransaction(alias,VolumeManager.getAliasToPath(alias)+xClass, getInstance().getDefaultOptions()), xClass, isDerivedClass);
 					v.classToIsoTransaction.put(xClass, ret);
 					if(DEBUG)
 						System.out.println("DatabaseManager.getOptimisticMap xid:"+xid+" About to return BASE map:"+ret+" for dir:"+VolumeManager.getAliasToPath(alias)+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
@@ -908,7 +927,7 @@ public final class DatabaseManager {
 	 * @return true if transaction id is associated to a {@link TransactionalMap}
 	 * @throws IOException
 	 */
-	public static synchronized boolean isSessionAssociated(TransactionId xid, TransactionalMap tm) throws IOException {
+	public static boolean isSessionAssociated(TransactionId xid, TransactionalMap tm) throws IOException {
 		ConcurrentHashMap<String, SessionAndTransaction> ts = TransactionManager.getTransactionSession(xid);
 		if(DEBUG)
 			System.out.printf("DatabaseManager.isSessionAssociated %s %s %s%n",xid,tm.getClassName(),ts);
@@ -960,7 +979,7 @@ public final class DatabaseManager {
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
-	public static synchronized void commitTransaction(TransactionId xid) throws IOException {
+	public static void commitTransaction(TransactionId xid) throws IOException {
 		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByPathAndId(tableSpaceDir, xid);
 		if(tx != null && !tx.isEmpty()) {
 			try {
@@ -976,7 +995,7 @@ public final class DatabaseManager {
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
-	public static synchronized void commitTransaction(Alias alias, TransactionId xid) throws IOException, NoSuchElementException {
+	public static void commitTransaction(Alias alias, TransactionId xid) throws IOException, NoSuchElementException {
 		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), xid);
 		if(tx != null && !tx.isEmpty()) {
 			try {
@@ -992,7 +1011,7 @@ public final class DatabaseManager {
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
-	public static synchronized void rollbackTransaction(TransactionId xid) throws IOException {
+	public static void rollbackTransaction(TransactionId xid) throws IOException {
 		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByPathAndId(tableSpaceDir, xid);
 		if(tx != null && !tx.isEmpty()) {
 			try {
@@ -1008,7 +1027,7 @@ public final class DatabaseManager {
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
-	public static synchronized void rollbackTransaction(Alias alias, TransactionId xid) throws IOException, NoSuchElementException {
+	public static void rollbackTransaction(Alias alias, TransactionId xid) throws IOException, NoSuchElementException {
 		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), xid);
 		if(tx != null && !tx.isEmpty()) {
 			try {
@@ -1024,7 +1043,7 @@ public final class DatabaseManager {
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
-	public static synchronized void checkpointTransaction(TransactionId xid) throws IOException {
+	public static void checkpointTransaction(TransactionId xid) throws IOException {
 		List<Transaction> tx = TransactionManager.getOutstandingTransactionsById(xid);
 		if(tx != null && !tx.isEmpty()) {
 			try {
@@ -1040,7 +1059,7 @@ public final class DatabaseManager {
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
-	public static synchronized void checkpointTransaction(Alias alias, TransactionId xid) throws IOException, NoSuchElementException {
+	public static void checkpointTransaction(Alias alias, TransactionId xid) throws IOException, NoSuchElementException {
 		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), xid);
 		if(tx != null && !tx.isEmpty()) {
 			try {
@@ -1056,7 +1075,7 @@ public final class DatabaseManager {
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
-	public static synchronized void rollbackToCheckpoint(TransactionId xid) throws IOException {
+	public static void rollbackToCheckpoint(TransactionId xid) throws IOException {
 		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByPathAndId(tableSpaceDir, xid);
 		if(tx != null && !tx.isEmpty()) {
 			try {
@@ -1072,7 +1091,7 @@ public final class DatabaseManager {
 			throw new IOException("Transaction id "+xid+" was not found.");
 	}
 	
-	public static synchronized void rollbackToCheckpoint(Alias alias, TransactionId xid) throws IOException, NoSuchElementException {
+	public static void rollbackToCheckpoint(Alias alias, TransactionId xid) throws IOException, NoSuchElementException {
 		List<Transaction> tx = TransactionManager.getOutstandingTransactionsByAliasAndId(alias.getAlias(), xid);
 		if(tx != null && !tx.isEmpty()) {
 			try {
