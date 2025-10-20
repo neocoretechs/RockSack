@@ -79,7 +79,7 @@ import com.neocoretechs.rocksack.session.VolumeManager.Volume;
  *
  */
 public final class DatabaseManager {
-	private static boolean DEBUG = false;
+	private static boolean DEBUG = true;
 	private static String tableSpaceDir = "/";
 	private static final char[] ILLEGAL_CHARS = { '[', ']', '!', '+', '=', '|', ';', '?', '*', '\\', '<', '>', '|', '\"', ':' };
 	private static final char[] OK_CHARS = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E' };
@@ -202,7 +202,7 @@ public final class DatabaseManager {
 				.setCompressionType(CompressionType.LZ4_COMPRESSION)
 				.setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION); //bottom most, or cold long term compression disabled by default
 		cfPrimary.setComparator(new SerializedComparator());
-		
+		/*
 		ColumnFamilyOptions cfReverse = new ColumnFamilyOptions()
 				.setWriteBufferSize(64L * SizeUnit.MB)
 				.setCompressionType(CompressionType.LZ4_COMPRESSION);
@@ -220,12 +220,13 @@ public final class DatabaseManager {
 				.setCompactionStyle(CompactionStyle.FIFO)
 				.setCompressionType(CompressionType.NO_COMPRESSION);
 		cfCounters.setComparator(new SerializedComparator());
-
+		 */
 		// Define CF descriptors Compression_Compaction_Writebuffer_size, X is'use default'
 		CFOptionsCache.put("DEFAULT_COLUMN_FAMILY", cfPrimary);  //  primary semantic
-		CFOptionsCache.put("LZ4_X_64_X", cfReverse);                //  reverse index
+		/*CFOptionsCache.put("LZ4_X_64_X", cfReverse);                //  reverse index
 		CFOptionsCache.put("LZ4_X_64_2", cfIndex);                    //  main index
 		CFOptionsCache.put("NO_FIFO_32_2", cfCounters);              // stats/counters
+		*/
 	}
 	
 	public ColumnFamilyOptions getOptionsCache(String optName) {
@@ -247,7 +248,6 @@ public final class DatabaseManager {
 	public BlockBasedTableConfig getBaseTable() {
 		return baseTable;
 	}
-	
 	
 	/**
 	 * Get the default ColumnFamily options using default options.
@@ -283,6 +283,8 @@ public final class DatabaseManager {
 		if(ds.equals(""))
 			ds = translateClass(anno.getClass().getName());
 	    CFOptionsCache.put(ds, opts);
+	    if(DEBUG)
+	    	System.out.println(this.getClass().getName()+" for column:"+ds+" opts:"+opts);
 	    return opts;
 	}
 	/**
@@ -503,6 +505,7 @@ public final class DatabaseManager {
 			if(ds.equals(""))
 				ds = clazz.getName();
 			dClass = translateClass(ds);
+			DatabaseManager.getInstance().buildOptionsFromAnnotation(dc, DatabaseManager.getInstance().getBaseTable());
 			ret = (BufferedMap) v.classToIso.get(dClass);
 		} else {
 			xClass = translateClass(clazz.getName());
@@ -608,6 +611,7 @@ public final class DatabaseManager {
 			if(ds.equals(""))
 				ds = clazz.getName();
 			dClass = translateClass(ds);
+			DatabaseManager.getInstance().buildOptionsFromAnnotation(dc, DatabaseManager.getInstance().getBaseTable());
 			ret = (TransactionalMap) v.classToIsoTransaction.get(dClass);
 		} else {
 			xClass = translateClass(clazz.getName());
@@ -711,6 +715,7 @@ public final class DatabaseManager {
 			if(ds.equals(""))
 				ds = clazz.getName();
 			dClass = translateClass(ds);
+			DatabaseManager.getInstance().buildOptionsFromAnnotation(dc, DatabaseManager.getInstance().getBaseTable());
 			ret = (TransactionalMap) v.classToIsoTransaction.get(dClass);
 		} else {
 			xClass = translateClass(clazz.getName());
@@ -798,6 +803,7 @@ public final class DatabaseManager {
 			if(ds.equals(""))
 				ds = clazz.getName();
 			dClass = translateClass(ds);
+			DatabaseManager.getInstance().buildOptionsFromAnnotation(dc, DatabaseManager.getInstance().getBaseTable());
 			ret = (TransactionalMap) v.classToIsoTransaction.get(dClass);
 		} else {
 			xClass = translateClass(clazz.getName());
@@ -895,6 +901,7 @@ public final class DatabaseManager {
 			if(ds.equals(""))
 				ds = clazz.getName();
 			dClass = translateClass(ds);
+			DatabaseManager.getInstance().buildOptionsFromAnnotation(dc, DatabaseManager.getInstance().getBaseTable());
 			ret = (TransactionalMap) v.classToIsoTransaction.get(dClass);
 		} else {
 			xClass = translateClass(clazz.getName());

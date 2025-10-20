@@ -900,9 +900,9 @@ public final class SessionManager {
 			ColumnFamilyOptions cfo = DatabaseManager.getInstance().getOptionsCache(cn);
 			if(DEBUG)
 				if(cfo != null)
-					System.out.println("Found column family options from cache: "+cfo+" for "+cn);
+					System.out.println("SessionManager.buildDerivedColumnFamilyDescriptors - Found column family options from cache: "+cfo+" for "+cn);
 				else
-					System.out.println("Column family options cache miss for "+cn);
+					System.out.println("SessionManager.buildDerivedColumnFamilyDescriptors - Column family options cache miss for "+cn);
 			if(cfo == null)
 				cfo = DatabaseManager.getDefaultColumnFamilyOptions();
 			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(e, cfo);
