@@ -5,6 +5,8 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
+import org.rocksdb.CompressionType;
+import org.rocksdb.CompactionStyle;
 /**
  * Using this annotation on a class to be stored in the RockSack allows control over the storage of instances 
  * in a particular tablespace, and column. RocksDB uses the 'ColumnFamily' concept to represent 'columns' or collections
@@ -22,7 +24,17 @@ import java.lang.annotation.Target;
  * tablespace, we could have a different column name or omit the column attribute, which would then store the instances under the derived
  * class name in the tablespace of the direct superclass. So, omitting both tablespace and column attributes stores the instances in the direct
  * superclass under the column name of the subclass. So using this annotations and combinations of the attributes gives the user full
- * control over placement of the instances. 
+ * control over placement of the instances. <p>
+ * Default options are set to write_buffer_size 64MB, max_write_buffer_number 2, compression SNAPPY, or no, compaction LEVEL, BlockSize 4k<p>
+ * Additional Column overrides are present to control options on ColumnFamilies during creation of ColumnFamilyDescriptors. i.e.:<p>
+ * @DatabaseClass( <br>
+ *   tablespace = "metrics", <br>
+ *   column = "counters", <br>
+ *   cfKey = "LZ4_FIFO_32_2" (Compression_Compaction_Writebuffer_size, X is'use default':LZ4_X_64_X, LZ4_X_64_2, NO_FIFO_32_2, DEFAULT_COLUNM_FAMILY), <br>
+ *   compression = CompressionType.LZ4_COMPRESSION, <br>
+ *   compactionStyle = CompactionStyle.FIFO, <br>
+ *   writeBufferSize = 32L * SizeUnit.MB, <br>
+ *   maxWriteBufferNumber = 2 ) <br>
  * @author Jonathan N Groff (C) NeoCoreTechs 2024
  *
  */
@@ -31,4 +43,11 @@ import java.lang.annotation.Target;
 public @interface DatabaseClass {
 	public String tablespace() default "";
 	public String column() default "";
+
+	// Optional overrides
+	CompressionType compression() default CompressionType.NO_COMPRESSION;
+	CompactionStyle compactionStyle() default CompactionStyle.UNIVERSAL;
+	long writeBufferSize() default -1; // -1 means "use default"
+	int maxWriteBufferNumber() default -1;
+
 }

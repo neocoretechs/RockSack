@@ -2,8 +2,7 @@ package com.neocoretechs.rocksack.session;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -13,25 +12,19 @@ import org.rocksdb.AbstractComparator;
 import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.BloomFilter;
 import org.rocksdb.Cache;
-import org.rocksdb.ColumnFamilyDescriptor;
-import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.CompactionStyle;
 import org.rocksdb.CompressionType;
 import org.rocksdb.DBOptions;
 import org.rocksdb.Filter;
-import org.rocksdb.HashLinkedListMemTableConfig;
 import org.rocksdb.HashSkipListMemTableConfig;
 import org.rocksdb.LRUCache;
 import org.rocksdb.Options;
-import org.rocksdb.PlainTableConfig;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
-import org.rocksdb.SkipListMemTableConfig;
 import org.rocksdb.Statistics;
 import org.rocksdb.Transaction;
 import org.rocksdb.Transaction.TransactionState;
-import org.rocksdb.VectorMemTableConfig;
 import org.rocksdb.util.SizeUnit;
 
 import com.neocoretechs.rocksack.Alias;
@@ -98,7 +91,7 @@ public final class DatabaseManager {
 	// Multithreaded double check Singleton setups:
 	// 1.) privatized constructor; no other class can call
 	private DatabaseManager() {
-		baseTable = getBaseTable();
+		baseTable = getPrivateBaseTable();
 		setupColumnFamilies(baseTable);
 		dbOptions = getPrivateDBOptions(baseTable);
 		options = getDefaultOptions(baseTable);
@@ -164,11 +157,12 @@ public final class DatabaseManager {
 		// options.setTableFormatConfig(new PlainTableConfig());
 		// Plain-Table requires mmap read
 		options.setTableFormatConfig(baseTable);
+		options.setUseDirectReads(false);
 		options.setAllowMmapReads(true);
 		return options;
 	}
 
-	private static BlockBasedTableConfig getBaseTable() {
+	private static BlockBasedTableConfig getPrivateBaseTable() {
 		// Shared cache for all CFs
 		final Cache sharedCache = new LRUCache(1024L * 1024 * 1024, 6, true);
 		BlockBasedTableConfig baseTbl = new BlockBasedTableConfig()
@@ -185,41 +179,57 @@ public final class DatabaseManager {
 		DBOptions dbOpts = new DBOptions(getDefaultOptions(baseTable))
 				.setCreateIfMissing(true)
 				.setCreateMissingColumnFamilies(true)
-				.setUseDirectReads(true)
+				.setUseDirectReads(false)
+				.setAllowMmapReads(true)
 				.setUseDirectIoForFlushAndCompaction(true)
 				.setIncreaseParallelism(2)
 				.setMaxBackgroundJobs(2);
 		return dbOpts;
 	}
-	
+	/**
+	 * Compression_Compaction_Writebuffer_size, X is'use default'
+	 * DEFAULT_COLUMN_FAMILY: equivalent to LZ4_X_3_96, <p>
+	 * LZ4_X_64_X = LZ4 compression, default compaction, 64 MB write buffer, default max write buffer <p>
+	 * LZ4_X_64_2 <p>
+	 * NO_FIFO_32_2 = No compression, FIFO writebuffer, 32MB write buffer, max 2 write buffers<p>
+	 * @param baseTbl
+	 */
 	private void setupColumnFamilies(BlockBasedTableConfig baseTbl) {
 		ColumnFamilyOptions cfPrimary = new ColumnFamilyOptions()
 				.setTableFormatConfig(baseTbl)
 				.setWriteBufferSize(96L * SizeUnit.MB)
 				.setMaxWriteBufferNumber(3)
 				.setCompressionType(CompressionType.LZ4_COMPRESSION)
-				.setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION);
-
+				.setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION); //bottom most, or cold long term compression disabled by default
+		cfPrimary.setComparator(new SerializedComparator());
+		
 		ColumnFamilyOptions cfReverse = new ColumnFamilyOptions()
-				.setWriteBufferSize(64L * 1024 * 1024)
+				.setWriteBufferSize(64L * SizeUnit.MB)
 				.setCompressionType(CompressionType.LZ4_COMPRESSION);
-
+		cfReverse.setComparator(new SerializedComparator());
+		
 		ColumnFamilyOptions cfIndex = new ColumnFamilyOptions()
-				.setWriteBufferSize(64L * 1024 * 1024)
+				.setWriteBufferSize(64L * SizeUnit.MB)
 				.setMaxWriteBufferNumber(2)
 				.setCompressionType(CompressionType.LZ4_COMPRESSION);
+		cfIndex.setComparator(new SerializedComparator());
 
 		ColumnFamilyOptions cfCounters = new ColumnFamilyOptions()
-				.setWriteBufferSize(32L * 1024 * 1024)
+				.setWriteBufferSize(32L * SizeUnit.MB)
 				.setMaxWriteBufferNumber(2)
 				.setCompactionStyle(CompactionStyle.FIFO)
 				.setCompressionType(CompressionType.NO_COMPRESSION);
+		cfCounters.setComparator(new SerializedComparator());
 
-		// Define CF descriptors
+		// Define CF descriptors Compression_Compaction_Writebuffer_size, X is'use default'
 		CFOptionsCache.put("DEFAULT_COLUMN_FAMILY", cfPrimary);  //  primary semantic
-		CFOptionsCache.put("reverse", cfReverse);                //  reverse index
-		CFOptionsCache.put("index", cfIndex);                    //  main index
-		CFOptionsCache.put("counters", cfCounters);              // stats/counters
+		CFOptionsCache.put("LZ4_X_64_X", cfReverse);                //  reverse index
+		CFOptionsCache.put("LZ4_X_64_2", cfIndex);                    //  main index
+		CFOptionsCache.put("NO_FIFO_32_2", cfCounters);              // stats/counters
+	}
+	
+	public ColumnFamilyOptions getOptionsCache(String optName) {
+		return CFOptionsCache.get(optName);
 	}
 	
 	/**
@@ -233,12 +243,47 @@ public final class DatabaseManager {
 	public Options getDefaultOptions() {
 		return options;
 	}
+	
+	public BlockBasedTableConfig getBaseTable() {
+		return baseTable;
+	}
+	
+	
 	/**
 	 * Get the default ColumnFamily options using default options.
 	 * @return the populated ColumnFamilyOptions from default getDefaultOptions method
 	 */	
 	public static ColumnFamilyOptions getDefaultColumnFamilyOptions() {
 		return instance.CFOptionsCache.get("DEFAULT_COLUMN_FAMILY");
+	}
+	/**
+	 * Extract the options from the {@link DatabaseClass} methods and build a ColumnFamilyOptions
+	 * instance to place in the cache based on cfKey from DatabaseClass. 
+	 * @param anno
+	 * @param baseTbl
+	 * @return
+	 */
+	private ColumnFamilyOptions buildOptionsFromAnnotation(DatabaseClass anno, BlockBasedTableConfig baseTbl) {
+	    ColumnFamilyOptions opts = new ColumnFamilyOptions().setTableFormatConfig(baseTbl);
+	    // Apply overrides if present
+	    if (anno.writeBufferSize() > 0) {
+	        opts.setWriteBufferSize(anno.writeBufferSize());
+	    }
+	    if (anno.maxWriteBufferNumber() > 0) {
+	        opts.setMaxWriteBufferNumber(anno.maxWriteBufferNumber());
+	    }
+	    if (anno.compression() != CompressionType.NO_COMPRESSION) {
+	        opts.setCompressionType(anno.compression());
+	    }
+	    if (anno.compactionStyle() != CompactionStyle.UNIVERSAL) {
+	        opts.setCompactionStyle(anno.compactionStyle());
+	    }
+	    opts.setComparator(new SerializedComparator());
+	    String ds = anno.column();
+		if(ds.equals(""))
+			ds = translateClass(anno.getClass().getName());
+	    CFOptionsCache.put(ds, opts);
+	    return opts;
 	}
 	/**
 	 * Get the tablespace by given alias
@@ -381,6 +426,7 @@ public final class DatabaseManager {
 				ds = clazz.getName();
 			dClass = translateClass(ds);
 			ret = (BufferedMap) v.classToIso.get(dClass);
+			DatabaseManager.getInstance().buildOptionsFromAnnotation(dc, DatabaseManager.getInstance().getBaseTable());
 		} else {
 			xClass = translateClass(clazz.getName());
 			ret = (BufferedMap) v.classToIso.get(xClass);

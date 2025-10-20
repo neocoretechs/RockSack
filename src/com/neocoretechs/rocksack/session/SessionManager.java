@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.OptimisticTransactionDB;
 import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
@@ -510,7 +511,7 @@ public final class SessionManager {
 	 * @param dbPath
 	 * @param options
 	 * @return
-	 */
+	 
 	private static RocksDB OpenDB(String dbPath, Options options) {
 		RocksDB db = null;
 		  try {	  
@@ -525,6 +526,7 @@ public final class SessionManager {
 		  }
 		  return db;
 	}
+	*/
 	/**
 	 * Open the database for a given path and options and extract the ColumnFamily of the main classe stored there
 	 * @param dbPath
@@ -895,7 +897,15 @@ public final class SessionManager {
 			if(cn.equals(defcn)) {
 				foundDefault = true;
 			}
-			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(e,  DatabaseManager.getDefaultColumnFamilyOptions());
+			ColumnFamilyOptions cfo = DatabaseManager.getInstance().getOptionsCache(cn);
+			if(DEBUG)
+				if(cfo != null)
+					System.out.println("Found column family options from cache: "+cfo+" for "+cn);
+				else
+					System.out.println("Column family options cache miss for "+cn);
+			if(cfo == null)
+				cfo = DatabaseManager.getDefaultColumnFamilyOptions();
+			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(e, cfo);
 			columnFamilyDescriptor.add(cfd);
 		}
 		if(!foundDefault) {
