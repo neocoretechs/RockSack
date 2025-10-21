@@ -260,10 +260,11 @@ public final class DatabaseManager {
 	 * Extract the options from the {@link DatabaseClass} methods and build a ColumnFamilyOptions
 	 * instance to place in the cache based on cfKey from DatabaseClass. 
 	 * @param anno
+	 * @param dClass 
 	 * @param baseTbl
 	 * @return
 	 */
-	private ColumnFamilyOptions buildOptionsFromAnnotation(DatabaseClass anno, BlockBasedTableConfig baseTbl) {
+	private ColumnFamilyOptions buildOptionsFromAnnotation(DatabaseClass anno, String dClass, BlockBasedTableConfig baseTbl) {
 	    ColumnFamilyOptions opts = new ColumnFamilyOptions().setTableFormatConfig(baseTbl);
 	    // Apply overrides if present
 	    if (anno.writeBufferSize() > 0) {
@@ -279,12 +280,9 @@ public final class DatabaseManager {
 	        opts.setCompactionStyle(anno.compactionStyle());
 	    }
 	    opts.setComparator(new SerializedComparator());
-	    String ds = anno.column();
-		if(ds.equals(""))
-			ds = translateClass(anno.getClass().getName());
-	    CFOptionsCache.put(ds, opts);
+	    CFOptionsCache.put(dClass, opts);
 	    if(DEBUG)
-	    	System.out.println(this.getClass().getName()+" for column:"+ds+" opts:"+opts);
+	    	System.out.printf("%s for column:%s class:%s opts:%s%n",this.getClass().getName(),anno.column(),dClass,opts);
 	    return opts;
 	}
 	/**
@@ -428,7 +426,7 @@ public final class DatabaseManager {
 				ds = clazz.getName();
 			dClass = translateClass(ds);
 			ret = (BufferedMap) v.classToIso.get(dClass);
-			DatabaseManager.getInstance().buildOptionsFromAnnotation(dc, DatabaseManager.getInstance().getBaseTable());
+			DatabaseManager.getInstance().buildOptionsFromAnnotation(dc, dClass, DatabaseManager.getInstance().getBaseTable());
 		} else {
 			xClass = translateClass(clazz.getName());
 			ret = (BufferedMap) v.classToIso.get(xClass);
@@ -505,7 +503,7 @@ public final class DatabaseManager {
 			if(ds.equals(""))
 				ds = clazz.getName();
 			dClass = translateClass(ds);
-			DatabaseManager.getInstance().buildOptionsFromAnnotation(dc, DatabaseManager.getInstance().getBaseTable());
+			DatabaseManager.getInstance().buildOptionsFromAnnotation(dc, dClass, DatabaseManager.getInstance().getBaseTable());
 			ret = (BufferedMap) v.classToIso.get(dClass);
 		} else {
 			xClass = translateClass(clazz.getName());
@@ -611,7 +609,7 @@ public final class DatabaseManager {
 			if(ds.equals(""))
 				ds = clazz.getName();
 			dClass = translateClass(ds);
-			DatabaseManager.getInstance().buildOptionsFromAnnotation(dc, DatabaseManager.getInstance().getBaseTable());
+			DatabaseManager.getInstance().buildOptionsFromAnnotation(dc, dClass, DatabaseManager.getInstance().getBaseTable());
 			ret = (TransactionalMap) v.classToIsoTransaction.get(dClass);
 		} else {
 			xClass = translateClass(clazz.getName());
@@ -715,7 +713,7 @@ public final class DatabaseManager {
 			if(ds.equals(""))
 				ds = clazz.getName();
 			dClass = translateClass(ds);
-			DatabaseManager.getInstance().buildOptionsFromAnnotation(dc, DatabaseManager.getInstance().getBaseTable());
+			DatabaseManager.getInstance().buildOptionsFromAnnotation(dc, dClass, DatabaseManager.getInstance().getBaseTable());
 			ret = (TransactionalMap) v.classToIsoTransaction.get(dClass);
 		} else {
 			xClass = translateClass(clazz.getName());
@@ -803,7 +801,7 @@ public final class DatabaseManager {
 			if(ds.equals(""))
 				ds = clazz.getName();
 			dClass = translateClass(ds);
-			DatabaseManager.getInstance().buildOptionsFromAnnotation(dc, DatabaseManager.getInstance().getBaseTable());
+			DatabaseManager.getInstance().buildOptionsFromAnnotation(dc, dClass, DatabaseManager.getInstance().getBaseTable());
 			ret = (TransactionalMap) v.classToIsoTransaction.get(dClass);
 		} else {
 			xClass = translateClass(clazz.getName());
@@ -901,7 +899,7 @@ public final class DatabaseManager {
 			if(ds.equals(""))
 				ds = clazz.getName();
 			dClass = translateClass(ds);
-			DatabaseManager.getInstance().buildOptionsFromAnnotation(dc, DatabaseManager.getInstance().getBaseTable());
+			DatabaseManager.getInstance().buildOptionsFromAnnotation(dc, dClass, DatabaseManager.getInstance().getBaseTable());
 			ret = (TransactionalMap) v.classToIsoTransaction.get(dClass);
 		} else {
 			xClass = translateClass(clazz.getName());
