@@ -51,7 +51,7 @@ import com.neocoretechs.rocksack.Alias;
 * @author Jonathan Groff (c) NeoCoreTechs 2003, 2017, 2021, 2024, 2025
 */
 public final class SessionManager {
-	private static boolean DEBUG = false;
+	private static boolean DEBUG = true;
 	private static ConcurrentHashMap<String, Session> SessionTable = new ConcurrentHashMap<String, Session>();
 	@SuppressWarnings("rawtypes")
 	private static ConcurrentHashMap<?, ?> AdminSessionTable = new ConcurrentHashMap();
@@ -118,7 +118,7 @@ public final class SessionManager {
 	 */
 	public static synchronized Session Connect(String dbname, Options options, String derivedClassName) throws IOException, IllegalAccessException {
 		if( DEBUG ) {
-			System.out.printf("Connecting to column family database:%s with options:%s derived class:%s%n", dbname, options, derivedClassName);
+			System.out.printf("Connecting to database:%s with options:%s derived class:%s%n", dbname, options, derivedClassName);
 		}
 		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
 		if (OfflineDBs.contains(dbname))
@@ -129,7 +129,7 @@ public final class SessionManager {
 			hps = OpenDBColumnFamily(dbname,options,derivedClassName);
 			SessionTable.put(dbname, hps);
 			if( DEBUG )
-				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+				System.out.printf("New session for db:%s session:%s derived class:%s %n",dbname,hps,derivedClassName);
 		}
 		return hps;
 	}
@@ -143,7 +143,7 @@ public final class SessionManager {
 	 */
 	public static synchronized Session Connect(String dbname, Options options) throws IOException, IllegalAccessException {
 		if( DEBUG ) {
-			System.out.printf("Connecting to column family database:%s with options:%s%n", dbname, options);
+			System.out.printf("Connecting to database:%s with options:%s%n", dbname, options);
 		}
 		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
 		if (OfflineDBs.contains(dbname))
@@ -154,7 +154,7 @@ public final class SessionManager {
 			hps = OpenDBColumnFamily(dbname,options);
 			SessionTable.put(dbname, hps);
 			if( DEBUG )
-				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+				System.out.printf("New session for db:%s session:%s%n",dbname,hps);
 		}
 		return hps;
 	}
@@ -180,7 +180,7 @@ public final class SessionManager {
 			hps = OpenDBColumnFamilyTransaction(dbname,options);
 			SessionTable.put(dbname, hps);
 			if( DEBUG )
-				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+				System.out.printf("New transaction session for db:%s session:%s%n",dbname,hps);
 		}
 		return hps;
 	}
@@ -206,7 +206,7 @@ public final class SessionManager {
 			hps = OpenDBColumnFamilyTransaction(dbname,options,timeout);
 			SessionTable.put(dbname, hps);
 			if( DEBUG )
-				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+				System.out.printf("New transaction session for db:%s session:%s%n",dbname,hps);
 		}
 		return hps;
 	}
@@ -221,7 +221,7 @@ public final class SessionManager {
 	 */
 	public static synchronized TransactionSession ConnectTransaction(Alias alias, String dbname, Options options) throws IOException, IllegalAccessException {
 		if( DEBUG ) {
-			System.out.printf("Connecting to transaction database:%s with options:%s%n", dbname, options);
+			System.out.printf("Connecting to transaction database:%s alias:%s with options:%s%n", dbname, alias, options);
 		}
 		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
 		if (OfflineDBs.contains(dbname))
@@ -232,7 +232,7 @@ public final class SessionManager {
 			hps = OpenDBColumnFamilyTransaction(alias,dbname,options);
 			SessionTable.put(dbname, hps);
 			if( DEBUG )
-				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+				System.out.printf("New transaction session for db:%s alias:%s session:%s kvmain:%s %n",dbname, alias, hps);
 		}
 		return hps;
 	}
@@ -248,7 +248,7 @@ public final class SessionManager {
 	 */
 	public static synchronized TransactionSession ConnectTransaction(Alias alias, String dbname, Options options, long timeout) throws IOException, IllegalAccessException {
 		if( DEBUG ) {
-			System.out.printf("Connecting to transaction database:%s with options:%s%n", dbname, options);
+			System.out.printf("Connecting to transaction database:%s alias:%s with options:%s%n", dbname, alias, options);
 		}
 		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
 		if (OfflineDBs.contains(dbname))
@@ -259,7 +259,7 @@ public final class SessionManager {
 			hps = OpenDBColumnFamilyTransaction(alias, dbname, options, timeout);
 			SessionTable.put(dbname, hps);
 			if( DEBUG )
-				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+				System.out.printf("New transaction session for db:%s alias:%s session:%s%n",dbname, alias, hps);
 		}
 		return hps;
 	}
@@ -275,7 +275,7 @@ public final class SessionManager {
 	 */
 	public static synchronized TransactionSession ConnectTransaction(Alias alias, String dbname, Options options, String derivedClassName) throws IOException, IllegalAccessException {
 		if( DEBUG ) {
-			System.out.printf("Connecting to transaction database:%s with options:%s%n", dbname, options);
+			System.out.printf("Connecting to transaction database:%s derived class:%s alias:%s with options:%s%n", dbname, derivedClassName, alias, options);
 		}
 		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
 		if (OfflineDBs.contains(dbname))
@@ -286,7 +286,7 @@ public final class SessionManager {
 			hps = OpenDBColumnFamilyTransaction(alias,dbname,options,derivedClassName);
 			SessionTable.put(dbname, hps);
 			if( DEBUG )
-				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+				System.out.printf("New transaction session for db:%s derived class:%s alias:%s session:%s%n",dbname, derivedClassName, alias, hps);
 		}
 		return hps;
 	}
@@ -303,7 +303,7 @@ public final class SessionManager {
 	 */
 	public static synchronized TransactionSession ConnectTransaction(Alias alias, String dbname, Options options, String derivedClassName, long timeout) throws IOException, IllegalAccessException {
 		if( DEBUG ) {
-			System.out.printf("Connecting to transaction database:%s with options:%s%n", dbname, options);
+			System.out.printf("Connecting to transaction database:%s derived class:%s alias:%s with options:%s%n", dbname, derivedClassName, alias, options);
 		}
 		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
 		if (OfflineDBs.contains(dbname))
@@ -314,7 +314,7 @@ public final class SessionManager {
 			hps = OpenDBColumnFamilyTransaction(alias, dbname, options, derivedClassName, timeout);
 			SessionTable.put(dbname, hps);
 			if( DEBUG )
-				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+				System.out.printf("New transaction session for db:%s derived class:%s alias:%s session:%s%n",dbname, derivedClassName, alias, hps);
 		}
 		return hps;
 	}
@@ -329,7 +329,7 @@ public final class SessionManager {
 	 */
 	public static synchronized TransactionSession ConnectTransaction(String dbname, Options options, String derivedClassName) throws IOException, IllegalAccessException {
 		if( DEBUG ) {
-			System.out.printf("Connecting to transaction database:%s with options:%s%n", dbname, options);
+			System.out.printf("Connecting to transaction database:%s derived class:%s with options:%s%n", dbname, derivedClassName, options);
 		}
 		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
 		if (OfflineDBs.contains(dbname))
@@ -340,7 +340,7 @@ public final class SessionManager {
 			hps = OpenDBColumnFamilyTransaction(dbname,options,derivedClassName);
 			SessionTable.put(dbname, hps);
 			if( DEBUG )
-				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+				System.out.printf("New transaction session for db:%s derived class:%s session:%s%n",dbname, derivedClassName, hps);
 		}
 		return hps;
 	}
@@ -356,7 +356,7 @@ public final class SessionManager {
 	 */
 	public static synchronized TransactionSession ConnectTransaction(String dbname, Options options, String derivedClassName, long timeout) throws IOException, IllegalAccessException {
 		if( DEBUG ) {
-			System.out.printf("Connecting to transaction database:%s with options:%s%n", dbname, options);
+			System.out.printf("Connecting to transaction database:%s for derived class:%s with options:%s%n", dbname, derivedClassName, options);
 		}
 		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
 		if (OfflineDBs.contains(dbname))
@@ -367,7 +367,7 @@ public final class SessionManager {
 			hps = OpenDBColumnFamilyTransaction(dbname, options, derivedClassName, timeout);
 			SessionTable.put(dbname, hps);
 			if( DEBUG )
-				System.out.printf("New session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+				System.out.printf("New transaction session for db:%s derived class:%s session:%s%n",dbname, derivedClassName, hps);
 		}
 		return hps;
 	}
@@ -433,7 +433,7 @@ public final class SessionManager {
 	 */
 	public static synchronized TransactionSession ConnectOptimisticTransaction(Alias alias, String dbname, Options options, String derivedClassName) throws IOException, IllegalAccessException {
 		if( DEBUG ) {
-			System.out.printf("Connecting to optimistic transaction database:%s with options:%s%n", dbname, options);
+			System.out.printf("Connecting to optimistic transaction database:%s for derived class:%s Alias:%s with options:%s%n", dbname, derivedClassName, alias, options);
 		}
 		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
 		if (OfflineDBs.contains(dbname))
@@ -444,7 +444,7 @@ public final class SessionManager {
 			hps = OpenDBColumnFamilyOptimisticTransaction(alias,dbname,options,derivedClassName);
 			SessionTable.put(dbname, hps);
 			if( DEBUG )
-				System.out.printf("New optimistic session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+				System.out.printf("New optimistic session for db:%s derived class:%s Alias:%s session:%s%n",dbname, derivedClassName, alias, hps);
 		}
 		return hps;
 	}
@@ -459,7 +459,7 @@ public final class SessionManager {
 	 */
 	public static synchronized TransactionSession ConnectOptimisticTransaction(String dbname, Options options, String derivedClassName) throws IOException, IllegalAccessException {
 		if( DEBUG ) {
-			System.out.printf("Connecting to optimistic transaction database:%s with options:%s%n", dbname, options);
+			System.out.printf("Connecting to optimistic transaction database:%s for derived class:%s with options:%s%n", dbname, derivedClassName, options);
 		}
 		//if( SessionTable.size() >= MAX_USERS && MAX_USERS != -1) throw new IllegalAccessException("Maximum number of users exceeded");
 		if (OfflineDBs.contains(dbname))
@@ -470,7 +470,7 @@ public final class SessionManager {
 			hps = OpenDBColumnFamilyOptimisticTransaction(dbname,options,derivedClassName);
 			SessionTable.put(dbname, hps);
 			if( DEBUG )
-				System.out.printf("New optimistic session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+				System.out.printf("New optimistic session for db:%s derived class:%s session:%s %n",dbname, derivedClassName, hps);
 		}
 		return hps;
 	}
@@ -715,7 +715,7 @@ public final class SessionManager {
 			throw new RuntimeException(e);
 		}
 		if(DEBUG)
-			System.out.printf("SessionManager.OpenDBColumnFamilyTransaction Session return with derived for db:%s%n",dbPath);
+			System.out.printf("SessionManager.OpenDBColumnFamilyTransaction Session return for db:%s%n",dbPath);
 	    return new TransactionSessionAlias(db, options, (ArrayList<ColumnFamilyDescriptor>) columnFamilyDescriptor, columnFamilyHandles, alias);
 	}
 	/**
@@ -739,7 +739,7 @@ public final class SessionManager {
 			throw new RuntimeException(e);
 		}
 		if(DEBUG)
-			System.out.printf("SessionManager.OpenDBColumnFamilyTransaction Session return with derived for db:%s%n",dbPath);
+			System.out.printf("SessionManager.OpenDBColumnFamilyTransaction Session return for db:%s%n",dbPath);
 	    return new TransactionSessionAlias(db, options, (ArrayList<ColumnFamilyDescriptor>) columnFamilyDescriptor, columnFamilyHandles, alias);
 	}
 	/**
@@ -757,6 +757,8 @@ public final class SessionManager {
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}
+		if(DEBUG)
+			System.out.printf("SessionManager.OpenDBColumnFamilyOptimisticTransaction Session return for db:%s%n",dbPath);
 	    return new OptimisticTransactionSession(db, options, (ArrayList<ColumnFamilyDescriptor>) columnFamilyDescriptor, columnFamilyHandles);
 	}
 	/**
@@ -818,7 +820,7 @@ public final class SessionManager {
 			throw new RuntimeException(e);
 		}
 		if(DEBUG)
-			System.out.printf("SessionManager.OpenDBColumnFamilyOptimisticTransaction Session return with derived for db:%s%n",dbPath);
+			System.out.printf("SessionManager.OpenDBColumnFamilyOptimisticTransaction Session return for db:%s%n",dbPath);
 	    return new OptimisticTransactionSessionAlias(db, options, (ArrayList<ColumnFamilyDescriptor>) columnFamilyDescriptor, columnFamilyHandles, alias);
 	}
 	
@@ -847,7 +849,7 @@ public final class SessionManager {
 		for(byte[] e : allColumnFamilies) {
 			String cn = new String(e);
 			if(DEBUG)
-				System.out.printf("SessionManager.buildColumnFamilyDescriptors reading column family %s for db:%s%n",cn,dbPath);
+				System.out.printf("SessionManager.buildDefaultColumnFamilyDescriptors reading column family %s for db:%s%n",cn,dbPath);
 			if(cn.equals(defcn)) {
 				foundDefault = true;
 			}
@@ -856,7 +858,7 @@ public final class SessionManager {
 		}
 		if(!foundDefault) {
 			if(DEBUG)
-				System.out.printf("SessionManager.buildColumnFamilyDescriptors did NOT find %s for db:%s default columnfamily%n",new String(RocksDB.DEFAULT_COLUMN_FAMILY),dbPath);
+				System.out.printf("SessionManager.buildDefaultColumnFamilyDescriptors did NOT find %s for db:%s default columnfamily%n",new String(RocksDB.DEFAULT_COLUMN_FAMILY),dbPath);
 			// options from main DB open?
 			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, DatabaseManager.getDefaultColumnFamilyOptions());
 			columnFamilyDescriptor.add(cfd);
