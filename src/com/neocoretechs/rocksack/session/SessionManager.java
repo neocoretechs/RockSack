@@ -17,6 +17,7 @@ import org.rocksdb.TransactionDB;
 import org.rocksdb.TransactionDBOptions;
 
 import com.neocoretechs.rocksack.Alias;
+import com.neocoretechs.rocksack.DatabaseClass;
 
 /*
 * Copyright (c) 2003, NeoCoreTechs
@@ -232,7 +233,7 @@ public final class SessionManager {
 			hps = OpenDBColumnFamilyTransaction(alias,dbname,options);
 			SessionTable.put(dbname, hps);
 			if( DEBUG )
-				System.out.printf("New transaction session for db:%s alias:%s session:%s kvmain:%s %n",dbname, alias, hps);
+				System.out.printf("New transaction session for db:%s alias:%s session:%s %n",dbname, alias, hps);
 		}
 		return hps;
 	}
@@ -393,7 +394,7 @@ public final class SessionManager {
 			hps = OpenDBColumnFamilyOptimisticTransaction(dbname,options);
 			SessionTable.put(dbname, hps);
 			if( DEBUG )
-				System.out.printf("New optimistic session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+				System.out.printf("New optimistic session for db:%s session:%s %n",dbname,hps);
 		}
 		return hps;
 	}
@@ -418,7 +419,7 @@ public final class SessionManager {
 			hps = OpenDBColumnFamilyOptimisticTransaction(alias,dbname,options);
 			SessionTable.put(dbname, hps);
 			if( DEBUG )
-				System.out.printf("New optimistic session for db:%s session:%s kvmain:%s %n",dbname,hps,dbname);
+				System.out.printf("New optimistic session for db:%s session:%s%n",dbname,hps);
 		}
 		return hps;
 	}
@@ -535,7 +536,7 @@ public final class SessionManager {
 	 */
 	private static Session OpenDBColumnFamily(String dbPath, Options options) {
 		List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
-		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDefaultColumnFamilyDescriptors(dbPath, options);
+		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildColumnFamilyDescriptors(dbPath, options);
 	    RocksDB db;
 		try {
 			db = RocksDB.open(DatabaseManager.getInstance().getDefaultDBOptions(), dbPath, columnFamilyDescriptor, columnFamilyHandles);
@@ -574,7 +575,7 @@ public final class SessionManager {
 	 */
 	private static TransactionSession OpenDBColumnFamilyTransaction(String dbPath, Options options) {
 		List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
-		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDefaultColumnFamilyDescriptors(dbPath, options);
+		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildColumnFamilyDescriptors(dbPath, options);
 	    TransactionDB db;
 	    TransactionDBOptions tDbo = new TransactionDBOptions();
 		try {
@@ -593,7 +594,7 @@ public final class SessionManager {
 	 */
 	private static TransactionSession OpenDBColumnFamilyTransaction(String dbPath, Options options, long timeout) {
 		List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
-		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDefaultColumnFamilyDescriptors(dbPath, options);
+		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildColumnFamilyDescriptors(dbPath, options);
 	    TransactionDB db;
 	    TransactionDBOptions tDbo = new TransactionDBOptions();
 	    tDbo.setTransactionLockTimeout(timeout);
@@ -706,7 +707,7 @@ public final class SessionManager {
 	 */
 	private static TransactionSession OpenDBColumnFamilyTransaction(Alias alias, String dbPath, Options options) {
 		List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
-		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDefaultColumnFamilyDescriptors(dbPath, options);
+		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildColumnFamilyDescriptors(dbPath, options);
 	    TransactionDB db;
 	    TransactionDBOptions tDbo = new TransactionDBOptions();
 		try {
@@ -729,7 +730,7 @@ public final class SessionManager {
 	 */
 	private static TransactionSession OpenDBColumnFamilyTransaction(Alias alias, String dbPath, Options options, long timeout) {
 		List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
-		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDefaultColumnFamilyDescriptors(dbPath, options);
+		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildColumnFamilyDescriptors(dbPath, options);
 	    TransactionDB db;
 	    TransactionDBOptions tDbo = new TransactionDBOptions();
 	    tDbo.setTransactionLockTimeout(timeout);
@@ -750,7 +751,7 @@ public final class SessionManager {
 	 */
 	private static OptimisticTransactionSession OpenDBColumnFamilyOptimisticTransaction(String dbPath, Options options) {
 		List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
-		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDefaultColumnFamilyDescriptors(dbPath, options);
+		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildColumnFamilyDescriptors(dbPath, options);
 	    OptimisticTransactionDB db;
 		try {
 			db = OptimisticTransactionDB.open(DatabaseManager.getInstance().getDefaultDBOptions(), dbPath, columnFamilyDescriptor, columnFamilyHandles);
@@ -812,7 +813,7 @@ public final class SessionManager {
 	 */
 	private static OptimisticTransactionSessionAlias OpenDBColumnFamilyOptimisticTransaction(Alias alias, String dbPath, Options options) {
 		List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
-		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildDefaultColumnFamilyDescriptors(dbPath, options);
+		List<ColumnFamilyDescriptor> columnFamilyDescriptor = buildColumnFamilyDescriptors(dbPath, options);
 	    OptimisticTransactionDB db;
 		try {
 			db = OptimisticTransactionDB.open(DatabaseManager.getInstance().getDefaultDBOptions(), dbPath, columnFamilyDescriptor, columnFamilyHandles);
@@ -834,7 +835,7 @@ public final class SessionManager {
 	 * @param options The database options
 	 * @return columnFamilyDescriptor ArrayList populated with discovered and constructed descriptors
 	 */
-	private static List<ColumnFamilyDescriptor> buildDefaultColumnFamilyDescriptors(String dbPath, Options options) {
+	private static List<ColumnFamilyDescriptor> buildColumnFamilyDescriptors(String dbPath, Options options) {
 		List<byte[]> allColumnFamilies;
 		try {
 			allColumnFamilies = RocksDB.listColumnFamilies(options, dbPath);
@@ -848,12 +849,40 @@ public final class SessionManager {
 		//	new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions), this.columnFamilyDescriptor);
 		for(byte[] e : allColumnFamilies) {
 			String cn = new String(e);
+			ColumnFamilyDescriptor cfd = null;
 			if(DEBUG)
 				System.out.printf("SessionManager.buildDefaultColumnFamilyDescriptors reading column family %s for db:%s%n",cn,dbPath);
 			if(cn.equals(defcn)) {
 				foundDefault = true;
+				cfd = new ColumnFamilyDescriptor(e, DatabaseManager.getDefaultColumnFamilyOptions());
+			} else {
+				ColumnFamilyOptions cfo = DatabaseManager.getInstance().getOptionsCache(cn);
+				if(cfo == null) {
+					if(DEBUG)
+						System.out.println("SessionManager.buildDefaultColumnFamilyDescriptors - Column family options cache miss for "+cn);
+					Class clazz = null;
+					try {
+						clazz = Class.forName(cn);
+					} catch (ClassNotFoundException e1) {
+						e1.printStackTrace();
+					}
+					if(clazz == null || clazz.isAnnotationPresent(DatabaseClass.class)) {
+						DatabaseClass dc = (DatabaseClass)clazz.getAnnotation(DatabaseClass.class);
+						DatabaseManager.getInstance().buildOptionsFromAnnotation(dc, cn, DatabaseManager.getInstance().getBaseTable());
+						if(DEBUG)
+							System.out.println("SessionManager.buildDefaultColumnFamilyDescriptors - Built and cached column family options: "+cfo+" for "+cn);
+						cfo = DatabaseManager.getInstance().getOptionsCache(cn);
+					} else {
+						if(DEBUG)
+							System.out.println("SessionManager.buildDefaultColumnFamilyDescriptors - Using DEFAULT options for "+cn);
+						cfo = DatabaseManager.getDefaultColumnFamilyOptions();
+					}
+				} else {
+					if(DEBUG)
+						System.out.println("SessionManager.buildDefaultColumnFamilyDescriptors - Found column family options from cache: "+cfo+" for "+cn);
+				}
+				cfd = new ColumnFamilyDescriptor(e, cfo);
 			}
-			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(e, DatabaseManager.getDefaultColumnFamilyOptions());
 			columnFamilyDescriptor.add(cfd);
 		}
 		if(!foundDefault) {
@@ -891,10 +920,11 @@ public final class SessionManager {
 		//	new ColumnFamilyDescriptor(TransactionDB.DEFAULT_COLUMN_FAMILY, columnFamilyOptions), this.columnFamilyDescriptor);
 		for(byte[] e : allColumnFamilies) {
 			String cn = new String(e);
+			ColumnFamilyDescriptor cfd = null;
 			if(DEBUG)
 				System.out.printf("SessionManager.buildDerivedColumnFamilyDescriptors reading column family %s for db:%s derivedClass:%s%n",cn,dbPath,derivedClassName);
 			if(cn.equals(derivedClassName)) {
-					found = true;
+				found = true;
 			}
 			if(cn.equals(defcn)) {
 				foundDefault = true;
@@ -907,7 +937,7 @@ public final class SessionManager {
 					System.out.println("SessionManager.buildDerivedColumnFamilyDescriptors - Column family options cache miss for "+cn);
 			if(cfo == null)
 				cfo = DatabaseManager.getDefaultColumnFamilyOptions();
-			ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(e, cfo);
+			cfd = new ColumnFamilyDescriptor(e, cfo);
 			columnFamilyDescriptor.add(cfd);
 		}
 		if(!foundDefault) {

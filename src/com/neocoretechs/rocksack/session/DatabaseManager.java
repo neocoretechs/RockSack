@@ -264,7 +264,7 @@ public final class DatabaseManager {
 	 * @param baseTbl
 	 * @return
 	 */
-	private ColumnFamilyOptions buildOptionsFromAnnotation(DatabaseClass anno, String dClass, BlockBasedTableConfig baseTbl) {
+	ColumnFamilyOptions buildOptionsFromAnnotation(DatabaseClass anno, String dClass, BlockBasedTableConfig baseTbl) {
 	    ColumnFamilyOptions opts = new ColumnFamilyOptions().setTableFormatConfig(baseTbl);
 	    // Apply overrides if present
 	    if (anno.writeBufferSize() > 0) {
@@ -282,7 +282,7 @@ public final class DatabaseManager {
 	    opts.setComparator(new SerializedComparator());
 	    CFOptionsCache.put(dClass, opts);
 	    if(DEBUG)
-	    	System.out.printf("%s for column:%s class:%s opts:%s%n",this.getClass().getName(),anno.column(),dClass,opts);
+	    	System.out.printf("%s for column:%s cache key class:%s opts:%s%n",this.getClass().getName(),anno.column(),dClass,opts);
 	    return opts;
 	}
 	/**
