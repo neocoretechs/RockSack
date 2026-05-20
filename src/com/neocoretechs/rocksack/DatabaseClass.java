@@ -30,7 +30,6 @@ import org.rocksdb.CompactionStyle;
  * @DatabaseClass( <br>
  *   tablespace = "metrics", <br>
  *   column = "counters", <br>
- *   cfKey = "LZ4_FIFO_32_2" (Compression_Compaction_Writebuffer_size, X is'use default':LZ4_X_64_X, LZ4_X_64_2, NO_FIFO_32_2, DEFAULT_COLUNM_FAMILY), <br>
  *   compression = CompressionType.LZ4_COMPRESSION, <br>
  *   compactionStyle = CompactionStyle.FIFO, <br>
  *   writeBufferSize = 32L * SizeUnit.MB, <br>

@@ -74,7 +74,7 @@ public class InstrumentClass {
         }
     }
 
-	static String resolveClass(ObjectStreamClass classname) throws ClassNotFoundException {
+	public static String resolveClass(ObjectStreamClass classname) throws ClassNotFoundException {
         if (classname != null) {
             return "\tprivate static final long serialVersionUID = " +
                 classname.getSerialVersionUID() + "L;";
