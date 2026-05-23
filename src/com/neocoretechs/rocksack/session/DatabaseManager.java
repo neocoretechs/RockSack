@@ -567,7 +567,7 @@ public final class DatabaseManager {
 	 * @throws IOException
 	 * @throws RocksDBException 
 	 */
-	public static synchronized TransactionalMap getTransactionalMap(Comparable clazz, TransactionId xid) throws IllegalAccessException, IOException, RocksDBException {
+	public static synchronized TransactionalMap getTransactionalMap(Comparable clazz, TransactionId xid) throws IllegalAccessException, IOException {
 		return getMap(VolumeManager.get(tableSpaceDir), tableSpaceDir, clazz.getClass(), xid);
 	}
 	/**
@@ -578,7 +578,7 @@ public final class DatabaseManager {
 	 * @throws IOException
 	 * @throws RocksDBException 
 	 */
-	public static synchronized TransactionalMap getTransactionalMap(Class clazz, TransactionId xid) throws IllegalAccessException, IOException, RocksDBException {
+	public static synchronized TransactionalMap getTransactionalMap(Class clazz, TransactionId xid) throws IllegalAccessException, IOException {
 		return getMap(VolumeManager.get(tableSpaceDir), tableSpaceDir, clazz, xid);
 	}
 	/***
@@ -592,7 +592,7 @@ public final class DatabaseManager {
 	 * @throws IOException
 	 * @throws RocksDBException
 	 */
-	private static TransactionalMap getMap(Volume v, String tDir, Class clazz, TransactionId xid) throws IllegalAccessException, IOException, RocksDBException {
+	private static TransactionalMap getMap(Volume v, String tDir, Class clazz, TransactionId xid) throws IllegalAccessException, IOException {
 		boolean isDerivedClass = false;
 		String xClass,dClass = null;
 		TransactionalMap ret = null;
@@ -670,7 +670,7 @@ public final class DatabaseManager {
 	 * @throws IOException
 	 * @throws RocksDBException 
 	 */
-	public static synchronized TransactionalMap getOptimisticTransactionalMap(Comparable clazz, TransactionId xid) throws IllegalAccessException, IOException, RocksDBException {
+	public static synchronized TransactionalMap getOptimisticTransactionalMap(Comparable clazz, TransactionId xid) throws IllegalAccessException, IOException {
 		return getOptimisticMap(VolumeManager.get(tableSpaceDir), tableSpaceDir, clazz.getClass(), xid);
 	}
 	/**
@@ -681,7 +681,7 @@ public final class DatabaseManager {
 	 * @throws IOException
 	 * @throws RocksDBException 
 	 */
-	public static synchronized TransactionalMap getOptimisticTransactionalMap(Class clazz, TransactionId xid) throws IllegalAccessException, IOException, RocksDBException {
+	public static synchronized TransactionalMap getOptimisticTransactionalMap(Class clazz, TransactionId xid) throws IllegalAccessException, IOException {
 		return getOptimisticMap(VolumeManager.get(tableSpaceDir), tableSpaceDir, clazz, xid);
 	}
 	/**
@@ -696,7 +696,7 @@ public final class DatabaseManager {
 	 * @throws IOException
 	 * @throws RocksDBException
 	 */
-	private static TransactionalMap getOptimisticMap(Volume v, String tDir, Class clazz, TransactionId xid) throws IllegalAccessException, IOException, RocksDBException {
+	private static TransactionalMap getOptimisticMap(Volume v, String tDir, Class clazz, TransactionId xid) throws IllegalAccessException, IOException {
 		boolean isDerivedClass = false;
 		String xClass,dClass = null;
 		TransactionalMap ret = null;
