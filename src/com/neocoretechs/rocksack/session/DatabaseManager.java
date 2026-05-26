@@ -439,17 +439,17 @@ public final class DatabaseManager {
 					if(def == null) {
 						Session ts = SessionManager.Connect(tableSpaceDir+xClass, getInstance().getDefaultOptions(), dClass);
 						// put the main class default ColumnFamily, its not there
-						v.classToIso.put(xClass, (BufferedMap)(new BufferedMap(ts)));
-						ret = (BufferedMap)(new BufferedMap(ts, dClass));
+						v.classToIso.put(xClass, (BufferedMap)(new BufferedMap(ts, xClass, false)));
+						ret = (BufferedMap)(new BufferedMap(ts, dClass, isDerivedClass));
 					} else {
 						// create derived with session of main, previously instantiated default ColumnFamily
-						ret = (BufferedMap)(new BufferedMap(def.getSession(), dClass));
+						ret = (BufferedMap)(new BufferedMap(def.getSession(), dClass, isDerivedClass));
 					}
 					v.classToIso.put(dClass, ret);
 					if(DEBUG)
 						System.out.println("DatabaseManager.getMap About to return DERIVED map:"+ret+" for dir:"+tableSpaceDir+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
 				} else {
-					ret =  new BufferedMap(SessionManager.Connect(tableSpaceDir+xClass, getInstance().getDefaultOptions()));
+					ret =  new BufferedMap(SessionManager.Connect(tableSpaceDir+xClass, getInstance().getDefaultOptions()), xClass, isDerivedClass);
 					v.classToIso.put(xClass, ret);
 					if(DEBUG)
 						System.out.println("DatabaseManager.getMap About to return BASE map:"+ret+" for dir:"+tableSpaceDir+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);
@@ -517,17 +517,17 @@ public final class DatabaseManager {
 					if(def == null) {
 						Session ts = SessionManager.Connect(VolumeManager.getAliasToPath(alias)+xClass, getInstance().getDefaultOptions(), dClass);
 						// put the main class default ColumnFamily, its not there
-						v.classToIso.put(xClass, (BufferedMap)(new BufferedMap(ts)));
-						ret = (BufferedMap)(new BufferedMap(ts, dClass));
+						v.classToIso.put(xClass, (BufferedMap)(new BufferedMap(ts, xClass, false)));
+						ret = (BufferedMap)(new BufferedMap(ts, dClass, isDerivedClass));
 					} else {
 						// create derived with session of main, previously instantiated default ColumnFamily
-						ret = (BufferedMap)(new BufferedMap(def.getSession(), dClass));
+						ret = (BufferedMap)(new BufferedMap(def.getSession(), dClass, isDerivedClass));
 					}
 					v.classToIso.put(dClass, ret);
 					if(DEBUG)
 						System.out.println("DatabaseManager.getMap About to return DERIVED map:"+ret+" for alias:"+alias+" path:"+(VolumeManager.getAliasToPath(alias)+xClass)+" class:"+xClass+" derived:"+dClass+" for volume:"+v);
 				} else {
-					ret =  new BufferedMap(SessionManager.Connect(VolumeManager.getAliasToPath(alias)+xClass, getInstance().getDefaultOptions()));
+					ret =  new BufferedMap(SessionManager.Connect(VolumeManager.getAliasToPath(alias)+xClass, getInstance().getDefaultOptions()), xClass, isDerivedClass);
 					v.classToIso.put(xClass, ret);
 					if(DEBUG)
 						System.out.println("DatabaseManager.getMap About to return BASE map:"+ret+" alias:"+alias+" for dir:"+(VolumeManager.getAliasToPath(alias)+xClass)+" class:"+xClass+" formed from "+clazz.getName()+" for volume:"+v);

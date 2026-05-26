@@ -47,27 +47,23 @@ public class BufferedMap implements OrderedKVMapInterface {
 	/**
 	* Encapsulates a RockSack session. Calls processColumnFamily on derivedClassName.
 	* @param session the {@link Session} instance
-	* @param derivedClassName the derived class for the ColumnFamily denoting subclasses stored in this database
+	* @param className the class for the ColumnFamily denoting main or derived subclasses stored in this database
+	* @param isDerived if this is a derived subclass, process column family accordingly as subclass of main
 	* @exception IOException if global IO problem
 	* @exception IllegalAccessException if the database has been put offline
 	* @throws RocksDBException 
 	*/
-	public BufferedMap(Session session, String derivedClassName) throws IllegalAccessException, IOException, RocksDBException {
+	public BufferedMap(Session session, String className, boolean isDerived) throws IllegalAccessException, IOException, RocksDBException {
 		this.session = session;
-		this.className = derivedClassName;
-		processColumnFamily(derivedClassName);
+		this.className = className;
+		if(DEBUG)
+			System.out.printf("%s %s %b%n", this.getClass().getName(), className, isDerived);
+		if(isDerived)
+			processColumnFamily(className);
+		else
+			processColumnFamily();
 	}
-	/**
-	* Encapsulates a RockSack session. CAlls processColumnFamily on default.
-	* @param session the {@link Session} instance
-	* @exception IOException if global IO problem
-	* @exception IllegalAccessException if the database has been put offline
-	* @throws RocksDBException 
-	*/
-	public BufferedMap(Session session) throws IllegalAccessException, IOException, RocksDBException {
-		this.session = session;
-		processColumnFamily();
-	}
+
 	/**
 	 * Generates columnFamilyHandle and columnFamilydescriptor for default column family
 	 * calls createColumnFamily for database if found is false
