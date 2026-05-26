@@ -40,6 +40,7 @@ import org.rocksdb.RocksDBException;
 public class BufferedMap implements OrderedKVMapInterface {
 	private static boolean DEBUG = false;
 	protected Session session = null;
+	private String className;
 	ColumnFamilyHandle columnFamilyHandle = null;
 	ColumnFamilyDescriptor columnFamilyDescriptor = null;
 
@@ -53,6 +54,7 @@ public class BufferedMap implements OrderedKVMapInterface {
 	*/
 	public BufferedMap(Session session, String derivedClassName) throws IllegalAccessException, IOException, RocksDBException {
 		this.session = session;
+		this.className = derivedClassName;
 		processColumnFamily(derivedClassName);
 	}
 	/**
@@ -446,6 +448,10 @@ public class BufferedMap implements OrderedKVMapInterface {
 		return session.contains(columnFamilyHandle, o);
 	}
 
+	public String getClassName() {
+		return className;
+	}
+	
 	@Override
 	public void Open() throws IOException {
 	}
