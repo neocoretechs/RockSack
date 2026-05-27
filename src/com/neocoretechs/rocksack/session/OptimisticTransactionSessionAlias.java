@@ -13,6 +13,7 @@ import org.rocksdb.WriteOptions;
 
 import com.neocoretechs.rocksack.Alias;
 import com.neocoretechs.rocksack.SerializedComparator;
+import com.neocoretechs.rocksack.SerializedComparatorFactory;
 /**
  * Extends the {@link TransactionSessionAlias} class to include Alias for optimistic transactions. In RocksDb a TransactionDB
  * instance contains the transaction classes and methods to provide atomicity.
@@ -43,7 +44,7 @@ public class OptimisticTransactionSessionAlias extends TransactionSessionAlias {
 		if(DEBUG)
 			System.out.printf("%s.BeginTransaction transaction name undefined%n",this.getClass().getName());
 		optoOpts = new OptimisticTransactionOptions();
-		optoOpts.setComparator(new SerializedComparator());
+		optoOpts.setComparator(SerializedComparatorFactory.newComparator());
 		optoOpts.setSetSnapshot(true);
 		return ((OptimisticTransactionDB) getKVStore()).beginTransaction(new WriteOptions(), optoOpts);
 	}

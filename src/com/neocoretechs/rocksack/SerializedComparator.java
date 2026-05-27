@@ -1,13 +1,13 @@
 package com.neocoretechs.rocksack;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
+import java.io.ObjectStreamClass;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
 
 import org.rocksdb.AbstractComparator;
 import org.rocksdb.ComparatorOptions;
@@ -27,10 +27,17 @@ import org.rocksdb.ComparatorOptions;
  *
  */
 public class SerializedComparator extends AbstractComparator {
+    private static ClassLoader loader;
 
 	public SerializedComparator() {
 		super(new ComparatorOptions());
+		loader = ClassLoader.getSystemClassLoader();
 	}
+	
+    public SerializedComparator(ClassLoader clazzloader) {
+        super(new ComparatorOptions());
+        loader = clazzloader;
+    }
 
 	@Override
 	public int compare(ByteBuffer arg0, ByteBuffer arg1) {
@@ -51,7 +58,7 @@ public class SerializedComparator extends AbstractComparator {
 				((NotifyDBCompareTo)obj1).postCompare();
 			return n;
 		} catch (Exception e) {
-			//e.printStackTrace();
+			e.printStackTrace();
 			throw new RuntimeException(e);
 		}
 	}
@@ -60,36 +67,19 @@ public class SerializedComparator extends AbstractComparator {
 	public String name() {
 		return this.getClass().getName();
 	}
-	/**
-	* static method for serialized byte to object conversion
-	* @param obuf the byte buffer containing serialized data
-	* @return Object instance
-	* @exception IOException cannot convert
-	*/
-	public static Object deserializeObject(byte[] obuf) throws IOException {
-		Object Od;
-		try {
-			ObjectInputStream s;
-			ByteArrayInputStream bais = new ByteArrayInputStream(obuf);
-			ReadableByteChannel rbc = Channels.newChannel(bais);
-			s = new ObjectInputStream(Channels.newInputStream(rbc));
-			Od = s.readObject();
-			s.close();
-			bais.close();
-			rbc.close();
-		} catch (IOException ioe) {
-			throw new IOException(
-				"deserializeObject: "
-					+ ioe.toString()
-					+ ": Class Unreadable, may have been modified beyond version compatibility: from buffer of length "
-					+ obuf.length);
-		} catch (ClassNotFoundException cnf) {
-			throw new IOException(
-				cnf.toString()
-					+ ":Class Not found, may have been modified beyond version compatibility");
-		}
-		return Od;
-	}
+	
+    // ... compare() unchanged except it calls deserializeObject(b, loader)
+    public static Object deserializeObject(byte[] obuf) throws IOException {
+        try (ByteArrayInputStream bais = new ByteArrayInputStream(obuf);
+             ObjectInputStream ois = new ClassLoaderObjectInputStream(bais, loader)) {
+            return ois.readObject();
+        } catch (ClassNotFoundException cnf) {
+            throw new IOException(cnf.toString() + ":Class Not found, may have been modified beyond version compatibility");
+        } catch (IOException ioe) {
+            throw new IOException("deserializeObject: " + ioe.toString() + ": from buffer of length " + obuf.length);
+        }
+    }
+
 	/**
 	* Static method for object to serialized byte conversion.
 	* Uses DirectByteArrayOutputStream, which allows underlying buffer to be retrieved without
@@ -110,4 +100,22 @@ public class SerializedComparator extends AbstractComparator {
 		baos.close();
 		return retbytes;
 	}
-}
+	
+	    // inner static helper
+	    private static final class ClassLoaderObjectInputStream extends ObjectInputStream {
+	        private final ClassLoader loader;
+	        ClassLoaderObjectInputStream(ByteArrayInputStream in, ClassLoader loader) throws IOException {
+	            super(in);
+	            this.loader = loader;
+	        }
+	        @Override
+	        protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
+	            String name = desc.getName();
+	            try {
+	                return Class.forName(name, false, loader);
+	            } catch (ClassNotFoundException ex) {
+	                return super.resolveClass(desc);
+	            }
+	        }
+	    }
+	}

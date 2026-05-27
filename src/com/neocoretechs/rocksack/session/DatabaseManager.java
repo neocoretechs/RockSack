@@ -31,6 +31,7 @@ import com.neocoretechs.rocksack.Alias;
 import com.neocoretechs.rocksack.DatabaseClass;
 import com.neocoretechs.rocksack.LockingTransactionId;
 import com.neocoretechs.rocksack.SerializedComparator;
+import com.neocoretechs.rocksack.SerializedComparatorFactory;
 import com.neocoretechs.rocksack.TransactionId;
 import com.neocoretechs.rocksack.session.TransactionManager.SessionAndTransaction;
 import com.neocoretechs.rocksack.session.VolumeManager.Volume;
@@ -116,7 +117,7 @@ public final class DatabaseManager {
 	 * @return the populated RocksDB options instance
 	 */
 	private static Options getDefaultOptions(BlockBasedTableConfig baseTbl) {
-		return getDefaultOptions(new SerializedComparator(), baseTbl);
+		return getDefaultOptions(SerializedComparatorFactory.newComparator(), baseTbl);
 	}
 	/**
 	 * Get the default options using a different comparator, primarily to provide hooks inside compare method.
@@ -201,25 +202,25 @@ public final class DatabaseManager {
 				.setMaxWriteBufferNumber(3)
 				.setCompressionType(CompressionType.LZ4_COMPRESSION)
 				.setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION); //bottom most, or cold long term compression disabled by default
-		cfPrimary.setComparator(new SerializedComparator());
+		cfPrimary.setComparator(SerializedComparatorFactory.newComparator());
 		/*
 		ColumnFamilyOptions cfReverse = new ColumnFamilyOptions()
 				.setWriteBufferSize(64L * SizeUnit.MB)
 				.setCompressionType(CompressionType.LZ4_COMPRESSION);
-		cfReverse.setComparator(new SerializedComparator());
+		cfReverse.setComparator(SerializedComparatorFactory.newComparator());
 		
 		ColumnFamilyOptions cfIndex = new ColumnFamilyOptions()
 				.setWriteBufferSize(64L * SizeUnit.MB)
 				.setMaxWriteBufferNumber(2)
 				.setCompressionType(CompressionType.LZ4_COMPRESSION);
-		cfIndex.setComparator(new SerializedComparator());
+		cfIndex.setComparator(SerializedComparatorFactory.newComparator()));
 
 		ColumnFamilyOptions cfCounters = new ColumnFamilyOptions()
 				.setWriteBufferSize(32L * SizeUnit.MB)
 				.setMaxWriteBufferNumber(2)
 				.setCompactionStyle(CompactionStyle.FIFO)
 				.setCompressionType(CompressionType.NO_COMPRESSION);
-		cfCounters.setComparator(new SerializedComparator());
+		cfCounters.setComparator(SerializedComparatorFactory.newComparator());
 		 */
 		// Define CF descriptors Compression_Compaction_Writebuffer_size, X is'use default'
 		CFOptionsCache.put("DEFAULT_COLUMN_FAMILY", cfPrimary);  //  primary semantic
@@ -279,7 +280,7 @@ public final class DatabaseManager {
 	    if (anno.compactionStyle() != CompactionStyle.UNIVERSAL) {
 	        opts.setCompactionStyle(anno.compactionStyle());
 	    }
-	    opts.setComparator(new SerializedComparator());
+	    opts.setComparator(SerializedComparatorFactory.newComparator());
 	    CFOptionsCache.put(dClass, opts);
 	    if(DEBUG)
 	    	System.out.printf("%s for column:%s cache key class:%s opts:%s%n",this.getClass().getName(),anno.column(),dClass,opts);
