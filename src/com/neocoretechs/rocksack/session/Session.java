@@ -8,6 +8,7 @@ import java.util.stream.Stream;
 
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.FlushOptions;
 import org.rocksdb.Options;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
@@ -129,8 +130,20 @@ public class Session {
 		}
 		dbOpen = true;
 	}
-
-
+	/**
+	 * Flush and compact the current kvStore, flush operation shall block until it terminates.
+	 * @throws IOException
+	 */
+	protected void flushDB() throws IOException {
+		try {
+			try(FlushOptions fo = new FlushOptions()) {
+				kvStore.flush(fo.setWaitForFlush(true));
+				kvStore.compactRange();
+			}
+		} catch(RocksDBException e) {
+			throw new IOException(e);
+		}
+	}
 	/**
 	 * Call the put method of KeyValueMain.
 	 * @param cfh ColumnFamilyHandle

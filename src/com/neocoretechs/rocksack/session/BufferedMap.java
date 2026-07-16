@@ -589,7 +589,13 @@ public class BufferedMap implements OrderedKVMapInterface {
 	public void dropColumn() throws IOException {
 		session.dropColumn(columnFamilyHandle);
 	}
-	
+	/**
+	 * Call a flush and compact with a wait for flush option initially. flush operation shall block until it terminates.
+	 * @throws IOException
+	 */
+	public void flushAndCompactDB() throws IOException {
+		session.flushDB();
+	}
 	@Override
 	public String toString() {
 		return this.getClass().getSimpleName()+" using column family:"+columnFamilyHandle+" for session:"+session.getDBname();

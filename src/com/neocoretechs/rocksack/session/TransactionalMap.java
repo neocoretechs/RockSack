@@ -834,8 +834,13 @@ public class TransactionalMap implements TransactionOrderedKVMapInterface {
 			throw new IOException("Transaction "+transactionId+" not found for session "+this);
 		return session.tailSetKVStream(txn, columnFamilyHandle, fkey);
 	}
-
-
+	/**
+	 * Call a flush and compact with a wait for flush option initially. flush operation shall block until it terminates.
+	 * @throws IOException
+	 */
+	public void flushAndCompactDB() throws IOException {
+		session.flushDB();
+	}
 	@Override
 	public String toString() {
 		return (session == null ? "TransactionalMap Session NULL" : session.toString()+" ClassName:"+className+" ColumnFamily:"+new String(columnFamilyDescriptor.getName()));

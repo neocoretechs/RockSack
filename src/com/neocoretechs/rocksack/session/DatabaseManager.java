@@ -168,7 +168,7 @@ public final class DatabaseManager {
 		final Cache sharedCache = new LRUCache(1024L * 1024 * 1024, 6, true);
 		BlockBasedTableConfig baseTbl = new BlockBasedTableConfig()
 				.setBlockCache(sharedCache)
-				.setBlockSize(64 * 1024)
+				.setBlockSize(16 * 1024)
 				.setCacheIndexAndFilterBlocks(true)
 				.setPinL0FilterAndIndexBlocksInCache(true)
 				.setWholeKeyFiltering(false)
@@ -190,9 +190,9 @@ public final class DatabaseManager {
 	/**
 	 * Compression_Compaction_Writebuffer_size, X is'use default'
 	 * DEFAULT_COLUMN_FAMILY: equivalent to LZ4_X_3_96, <p>
-	 * LZ4_X_64_X = LZ4 compression, default compaction, 64 MB write buffer, default max write buffer <p>
+	 * LZ4_X_64_X = LZ4 compression, default compaction, max write buffer <p>
 	 * LZ4_X_64_2 <p>
-	 * NO_FIFO_32_2 = No compression, FIFO writebuffer, 32MB write buffer, max 2 write buffers<p>
+	 * NO_FIFO_32_2 = No compression, FIFO writebuffer, 3<p>
 	 * @param baseTbl
 	 */
 	private void setupColumnFamilies(BlockBasedTableConfig baseTbl) {
