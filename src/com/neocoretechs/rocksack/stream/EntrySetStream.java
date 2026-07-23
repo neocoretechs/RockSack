@@ -24,7 +24,7 @@ public class EntrySetStream extends SackStream {
 		this(new EntrySetIterator(kvMain));
 	}
 	public EntrySetStream(Transaction kvMain) throws IOException {
-		this(new EntrySetIterator(kvMain, new ReadOptions()));
+		this(new EntrySetIterator(kvMain, new ReadOptions().setFillCache(false)));
 	}
 
 	public EntrySetStream(RocksDB kvMain, ColumnFamilyHandle cfh) throws IOException {
@@ -32,7 +32,7 @@ public class EntrySetStream extends SackStream {
 	}
 
 	public EntrySetStream(Transaction kvMain, ColumnFamilyHandle cfh) throws IOException {
-		this(new EntrySetIterator(kvMain, new ReadOptions(), cfh));
+		this(new EntrySetIterator(kvMain, new ReadOptions().setFillCache(false), cfh));
 	}
 
 }

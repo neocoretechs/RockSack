@@ -44,7 +44,7 @@ public class TailSetIterator extends AbstractIterator {
 	private static boolean DEBUG = false;
 	Comparable fromKey;
 	public TailSetIterator(Comparable fromKey, RocksDB db) throws IOException {
-		super(db.newIterator(), fromKey);//new ReadOptions().setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
+		super(db.newIterator(new ReadOptions().setFillCache(false)), fromKey);//new ReadOptions().setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
 	    //kvMain.seek(SerializedComparator.serializeObject(fromKey));
 		//if(kvMain.isValid()) {
 		//	nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
@@ -60,7 +60,7 @@ public class TailSetIterator extends AbstractIterator {
 	}
 	
 	public TailSetIterator(Comparable fromKey, Transaction db) throws IOException {
-		super(db.getIterator(new ReadOptions()));//.setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
+		super(db.getIterator(new ReadOptions().setFillCache(false)));//.setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
 		while(kvMain.isValid()) {
 			// set our lower bound
 			nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
@@ -72,7 +72,7 @@ public class TailSetIterator extends AbstractIterator {
 	}
 	
 	public TailSetIterator(ColumnFamilyHandle cfh, Comparable fromKey, RocksDB db) throws IOException {
-		super(db.newIterator(cfh), fromKey);//new ReadOptions().setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
+		super(db.newIterator(cfh,new ReadOptions().setFillCache(false)), fromKey);//new ReadOptions().setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
 	    //kvMain.seek(SerializedComparator.serializeObject(fromKey));
 		//if(kvMain.isValid()) {
 		//	nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());
@@ -88,7 +88,7 @@ public class TailSetIterator extends AbstractIterator {
 	}
 	
 	public TailSetIterator(ColumnFamilyHandle cfh, Comparable fromKey, Transaction db) throws IOException {
-		super(db.getIterator(new ReadOptions(), cfh));//.setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
+		super(db.getIterator(new ReadOptions().setFillCache(false), cfh));//.setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
 		while(kvMain.isValid()) {
 			// set our lower bound
 			nextKey = (Comparable) SerializedComparator.deserializeObject(kvMain.key());

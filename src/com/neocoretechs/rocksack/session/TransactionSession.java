@@ -38,13 +38,13 @@ public class TransactionSession extends Session implements TransactionInterface 
 
 	protected TransactionSession(TransactionDB kvStore, Options options, ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor, List<ColumnFamilyHandle> columnFamilyHandles) {
 		super(kvStore, options, columnFamilyDescriptor, columnFamilyHandles);
-		ro = new ReadOptions();
+		ro = new ReadOptions().setFillCache(false);
 		wo = new WriteOptions();
 	}
 	
 	public TransactionSession(OptimisticTransactionDB kvStore, Options options, ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor, List<ColumnFamilyHandle> columnFamilyHandles) {
 		super(kvStore, options, columnFamilyDescriptor, columnFamilyHandles);
-		ro = new ReadOptions();
+		ro = new ReadOptions().setFillCache(false);
 		wo = new WriteOptions();
 	}
 	

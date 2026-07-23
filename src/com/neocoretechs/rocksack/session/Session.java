@@ -524,7 +524,7 @@ public class Session {
 	* @exception IOException If we cannot obtain the iterator
 	*/
 	protected Iterator<?> entrySet(Transaction txn, ColumnFamilyHandle cfh) throws IOException {
-		return new EntrySetIterator(txn, new ReadOptions(), cfh);
+		return new EntrySetIterator(txn, new ReadOptions().setFillCache(false), cfh);
 	}
 
 	/**
@@ -883,7 +883,7 @@ public class Session {
 	 * @throws IOException
 	 */
 	protected Object first(Transaction txn, ColumnFamilyHandle cfh) throws IOException {
-		Iterator<?> it = new EntrySetIterator(txn, new ReadOptions(), cfh);
+		Iterator<?> it = new EntrySetIterator(txn, new ReadOptions().setFillCache(false), cfh);
 		if(it.hasNext()) {
 			return ((Entry)it.next()).getValue();
 		}
@@ -917,7 +917,7 @@ public class Session {
 	protected Comparable firstKey(Transaction txn, ColumnFamilyHandle cfh) throws IOException {
 		if(DEBUG)
 			System.out.printf("%s.firstKey for kvStore %s%n", this.getClass().getName(),txn);
-		Iterator it = new EntrySetIterator(txn, new ReadOptions(), cfh);
+		Iterator it = new EntrySetIterator(txn, new ReadOptions().setFillCache(false), cfh);
 		if(it.hasNext()) {
 			return (Comparable) ((Entry)it.next()).getKey();
 		}
@@ -951,7 +951,7 @@ public class Session {
 	protected Object last(Transaction txn, ColumnFamilyHandle cfh) throws IOException {
 		if(DEBUG)
 			System.out.printf("%s.last for kvStore %s%n", this.getClass().getName(),txn);
-		EntrySetIterator it = new EntrySetIterator(txn, new ReadOptions(), cfh);
+		EntrySetIterator it = new EntrySetIterator(txn, new ReadOptions().setFillCache(false), cfh);
 		RocksIterator ri = it.getIterator();
 		ri.seekToLast();
 		if(ri.isValid()) {
@@ -989,7 +989,7 @@ public class Session {
 	protected Comparable lastKey(Transaction txn, ColumnFamilyHandle cfh) throws IOException {
 		if(DEBUG)
 			System.out.printf("%s.lastKey for kvStore %s%n", this.getClass().getName(),txn);
-		EntrySetIterator it = new EntrySetIterator(txn, new ReadOptions(), cfh);
+		EntrySetIterator it = new EntrySetIterator(txn, new ReadOptions().setFillCache(false), cfh);
 		RocksIterator ri = it.getIterator();
 		ri.seekToLast();
 		if(ri.isValid()) {

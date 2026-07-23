@@ -45,14 +45,14 @@ public class TransactionSessionAlias extends TransactionSession {
 	protected TransactionSessionAlias(TransactionDB kvStore, Options options, ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor, List<ColumnFamilyHandle> columnFamilyHandles, Alias alias) {
 		super(kvStore, options, columnFamilyDescriptor, columnFamilyHandles);
 		this.alias = alias;
-		ro = new ReadOptions();
+		ro = new ReadOptions().setFillCache(false);
 		wo = new WriteOptions();
 	}
 	
 	public TransactionSessionAlias(OptimisticTransactionDB kvStore, Options options, ArrayList<ColumnFamilyDescriptor> columnFamilyDescriptor, List<ColumnFamilyHandle> columnFamilyHandles, Alias alias) {
 		super(kvStore, options, columnFamilyDescriptor, columnFamilyHandles);
 		this.alias = alias;
-		ro = new ReadOptions();
+		ro = new ReadOptions().setFillCache(false);
 		wo = new WriteOptions();
 	}
 

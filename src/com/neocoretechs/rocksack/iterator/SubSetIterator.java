@@ -42,7 +42,7 @@ public class SubSetIterator extends AbstractIterator {
 	Comparable fromKey, toKey;
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public SubSetIterator(Comparable fromKey, Comparable toKey, RocksDB db) throws IOException {
-		super(db.newIterator(), fromKey);//new ReadOptions()));//.
+		super(db.newIterator(new ReadOptions().setFillCache(false)), fromKey);//new ReadOptions()));//.
 				//setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));//.
 				//setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
 		//
@@ -66,7 +66,7 @@ public class SubSetIterator extends AbstractIterator {
 	}
 	
 	public SubSetIterator(Comparable fromKey, Comparable toKey, Transaction db) throws IOException {
-		super(db.getIterator(new ReadOptions()));//.
+		super(db.getIterator(new ReadOptions().setFillCache(false)));//.
 				//setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));//.
 				//setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
 		while(kvMain.isValid()) {
@@ -89,7 +89,7 @@ public class SubSetIterator extends AbstractIterator {
 	}
 	
 	public SubSetIterator(ColumnFamilyHandle cfh, Comparable fromKey, Comparable toKey, RocksDB db) throws IOException {
-		super(db.newIterator(cfh), fromKey);//new ReadOptions()));//.
+		super(db.newIterator(cfh,new ReadOptions().setFillCache(false)), fromKey);//new ReadOptions()));//.
 		//setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));//.
 		//setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
 		//
@@ -113,7 +113,7 @@ public class SubSetIterator extends AbstractIterator {
 	}
 	
 	public SubSetIterator(ColumnFamilyHandle cfh, Comparable fromKey, Comparable toKey, Transaction db) throws IOException {
-		super(db.getIterator(new ReadOptions(), cfh));//.
+		super(db.getIterator(new ReadOptions().setFillCache(false), cfh));//.
 				//setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));//.
 				//setIterateLowerBound(new Slice(SerializedComparator.serializeObject(fromKey)))));
 		while(kvMain.isValid()) {

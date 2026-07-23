@@ -40,7 +40,7 @@ import com.neocoretechs.rocksack.SerializedComparator;
 public class HeadSetIterator extends AbstractIterator {
 	Comparable toKey;
 	public HeadSetIterator(@SuppressWarnings("rawtypes") Comparable toKey, RocksDB db) throws IOException {
-		super(db.newIterator());//new ReadOptions().setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));
+		super(db.newIterator(new ReadOptions().setFillCache(false)));//new ReadOptions().setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));
 		if(kvMain.isValid() && nextKey.compareTo(toKey) >= 0) {
 			nextKey = null;
 		}
@@ -48,7 +48,7 @@ public class HeadSetIterator extends AbstractIterator {
 	}
 	
 	public HeadSetIterator(@SuppressWarnings("rawtypes") Comparable toKey, Transaction db) throws IOException {
-		super(db.getIterator(new ReadOptions()));//.setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));
+		super(db.getIterator(new ReadOptions().setFillCache(false)));//.setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));
 		if(kvMain.isValid() && nextKey.compareTo(toKey) >= 0) {
 			nextKey = null;
 		}
@@ -56,7 +56,7 @@ public class HeadSetIterator extends AbstractIterator {
 	}
 	
 	public HeadSetIterator(Comparable toKey, RocksDB db, ColumnFamilyHandle cfh) throws IOException {
-		super(db.newIterator(cfh));//new ReadOptions().setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));
+		super(db.newIterator(cfh,new ReadOptions().setFillCache(false)));//new ReadOptions().setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));
 		if(kvMain.isValid() && nextKey.compareTo(toKey) >= 0) {
 			nextKey = null;
 		}
@@ -64,7 +64,7 @@ public class HeadSetIterator extends AbstractIterator {
 	}
 	
 	public HeadSetIterator(@SuppressWarnings("rawtypes") Comparable toKey, Transaction db, ColumnFamilyHandle cfh) throws IOException {
-		super(db.getIterator(new ReadOptions(), cfh));//.setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));
+		super(db.getIterator(new ReadOptions().setFillCache(false), cfh));//.setIterateUpperBound(new Slice(SerializedComparator.serializeObject(toKey)))));
 		if(kvMain.isValid() && nextKey.compareTo(toKey) >= 0) {
 			nextKey = null;
 		}

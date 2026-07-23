@@ -43,15 +43,15 @@ public class KeySetIterator extends AbstractIterator  {
 	}
 	
 	public KeySetIterator(Transaction db) throws IOException {
-		super(db.getIterator(new ReadOptions()));
+		super(db.getIterator(new ReadOptions().setFillCache(false)));
 	}
 	
 	public KeySetIterator(RocksDB db, ColumnFamilyHandle cfh) throws IOException {
-		super(db.newIterator(cfh));
+		super(db.newIterator(cfh, new ReadOptions().setFillCache(false)));
 	}
 	
 	public KeySetIterator(Transaction db, ColumnFamilyHandle cfh) throws IOException {
-		super(db.getIterator(new ReadOptions(),cfh));
+		super(db.getIterator(new ReadOptions().setFillCache(false),cfh));
 	}
 	
 	public boolean hasNext() {

@@ -42,7 +42,7 @@ public class EntrySetIterator extends AbstractIterator {
 	Object nextElem, retElem;
 	@SuppressWarnings("rawtypes")
 	public EntrySetIterator(RocksDB db) throws IOException {
-		super(db.newIterator());
+		super(db.newIterator(new ReadOptions().setFillCache(false)));
 		if(kvMain.isValid()) {
 			nextElem = SerializedComparator.deserializeObject(kvMain.value());
 		}
@@ -61,7 +61,7 @@ public class EntrySetIterator extends AbstractIterator {
 		}
 	}
 	public EntrySetIterator(RocksDB db, ColumnFamilyHandle cfh) throws IOException {
-		super(db.newIterator(cfh));
+		super(db.newIterator(cfh,new ReadOptions().setFillCache(false)));
 		if(kvMain.isValid()) {
 			nextElem = SerializedComparator.deserializeObject(kvMain.value());
 		}

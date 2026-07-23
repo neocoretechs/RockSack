@@ -136,11 +136,11 @@ public final class DatabaseManager {
 		options.setComparator(comparator);
 		try {
 			options.setCreateIfMissing(true)
-			.setIncreaseParallelism(8)
+			.setIncreaseParallelism(Runtime.getRuntime().availableProcessors())
 			.setStatistics(stats)
 			.setWriteBufferSize(64 * SizeUnit.MB)
-			.setMaxWriteBufferNumber(25)
-			.setMaxBackgroundJobs(24)
+			.setMaxWriteBufferNumber(4)
+			.setMaxBackgroundJobs(Math.max(2, Runtime.getRuntime().availableProcessors()))
 			.setCompressionType(CompressionType.SNAPPY_COMPRESSION)
 			.setCompactionStyle(CompactionStyle.LEVEL);
 		} catch (final IllegalArgumentException e) {
@@ -169,8 +169,8 @@ public final class DatabaseManager {
 		BlockBasedTableConfig baseTbl = new BlockBasedTableConfig()
 				.setBlockCache(sharedCache)
 				.setBlockSize(16 * 1024)
-				.setCacheIndexAndFilterBlocks(true)
-				.setPinL0FilterAndIndexBlocksInCache(true)
+				.setCacheIndexAndFilterBlocks(false)
+				.setPinL0FilterAndIndexBlocksInCache(false)
 				.setWholeKeyFiltering(false)
 				.setFilterPolicy(new BloomFilter(10));
 		return baseTbl;
@@ -182,9 +182,9 @@ public final class DatabaseManager {
 				.setCreateMissingColumnFamilies(true)
 				.setUseDirectReads(false)
 				.setAllowMmapReads(true)
-				.setUseDirectIoForFlushAndCompaction(true)
-				.setIncreaseParallelism(2)
-				.setMaxBackgroundJobs(2);
+				.setUseDirectIoForFlushAndCompaction(false)
+				.setIncreaseParallelism(Runtime.getRuntime().availableProcessors())
+				.setMaxBackgroundJobs(Math.max(2, Runtime.getRuntime().availableProcessors()));
 		return dbOpts;
 	}
 	/**
@@ -199,7 +199,7 @@ public final class DatabaseManager {
 		ColumnFamilyOptions cfPrimary = new ColumnFamilyOptions()
 				.setTableFormatConfig(baseTbl)
 				.setWriteBufferSize(96L * SizeUnit.MB)
-				.setMaxWriteBufferNumber(3)
+				.setMaxWriteBufferNumber(4)
 				.setCompressionType(CompressionType.LZ4_COMPRESSION)
 				.setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION); //bottom most, or cold long term compression disabled by default
 		cfPrimary.setComparator(SerializedComparatorFactory.newComparator());
