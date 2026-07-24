@@ -165,7 +165,11 @@ public final class DatabaseManager {
 
 	private static BlockBasedTableConfig getPrivateBaseTable() {
 		// Shared cache for all CFs
-		final Cache sharedCache = new LRUCache(1024L * 1024 * 1024, 6, true);
+		// 8 GiB shared cache, 2^6 = 64 shards, soft capacity (false)
+		final long cacheBytes = 8L * 1024 * 1024 * 1024; // 8 GiB
+		final int numShardBits = 6; // 64 shards
+		final boolean strictCapacityLimit = false; // allow brief overshoot for throughput
+		final Cache sharedCache = new LRUCache(cacheBytes, numShardBits, strictCapacityLimit);
 		BlockBasedTableConfig baseTbl = new BlockBasedTableConfig()
 				.setBlockCache(sharedCache)
 				.setBlockSize(16 * 1024)
