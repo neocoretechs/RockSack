@@ -126,7 +126,7 @@ public class TransactionSession extends Session implements TransactionInterface 
 	 * @param tm the TransactionalMap we want to use for classname and sesssion
 	 * @param tLink The map entry from TransactionManager idToNameToSessionAndTransaction from key xid
 	 * @return true if passed map contains mangled name
-	 * @throws IOException
+	 * @throws IOException if TransactionManager.getSession cannot open database for transaction
 	 */
 	public synchronized boolean linkSessionAndTransaction(TransactionId xid, TransactionalMap tm, ConcurrentHashMap<String, SessionAndTransaction> tLink) throws IOException {
 		if(DEBUG)

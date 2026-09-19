@@ -956,21 +956,23 @@ public final class DatabaseManager {
 	 * will generate a mangled name and start a Transaction.
 	 * @param xid
 	 * @param tm
-	 * @throws IOException
+	 * @return false if a new link was performed, true if the link existed previously and no new association was performed
+	 * @throws IOException if TransactionManager cannot open database for transaction via setTransaction or linkSessionAndTransaction
 	 */
-	public static synchronized void associateSession(TransactionId xid, TransactionalMap tm) throws IOException {
+	public static synchronized boolean associateSession(TransactionId xid, TransactionalMap tm) throws IOException {
 		ConcurrentHashMap<String, SessionAndTransaction> ts = TransactionManager.getTransactionSession(xid);
 		if(DEBUG)
 			System.out.printf("DatabaseManager.associateSession Enter Transaction id:%s TransactionMap:%s got session:%s%n",xid,tm,ts);
 		if(ts == null) {
 			if(DEBUG)
 				System.out.printf("DatabaseManager.associateSession Setting Transaction id:%s TransactionMap:%s create new link for session:%s%n",xid,tm,tm.getSession());
+			// performs a linkSessionAndTransaction with a new HashMap entry
 			TransactionManager.setTransaction(xid, tm);
-			return;
+			return false;
 		}
-		// if map of mangled name to SessionAndTransaction instances exists already, throw exception
-		if(tm.getSession().linkSessionAndTransaction(xid, tm, ts))
-			throw new IOException("Transactional Map "+tm+" already associated with id "+xid);
+		// if map of mangled name to SessionAndTransaction instances exists already, return true, throw exception if DB cant be opened for transaction
+		return tm.getSession().linkSessionAndTransaction(xid, tm, ts);
+			//throw new IOException("Transactional Map "+tm+" already associated with id "+xid);
 	}
 	
 	/**
